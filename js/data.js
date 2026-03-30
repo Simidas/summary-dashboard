@@ -187,6 +187,10 @@ export async function loadDailySummary(dateStr) {
  * @returns {Promise<Object[]>}
  */
 export async function loadDailySummaries(dateStrs) {
+  if (!dateStrs || !Array.isArray(dateStrs)) {
+    console.error('loadDailySummaries: dateStrs is not an array', dateStrs);
+    return [];
+  }
   const results = [];
   for (const dateStr of dateStrs) {
     const data = await loadDailySummary(dateStr);
@@ -203,6 +207,10 @@ export async function loadDailySummaries(dateStrs) {
 export async function getAvailableDailyDates() {
   const dates = await scanAvailableDailyDates();
   // Return last 14 days that have data
+  if (!Array.isArray(dates)) {
+    console.error('getAvailableDailyDates: unexpected return type', dates);
+    return [];
+  }
   return dates.slice(0, 14);
 }
 

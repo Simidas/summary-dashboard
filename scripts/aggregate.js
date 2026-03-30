@@ -389,6 +389,12 @@ function main() {
   const monthFiles = fs.readdirSync(MONTHLY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort();
   const yearFiles = fs.readdirSync(YEARLY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort();
 
+  // Generate daily manifest
+  const dailyFiles = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort().reverse();
+  fs.writeFileSync(path.join(DAILY_DIR, 'manifest.json'), JSON.stringify({ dates: dailyFiles }), 'utf-8');
+  console.log('Generated daily manifest:', dailyFiles.length, 'files');
+
+  // Generate weekly/monthly/yearly manifests
   fs.writeFileSync(path.join(WEEKLY_DIR, 'manifest.json'), JSON.stringify({ weeks: weekFiles }), 'utf-8');
   fs.writeFileSync(path.join(MONTHLY_DIR, 'manifest.json'), JSON.stringify({ months: monthFiles }), 'utf-8');
   fs.writeFileSync(path.join(YEARLY_DIR, 'manifest.json'), JSON.stringify({ years: yearFiles }), 'utf-8');
