@@ -396,4 +396,7 @@ on:
 
 ---
 
+- **GitHub 仓库：** https://github.com/Simidas/summary-dashboard
+- **初始化完成：** 2026-03-30，SPEC.md 已 push
+
 _本文档由小乐于 2026-03-30 起草_
