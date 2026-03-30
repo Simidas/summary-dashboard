@@ -1,0 +1,27 @@
+{
+  "date": "2026-03-30",
+  "week": "2026-W13",
+  "weekday": "Monday",
+  "achievements": [
+    "OpenClaw cron delivery 修复：定时任务终于能正确触发",
+    "会话摘要主动记录规范正式立项，命名「复盘」项目"
+  ],
+  "discussions": [
+    "Agent 长期记忆方案：向量数据库 vs 结构化日志",
+    "summary-dashboard Phase 1 实现细节评审"
+  ],
+  "followUps": [
+    "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+    "GitHub Actions 定时构建流程设计",
+    "Giscus 匿名评论配置验证"
+  ],
+  "learnings": [
+    "OpenClaw cron 表达式时区问题：系统默认 UTC，需显式设置 Asia/Shanghai",
+    "GitHub Discussions 作为 CMS 评论系统的优缺点"
+  ],
+  "projects": ["复盘项目", "OpenClaw"],
+  "contentCreated": false,
+  "exercise": "俯卧撑 3组 × 15个",
+  "tags": ["OpenClaw", "复盘项目", "规范立项"],
+  "mood": "🟢"
+}

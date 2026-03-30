@@ -1,0 +1,28 @@
+{
+  "date": "2026-03-29",
+  "week": "2026-W12",
+  "weekday": "Sunday",
+  "achievements": [
+    "背景去除项目 v2.0 正式上线，支持批量处理和 API 调用",
+    "PayPal Live 环境调通，支付回调接收正常",
+    "公众号第二篇文章《从零搭建 AI 写作助手》发布"
+  ],
+  "discussions": [
+    "背景去除项目商业化路径：ToB API 收费 vs ToC 订阅",
+    "OpenClaw Agent 在后台持续运行的最佳实践"
+  ],
+  "followUps": [
+    "背景去除项目 v2.1 需求评审",
+    "PayPal Webhook 签名验证加固",
+    "公众号文章 SEO 优化"
+  ],
+  "learnings": [
+    "PayPal Sandbox 和 Live 环境 token 不通用，需要单独申请",
+    "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2"
+  ],
+  "projects": ["背景去除项目", "OpenClaw", "内容创作"],
+  "contentCreated": true,
+  "exercise": "晨跑 30 分钟",
+  "tags": ["背景去除", "PayPal", "AI项目", "公众号"],
+  "mood": "🟢"
+}

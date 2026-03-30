@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="个人 AI 复盘展示站 — 每天种下一行记录，到了年底回头看，是一片金色的收成。">
+  <meta name="theme-color" content="#FAFAF8">
+  <title>复盘 — AI 工作复盘展示</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="site-header">
+      <div class="header-inner">
+        <a href="#daily" class="logo">
+          🌾 <span>复盘</span>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <nav class="main-nav" aria-label="主导航">
+          <a href="#daily" class="nav-link active" data-route="daily">Daily</a>
+          <a href="#weekly" class="nav-link" data-route="weekly">Weekly</a>
+          <a href="#monthly" class="nav-link" data-route="monthly">Monthly</a>
+          <a href="#yearly" class="nav-link" data-route="yearly">Yearly</a>
+        </nav>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="nav-toggle" aria-label="菜单" aria-expanded="false">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Navigation -->
+      <nav class="mobile-menu" aria-label="移动端导航">
+        <a href="#daily" class="nav-link active" data-route="daily">Daily</a>
+        <a href="#weekly" class="nav-link" data-route="weekly">Weekly</a>
+        <a href="#monthly" class="nav-link" data-route="monthly">Monthly</a>
+        <a href="#yearly" class="nav-link" data-route="yearly">Yearly</a>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Content rendered by JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>© 2026 <a href="#daily">复盘</a> · 用 <a href="https://github.com/Simidas/summary-dashboard" target="_blank" rel="noopener">OpenClaw</a> 构建</p>
+    </footer>
+  </div>
+
+  <!-- App Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
