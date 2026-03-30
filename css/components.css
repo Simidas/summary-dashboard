@@ -359,6 +359,124 @@
   font-size: 1rem;
 }
 
+/* ---- Week Card ---- */
+.week-card-range {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.week-card-details {
+  font-size: 0.875rem;
+}
+
+.week-card-days,
+.week-card-content {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.week-card-daily-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* ---- Month Card ---- */
+.month-card-year {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.month-card-details {
+  font-size: 0.875rem;
+}
+
+/* ---- Year Hero Card ---- */
+.year-hero-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.year-hero-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.year-hero-header {
+  margin-bottom: var(--space-4);
+}
+
+.year-hero-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.year-hero-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.year-hero-stats {
+  display: flex;
+  gap: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.year-stat {
+  text-align: center;
+}
+
+.year-stat-value {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.year-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.year-hero-tags {
+  margin-bottom: var(--space-2);
+}
+
+.year-hero-tags-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.year-hero-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---- Monthly Bar Chart ---- */
+.monthly-chart-section {
+  margin-bottom: var(--space-6);
+}
+
+.monthly-chart-section .section-title {
+  margin-bottom: 0;
+}
+
+.monthly-bar-chart {
+  overflow-x: auto;
+}
+
 /* ---- Keyboard hint ---- */
 .keyboard-hint {
   display: flex;

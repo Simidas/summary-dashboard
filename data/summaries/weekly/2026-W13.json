@@ -1,0 +1,26 @@
+{
+  "year": 2026,
+  "week": "W13",
+  "dateRange": "2026-03-23 ~ 2026-03-29",
+  "days": 2,
+  "totalAchievements": 6,
+  "totalDiscussions": 3,
+  "totalFollowUps": 5,
+  "topProjects": [
+    "内容创作",
+    "AI自动化",
+    "背景去除项目"
+  ],
+  "topTags": [
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "背景去除",
+    "PayPal"
+  ],
+  "contentPublished": 2,
+  "dailyRecords": [
+    "2026-03-28",
+    "2026-03-29"
+  ]
+}

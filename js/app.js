@@ -4,7 +4,9 @@
 
 import router from './router.js';
 import { renderDailyView } from './views/daily.js';
-import { createGiscusSection } from './components/giscus.js';
+import { renderWeeklyView } from './views/weekly.js';
+import { renderMonthlyView } from './views/monthly.js';
+import { renderYearlyView } from './views/yearly.js';
 
 // DOM Elements
 let app, mainContent, navLinks, header, mobileMenu;
@@ -111,37 +113,25 @@ function setupRoutes() {
     await renderDailyView(mainContent, params);
   });
 
-  // Weekly view (skeleton)
-  router.on('weekly', (params) => {
+  // Weekly view
+  router.on('weekly', async (params) => {
     updateActiveNav('weekly');
     window.scrollTo(0, 0);
-    renderSkeletonView(mainContent, {
-      title: 'Weekly 视图',
-      desc: '周聚合功能即将上线，敬请期待...',
-      icon: '📅'
-    });
+    await renderWeeklyView(mainContent, params);
   });
 
-  // Monthly view (skeleton)
-  router.on('monthly', (params) => {
+  // Monthly view
+  router.on('monthly', async (params) => {
     updateActiveNav('monthly');
     window.scrollTo(0, 0);
-    renderSkeletonView(mainContent, {
-      title: 'Monthly 视图',
-      desc: '月聚合功能即将上线，敬请期待...',
-      icon: '📆'
-    });
+    await renderMonthlyView(mainContent, params);
   });
 
-  // Yearly view (skeleton)
-  router.on('yearly', (params) => {
+  // Yearly view
+  router.on('yearly', async (params) => {
     updateActiveNav('yearly');
     window.scrollTo(0, 0);
-    renderSkeletonView(mainContent, {
-      title: 'Yearly 视图',
-      desc: '年聚合功能即将上线，敬请期待...',
-      icon: '🗓️'
-    });
+    await renderYearlyView(mainContent, params);
   });
 }
 
