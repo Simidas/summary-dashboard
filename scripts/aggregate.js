@@ -167,7 +167,7 @@ function loadDailySummaries() {
     return [];
   }
   
-  const files = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.json'));
+  const files = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json');
   const summaries = [];
   
   files.forEach(file => {
