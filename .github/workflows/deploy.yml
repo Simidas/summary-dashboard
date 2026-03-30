@@ -27,13 +27,8 @@ jobs:
         with:
           node-version: '20'
 
-      # Step 1: Pull latest daily summaries from workspace repository
-      - name: Pull latest daily summaries
-        run: |
-          git clone --depth 1 https://github.com/Simidas/Ledazhushou.git /tmp/workspace
-          mkdir -p data/summaries/daily
-          cp -r /tmp/workspace/memory/summaries/daily/*.json data/summaries/daily/ 2>/dev/null || true
-          echo "Copied daily summaries from workspace"
+      # Note: Daily summaries are committed directly to this repo (Simidas/summary-dashboard)
+      # so no need to clone from Ledazhushou workspace repo
 
       # Step 2: Run aggregation script
       - name: Run aggregation script
