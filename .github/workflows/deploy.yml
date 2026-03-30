@@ -53,12 +53,5 @@ jobs:
             echo "Pushed updated summary data"
           fi
 
-      # Step 5: Deploy to Cloudflare Pages
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: summary-dashboard
-          directory: .
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      # Note: Cloudflare Pages GitHub integration handles auto-deploy on push to main.
+      # Cloudflare automatically builds and deploys from the latest commit.
