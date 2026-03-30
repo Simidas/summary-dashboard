@@ -54,6 +54,9 @@ export async function renderDailyView(container, params = {}) {
     return;
   }
 
+  // Remove skeleton now that real data is ready
+  skeleton.remove();
+
   // Build main content
   renderHero(page, summaries[0]);
 
