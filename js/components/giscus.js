@@ -7,17 +7,18 @@ class GiscusComponent {
     this.container = container;
     this.options = {
       repo: 'Simidas/summary-dashboard',
-      repoId: '', // Will be filled when initialized at giscus.app
-      category: 'Daily Summaries',
-      categoryId: '', // Will be filled when initialized at giscus.app
+      repoId: 'R_kgDOR0YGCw',
+      category: 'General',
+      categoryId: 'DIC_kwDOR0YGC84C5mS9',
       mapping: 'pathname',
       strict: '0',
       reactionsEnabled: '1',
       emitMetadata: '0',
       inputPosition: 'top',
-      theme: 'light',
+      theme: 'preferred_color_scheme',
       lang: 'zh-CN',
-      enableAnonymous: 'true', // Enable anonymous comments
+      loading: 'lazy',
+      anonymous: 'true',
       ...options
     };
     this.loaded = false;
@@ -32,9 +33,9 @@ class GiscusComponent {
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
     script.setAttribute('data-repo', this.options.repo);
-    script.setAttribute('data-repo-id', this.options.repoId || 'R_kgDOOnE6Kw');
-    script.setAttribute('data-category', this.options.category);
-    script.setAttribute('data-category-id', this.options.categoryId || 'DIC_kwDOOnE6K84CpdX-');
+    script.setAttribute('data-repo-id', this.options.repoId || 'R_kgDOR0YGCw');
+    script.setAttribute('data-category', this.options.category || 'General');
+    script.setAttribute('data-category-id', this.options.categoryId || 'DIC_kwDOR0YGC84C5mS9');
     script.setAttribute('data-mapping', this.options.mapping);
     script.setAttribute('data-strict', this.options.strict);
     script.setAttribute('data-reactions-enabled', this.options.reactionsEnabled);
@@ -42,7 +43,8 @@ class GiscusComponent {
     script.setAttribute('data-input-position', this.options.inputPosition);
     script.setAttribute('data-theme', this.options.theme);
     script.setAttribute('data-lang', this.options.lang);
-    script.setAttribute('data-anonymous', this.options.enableAnonymous);
+    script.setAttribute('data-loading', this.options.loading || 'lazy');
+    script.setAttribute('data-anonymous', this.options.anonymous || 'true');
     script.crossOrigin = 'anonymous';
     script.async = true;
 
