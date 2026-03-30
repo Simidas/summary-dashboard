@@ -99,10 +99,10 @@ function renderHero(page, latest) {
     </div>
   `;
 
-  // Insert at top
+  // Insert at top - use existingHero's parent to replace (handles nested skeleton hero)
   const existingHero = page.querySelector('.hero');
   if (existingHero) {
-    page.replaceChild(hero, existingHero);
+    existingHero.parentNode.replaceChild(hero, existingHero);
   } else {
     page.insertBefore(hero, page.firstChild);
   }
