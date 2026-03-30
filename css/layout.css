@@ -172,6 +172,14 @@ main {
   color: var(--accent);
 }
 
+.deploy-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  margin-top: var(--space-1);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
 /* Page transitions */
 .page {
   animation: fadeIn var(--transition-base) both;
