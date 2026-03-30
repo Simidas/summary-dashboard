@@ -385,9 +385,9 @@ function main() {
   console.log('');
 
   // Generate manifest files for efficient JS scanning
-  const weekFiles = fs.readdirSync(WEEKLY_DIR).filter(f => f.endsWith('.json')).map(f => f.replace('.json', '')).sort();
-  const monthFiles = fs.readdirSync(MONTHLY_DIR).filter(f => f.endsWith('.json')).map(f => f.replace('.json', '')).sort();
-  const yearFiles = fs.readdirSync(YEARLY_DIR).filter(f => f.endsWith('.json')).map(f => f.replace('.json', '')).sort();
+  const weekFiles = fs.readdirSync(WEEKLY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort();
+  const monthFiles = fs.readdirSync(MONTHLY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort();
+  const yearFiles = fs.readdirSync(YEARLY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort();
 
   fs.writeFileSync(path.join(WEEKLY_DIR, 'manifest.json'), JSON.stringify({ weeks: weekFiles }), 'utf-8');
   fs.writeFileSync(path.join(MONTHLY_DIR, 'manifest.json'), JSON.stringify({ months: monthFiles }), 'utf-8');
