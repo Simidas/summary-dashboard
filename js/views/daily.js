@@ -41,7 +41,7 @@ export async function renderDailyView(container, params = {}) {
   container.appendChild(page);
 
   // Load data
-  const availableDates = getAvailableDailyDates();
+  const availableDates = await getAvailableDailyDates();
   summaries = await loadDailySummaries(availableDates);
 
   if (summaries.length === 0) {
