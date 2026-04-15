@@ -1,7 +1,7 @@
 {
   "year": 2026,
-  "totalAchievements": 8,
-  "totalProjects": 5,
+  "totalAchievements": 11,
+  "totalProjects": 7,
   "totalContentPublished": 2,
   "topTags": [
     "内容创作",
@@ -11,6 +11,7 @@
     "PayPal"
   ],
   "months": [
-    "2026-03"
+    "2026-03",
+    "2026-04"
   ]
 }
