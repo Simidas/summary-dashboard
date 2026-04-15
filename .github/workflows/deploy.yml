@@ -17,6 +17,8 @@ on:
 jobs:
   aggregate-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for workflow to push changes back to repo
     
     steps:
       - name: Checkout
