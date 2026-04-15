@@ -1,0 +1,27 @@
+{
+  "date": "2026-04-15",
+  "week": "2026-W16",
+  "weekday": "Wednesday",
+  "achievements": [
+    "晨跑2.22km + 俯卧撑3组，连续第二天运动",
+    "确定本月核心目标：AI产品建设（PDF Q&A）",
+    "summary-dashboard 项目梳理，明确更新方向"
+  ],
+  "discussions": [
+    "和老婆共享 summary-dashboard，向她透明化每日工作",
+    "AI产品建设的完整开发流程梳理"
+  ],
+  "followUps": [
+    "推进 PDF Q&A 项目 MVP",
+    "继续 summary-dashboard 功能更新"
+  ],
+  "learnings": [
+    "目标分散+ADHD执行功能障碍双重影响，需要聚焦一件事",
+    "UTC时间需显式转换 CST，避免'凌晨跑步'的误解"
+  ],
+  "projects": ["PDF Q&A", "summary-dashboard"],
+  "tags": ["AI产品", "工作提效", "生活琐碎"],
+  "contentCreated": false,
+  "exercise": "跑步20分钟 2.22km + 俯卧撑3组",
+  "mood": "🟡"
+}
