@@ -30,24 +30,33 @@ jobs:
         with:
           node-version: '20'
 
-      # Note: Daily summaries are committed directly to this repo (Simidas/summary-dashboard)
-      # so no need to clone from Ledazhushou workspace repo
+      # Install wrangler
+      - name: Install Wrangler
+        run: npm install -g wrangler
 
-      # Step 2: Run aggregation script
+      # Configure Cloudflare
+      - name: Configure Cloudflare credentials
+        run: |
+          echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" > .wf_credentials
+          echo "Account ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Run aggregation script
       - name: Run aggregation script
         run: node scripts/aggregate.js
 
-      # Step 3: Configure git
+      # Configure git
       - name: Configure git
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Step 4: Commit and push changes (only if there are changes)
+      # Commit and push changes (only if there are changes)
       - name: Commit and push changes
         run: |
           git add data/summaries/
-          # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No new data to commit"
           else
@@ -56,5 +65,10 @@ jobs:
             echo "Pushed updated summary data"
           fi
 
-      # Note: Cloudflare Pages GitHub integration handles auto-deploy on push to main.
-      # Cloudflare automatically builds and deploys from the latest commit.
+      # Deploy to Cloudflare Workers/Pages
+      - name: Deploy to Cloudflare
+        run: |
+          wrangler pages deploy . --project-name=summary-dashboard --commit-message="${{ github.event.head_commit.message }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
