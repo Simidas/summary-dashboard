@@ -3,6 +3,7 @@
    ======================================== */
 
 import { getAvailableMonths, loadMonthlySummary } from '../data.js';
+import { createGiscusToggle } from '../components/giscus.js';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -123,79 +124,18 @@ export async function renderMonthlyView(container, params = {}) {
   page.appendChild(grid);
   
   // Giscus section
-  page.appendChild(createGiscusDiv('monthly-overview'));
+  page.appendChild(createGiscusSection('monthly-overview'));
 
   container.innerHTML = '';
   container.appendChild(page);
 }
 
 /**
- * Create a month card
- * @param {Object} data
- * @param {boolean} expanded
- * @returns {HTMLElement}
- */
-function createMonthCard(data, expanded = false) {
-  const card = document.createElement('article');
-  card.className = 'aggregation-card month-card' + (expanded ? ' expanded' : '');
-  
-  card.innerHTML = `
-    <div class="aggregation-card-header">
-      <div class="aggregation-card-title">${data.monthName}</div>
-      <div class="month-card-year">${data.year}年</div>
-    </div>
-    <div class="aggregation-card-stats">
-      <span class="aggregation-card-stat">✅ ${data.totalAchievements || 0}</span>
-      <span class="aggregation-card-stat">💬 ${data.totalDiscussions || 0}</span>
-      ${data.contentPublished ? `<span class="aggregation-card-stat">📝 ${data.contentPublished}</span>` : ''}
-    </div>
-    <div class="aggregation-card-tags">
-      ${(data.topTags || []).slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
-    </div>
-    <div class="month-card-details" style="display: ${expanded ? 'block' : 'none'}; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px dashed var(--border);">
-      <div style="font-size: 0.875rem; color: var(--text-secondary);">
-        <div>📅 本月涉及 ${data.weeks?.length || 0} 周</div>
-        ${data.topProjects?.length ? `<div style="margin-top: 4px;">📁 项目：${data.topProjects.join(', ')}</div>` : ''}
-      </div>
-    </div>
-    <button class="month-card-expand" style="margin-top: var(--space-2); font-size: 0.8125rem; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0;">
-      ${expanded ? '收起' : '展开详情'}
-    </button>
-  `;
-
-  // Toggle expand on click
-  const expandBtn = card.querySelector('.month-card-expand');
-  const details = card.querySelector('.month-card-details');
-  
-  expandBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isExpanded = details.style.display === 'block';
-    details.style.display = isExpanded ? 'none' : 'block';
-    expandBtn.textContent = isExpanded ? '展开详情' : '收起';
-    card.classList.toggle('expanded', !isExpanded);
-  });
-
-  return card;
-}
-
-/**
- * Escape HTML
- * @param {string} str
- * @returns {string}
- */
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-/**
- * Create a simple Giscus div placeholder
+ * Create giscus section for monthly view
  * @param {string} topic
  * @returns {HTMLElement}
  */
-function createGiscusDiv(topic) {
+function createGiscusSection(topic) {
   const section = document.createElement('div');
   section.className = 'giscus-section';
   section.innerHTML = `
@@ -205,46 +145,7 @@ function createGiscusDiv(topic) {
     <div class="giscus-container" id="giscus-monthly"></div>
   `;
 
-  // Lazy load giscus
-  const container = section.querySelector('#giscus-monthly');
-  const toggle = document.createElement('button');
-  toggle.className = 'giscus-toggle';
-  toggle.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 5.5C2 4.11929 3.11929 3 4.5 3H11.5C12.8807 3 14 4.11929 14 5.5V8.5C14 9.88071 12.8807 11 11.5 11H7L4 13V11H4.5C3.11929 11 2 9.88071 2 8.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span>展开评论区</span>
-  `;
-
-  toggle.addEventListener('click', () => {
-    if (!container.classList.contains('loaded')) {
-      const script = document.createElement('script');
-      script.src = 'https://giscus.app/client.js';
-      script.setAttribute('data-repo', 'Simidas/summary-dashboard');
-      script.setAttribute('data-repo-id', 'R_kgDOR0YGCw');
-      script.setAttribute('data-category', 'General');
-      script.setAttribute('data-category-id', 'DIC_kwDOR0YGC84C5mS9');
-      script.setAttribute('data-mapping', 'pathname');
-      script.setAttribute('data-strict', '0');
-      script.setAttribute('data-reactions-enabled', '1');
-      script.setAttribute('data-emit-metadata', '0');
-      script.setAttribute('data-input-position', 'top');
-      script.setAttribute('data-theme', 'preferred_color_scheme');
-      script.setAttribute('data-lang', 'zh-CN');
-      script.setAttribute('data-loading', 'lazy');
-      script.setAttribute('data-anonymous', 'true');
-      script.crossOrigin = 'anonymous';
-      script.async = true;
-      container.appendChild(script);
-      container.classList.add('loaded');
-      toggle.querySelector('span').textContent = '收起评论区';
-    } else {
-      container.classList.toggle('loaded');
-      const isLoaded = container.classList.contains('loaded');
-      toggle.querySelector('span').textContent = isLoaded ? '收起评论区' : '展开评论区';
-    }
-  });
-
-  section.insertBefore(toggle, container);
+  const toggle = createGiscusToggle('giscus-monthly', '展开评论区');
+  section.querySelector('.giscus-header').appendChild(toggle);
   return section;
 }

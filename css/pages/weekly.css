@@ -1,0 +1,26 @@
+/* ========================================
+   Weekly View Styles
+   ======================================== */
+
+/* ---- Week Card ---- */
+.week-card-range {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.week-card-details {
+  font-size: 0.875rem;
+}
+
+.week-card-days,
+.week-card-content {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.week-card-daily-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}

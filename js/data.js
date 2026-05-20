@@ -2,6 +2,9 @@
    Data Loading & Caching
    ======================================== */
 
+// TODO(Phase 2): Preload adjacent data for smoother navigation
+// TODO(Phase 4): Migrate to Cloudflare Workers API for dynamic queries
+
 // In-memory cache
 const cache = {
   daily: {},
@@ -38,23 +41,23 @@ async function scanAvailableDailyDates() {
     // manifest doesn't exist, fall through
   }
   
-  // Fallback: try to fetch known dates (last 30 days)
+  // Fallback: try to fetch known dates (last 30 days) — parallel with timeout
   const dates = [];
   const today = new Date();
+  const checks = [];
   for (let i = 0; i < 30; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
-    try {
-      const response = await fetch(`data/summaries/daily/${dateStr}.json`);
-      if (response.ok) {
-        dates.push(dateStr);
-      }
-    } catch (e) {
-      // Date doesn't exist
-    }
+    checks.push(
+      Promise.race([
+        fetch(`data/summaries/daily/${dateStr}.json`).then(r => r.ok ? dateStr : null),
+        new Promise(resolve => setTimeout(() => resolve(null), 3000))
+      ])
+    );
   }
-  _availableDates = dates.sort().reverse();
+  const results = await Promise.all(checks);
+  _availableDates = results.filter(Boolean).sort().reverse();
   return _availableDates;
 }
 
@@ -74,7 +77,7 @@ async function scanAvailableWeeks() {
     }
   } catch (e) {}
   
-  // Fallback: try W01-W52 for recent years
+  // Fallback: try W01-W53 for recent years — parallel with timeout
   const weeks = [];
   const years = [2026];
   years.forEach(year => {
@@ -84,15 +87,15 @@ async function scanAvailableWeeks() {
     }
   });
   
-  // Filter to only existing ones
-  const existing = [];
-  for (const week of weeks) {
-    try {
-      const response = await fetch(`data/summaries/weekly/${week}.json`);
-      if (response.ok) existing.push(week);
-    } catch (e) {}
-  }
-  _availableWeeks = existing;
+  // Filter to only existing ones — parallel with timeout
+  const checks = weeks.map(week =>
+    Promise.race([
+      fetch(`data/summaries/weekly/${week}.json`).then(r => r.ok ? week : null),
+      new Promise(resolve => setTimeout(() => resolve(null), 3000))
+    ])
+  );
+  const results = await Promise.all(checks);
+  _availableWeeks = results.filter(Boolean);
   return _availableWeeks;
 }
 
@@ -112,21 +115,21 @@ async function scanAvailableMonths() {
     }
   } catch (e) {}
   
-  // Fallback: try 2026-01 to 2026-12
+  // Fallback: try 2026-01 to 2026-12 — parallel with timeout
   const months = [];
   for (let m = 1; m <= 12; m++) {
     const monthStr = `2026-${String(m).padStart(2, '0')}`;
     months.push(monthStr);
   }
   
-  const existing = [];
-  for (const month of months) {
-    try {
-      const response = await fetch(`data/summaries/monthly/${month}.json`);
-      if (response.ok) existing.push(month);
-    } catch (e) {}
-  }
-  _availableMonths = existing;
+  const checks = months.map(month =>
+    Promise.race([
+      fetch(`data/summaries/monthly/${month}.json`).then(r => r.ok ? month : null),
+      new Promise(resolve => setTimeout(() => resolve(null), 3000))
+    ])
+  );
+  const results = await Promise.all(checks);
+  _availableMonths = results.filter(Boolean);
   return _availableMonths;
 }
 
@@ -146,16 +149,16 @@ async function scanAvailableYears() {
     }
   } catch (e) {}
   
-  // Fallback: try 2026
+  // Fallback: try 2026 — parallel with timeout
   const years = ['2026'];
-  const existing = [];
-  for (const year of years) {
-    try {
-      const response = await fetch(`data/summaries/yearly/${year}.json`);
-      if (response.ok) existing.push(year);
-    } catch (e) {}
-  }
-  _availableYears = existing;
+  const checks = years.map(year =>
+    Promise.race([
+      fetch(`data/summaries/yearly/${year}.json`).then(r => r.ok ? year : null),
+      new Promise(resolve => setTimeout(() => resolve(null), 3000))
+    ])
+  );
+  const results = await Promise.all(checks);
+  _availableYears = results.filter(Boolean);
   return _availableYears;
 }
 

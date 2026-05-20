@@ -2,11 +2,17 @@
    Main Application Entry
    ======================================== */
 
+// TODO(Phase 3): Implement search with Ctrl+K / '/' shortcut
+// TODO(Phase 3): Implement tag cloud and tag filtering
+// TODO(Phase 3): Implement responsive sidebar navigation for desktop (>1024px)
+// TODO(Phase 4): Add Cloudflare Workers API for server-side search
+
 import router from './router.js';
 import { renderDailyView } from './views/daily.js';
 import { renderWeeklyView } from './views/weekly.js';
 import { renderMonthlyView } from './views/monthly.js';
 import { renderYearlyView } from './views/yearly.js';
+import { createGiscusToggle } from './components/giscus.js';
 
 // DOM Elements
 let app, mainContent, navLinks, header, mobileMenu;
@@ -155,54 +161,17 @@ function renderSkeletonView(container, config) {
         <div class="giscus-header">
           <h3 class="giscus-title">来聊聊</h3>
         </div>
-        <div class="giscus-container" id="giscus-container"></div>
+        <div class="giscus-container" id="giscus-skeleton"></div>
       </div>
     </div>
   `;
 
-  // Lazy load giscus for skeleton views
-  const giscusContainer = container.querySelector('#giscus-container');
-  if (giscusContainer) {
-    const toggle = document.createElement('button');
-    toggle.className = 'giscus-toggle';
+  // Lazy load giscus for skeleton views using shared component
+  const giscusHeader = container.querySelector('.giscus-header');
+  if (giscusHeader) {
+    const toggle = createGiscusToggle('giscus-skeleton', '展开评论区');
     toggle.style.marginTop = 'var(--space-2)';
-    toggle.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 5.5C2 4.11929 3.11929 3 4.5 3H11.5C12.8807 3 14 4.11929 14 5.5V8.5C14 9.88071 12.8807 11 11.5 11H7L4 13V11H4.5C3.11929 11 2 9.88071 2 8.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>展开评论区</span>
-    `;
-
-    toggle.addEventListener('click', () => {
-      if (!giscusContainer.classList.contains('loaded')) {
-        const script = document.createElement('script');
-        script.src = 'https://giscus.app/client.js';
-        script.setAttribute('data-repo', 'Simidas/summary-dashboard');
-        script.setAttribute('data-repo-id', 'R_kgDOR0YGCw');
-        script.setAttribute('data-category', 'General');
-        script.setAttribute('data-category-id', 'DIC_kwDOR0YGC84C5mS9');
-        script.setAttribute('data-mapping', 'pathname');
-        script.setAttribute('data-strict', '0');
-        script.setAttribute('data-reactions-enabled', '1');
-        script.setAttribute('data-emit-metadata', '0');
-        script.setAttribute('data-input-position', 'top');
-        script.setAttribute('data-theme', 'preferred_color_scheme');
-        script.setAttribute('data-lang', 'zh-CN');
-        script.setAttribute('data-loading', 'lazy');
-        script.setAttribute('data-anonymous', 'true');
-        script.crossOrigin = 'anonymous';
-        script.async = true;
-        giscusContainer.appendChild(script);
-        giscusContainer.classList.add('loaded');
-        toggle.querySelector('span').textContent = '收起评论区';
-      } else {
-        giscusContainer.classList.toggle('loaded');
-        const isLoaded = giscusContainer.classList.contains('loaded');
-        toggle.querySelector('span').textContent = isLoaded ? '收起评论区' : '展开评论区';
-      }
-    });
-
-    giscusContainer.parentNode.insertBefore(toggle, giscusContainer);
+    giscusHeader.appendChild(toggle);
   }
 }
 

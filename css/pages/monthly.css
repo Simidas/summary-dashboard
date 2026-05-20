@@ -1,0 +1,26 @@
+/* ========================================
+   Monthly View Styles
+   ======================================== */
+
+/* ---- Month Card ---- */
+.month-card-year {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.month-card-details {
+  font-size: 0.875rem;
+}
+
+/* ---- Monthly Bar Chart ---- */
+.monthly-chart-section {
+  margin-bottom: var(--space-6);
+}
+
+.monthly-chart-section .section-title {
+  margin-bottom: 0;
+}
+
+.monthly-bar-chart {
+  overflow-x: auto;
+}

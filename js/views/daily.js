@@ -2,9 +2,12 @@
    Daily View
    ======================================== */
 
+// TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
+// TODO(Phase 3): Add tag click filtering
+
 import { loadDailySummaries, getAvailableDailyDates } from '../data.js';
 import { createSummaryCard, createSkeletonCard } from '../components/card.js';
-import { createGiscusSection } from '../components/giscus.js';
+import { createGiscusToggle } from '../components/giscus.js';
 import { getLastNDays } from '../utils/date.js';
 
 const TIMELINE_DAYS = 14;
@@ -64,8 +67,17 @@ export async function renderDailyView(container, params = {}) {
   renderTimeline(page, summaries);
 
   // Giscus section
-  const { wrapper: giscusWrapper } = createGiscusSection('来聊聊这篇复盘吧');
-  page.appendChild(giscusWrapper);
+  const giscusSection = document.createElement('div');
+  giscusSection.className = 'giscus-section';
+  giscusSection.innerHTML = `
+    <div class="giscus-header">
+      <h3 class="giscus-title">来聊聊这篇复盘吧</h3>
+    </div>
+    <div class="giscus-container" id="giscus-daily"></div>
+  `;
+  const giscusToggle = createGiscusToggle('giscus-daily', '展开评论区');
+  giscusSection.querySelector('.giscus-header').appendChild(giscusToggle);
+  page.appendChild(giscusSection);
 
   // Keyboard navigation
   setupKeyboardNav();
@@ -201,11 +213,18 @@ function navigateCard(direction) {
   });
 }
 
+let _scrollObserver = null;
+
 /**
  * Setup intersection observer for scroll animations
  */
 function setupScrollAnimations() {
-  const observer = new IntersectionObserver(
+  // Disconnect existing observer to prevent duplicates
+  if (_scrollObserver) {
+    _scrollObserver.disconnect();
+  }
+
+  _scrollObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -217,7 +236,7 @@ function setupScrollAnimations() {
   );
 
   document.querySelectorAll('.timeline-item').forEach(el => {
-    observer.observe(el);
+    _scrollObserver.observe(el);
   });
 }
 
