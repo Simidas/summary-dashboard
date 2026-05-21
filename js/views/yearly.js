@@ -3,6 +3,7 @@
    ======================================== */
 
 import { getAvailableYears, loadYearlySummary } from '../data.js';
+import { createYearHeroCard } from '../components/card.js?v=20260521';
 import { createGiscusToggle } from '../components/giscus.js';
 
 let yearCards = [];

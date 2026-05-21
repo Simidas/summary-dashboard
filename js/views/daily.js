@@ -6,7 +6,7 @@
 // TODO(Phase 3): Add tag click filtering
 
 import { loadDailySummaries, getAvailableDailyDates } from '../data.js';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260521';
 import { createGiscusToggle } from '../components/giscus.js';
 import { getLastNDays } from '../utils/date.js';
 

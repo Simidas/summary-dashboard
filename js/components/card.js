@@ -209,3 +209,141 @@ export function createAggregationCard(data) {
 
   return card;
 }
+
+/**
+ * Create a weekly aggregation card
+ * @param {Object} data
+ * @returns {HTMLElement}
+ */
+export function createWeekCard(data) {
+  const card = createAggregationCard({
+    title: `${data.year || ''} ${data.week || ''}`.trim(),
+    stats: {
+      achievements: data.totalAchievements || 0,
+      discussions: data.totalDiscussions || 0,
+      projects: (data.topProjects || []).length
+    },
+    topTags: data.topTags || []
+  });
+
+  card.classList.add('week-card');
+  card.dataset.week = `${data.year || ''}-${data.week || ''}`;
+
+  const header = card.querySelector('.aggregation-card-header');
+  if (header && data.dateRange) {
+    const range = document.createElement('div');
+    range.className = 'week-card-range';
+    range.textContent = data.dateRange;
+    header.appendChild(range);
+  }
+
+  const details = document.createElement('div');
+  details.className = 'week-card-details';
+  details.innerHTML = `
+    <div class="week-card-days">${data.days || 0} 天记录 · ${data.totalFollowUps || 0} 个待跟进</div>
+    <div class="week-card-content">${data.contentPublished || 0} 篇内容发布</div>
+    ${buildProjectListHTML(data.topProjects)}
+    ${buildDailyRecordsHTML(data.dailyRecords)}
+  `;
+  card.appendChild(details);
+
+  return card;
+}
+
+/**
+ * Create a monthly aggregation card
+ * @param {Object} data
+ * @returns {HTMLElement}
+ */
+export function createMonthCard(data) {
+  const card = createAggregationCard({
+    title: data.monthName || `${data.year}-${data.month}`,
+    stats: {
+      achievements: data.totalAchievements || 0,
+      discussions: data.totalDiscussions || 0,
+      projects: (data.topProjects || []).length
+    },
+    topTags: data.topTags || []
+  });
+
+  card.classList.add('month-card');
+  card.dataset.month = `${data.year || ''}-${data.month || ''}`;
+
+  const header = card.querySelector('.aggregation-card-header');
+  if (header && data.year) {
+    const year = document.createElement('div');
+    year.className = 'month-card-year';
+    year.textContent = data.year;
+    header.appendChild(year);
+  }
+
+  const details = document.createElement('div');
+  details.className = 'month-card-details';
+  details.innerHTML = `
+    <div>${(data.weeks || []).length} 个周报 · ${data.contentPublished || 0} 篇内容发布</div>
+    ${buildProjectListHTML(data.topProjects)}
+  `;
+  card.appendChild(details);
+
+  return card;
+}
+
+/**
+ * Create a yearly hero card
+ * @param {Object} data
+ * @returns {HTMLElement}
+ */
+export function createYearHeroCard(data) {
+  const card = document.createElement('article');
+  card.className = 'year-hero-card';
+  card.dataset.year = data.year;
+
+  card.innerHTML = `
+    <div class="year-hero-header">
+      <h2 class="year-hero-title">${escapeHtml(String(data.year || ''))}</h2>
+      <div class="year-hero-subtitle">${(data.months || []).length} 个月度复盘</div>
+    </div>
+    <div class="year-hero-stats">
+      ${buildYearStatHTML(data.totalAchievements || 0, '成就')}
+      ${buildYearStatHTML(data.totalProjects || 0, '项目')}
+      ${buildYearStatHTML(data.totalContentPublished || 0, '内容')}
+    </div>
+    <div class="year-hero-tags">
+      <div class="year-hero-tags-label">年度高频标签</div>
+      <div class="year-hero-tags-list">
+        ${(data.topTags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+function buildProjectListHTML(projects = []) {
+  if (!projects.length) return '';
+
+  return `
+    <div class="aggregation-card-tags">
+      ${projects.slice(0, 4).map(project => `<span class="tag">${escapeHtml(project)}</span>`).join('')}
+    </div>
+  `;
+}
+
+function buildDailyRecordsHTML(records = []) {
+  if (!records.length) return '';
+
+  return `
+    <div class="week-card-daily-list">
+      ${records.map(record => `<span class="tag">${escapeHtml(record)}</span>`).join('')}
+    </div>
+  `;
+}
+
+function buildYearStatHTML(value, label) {
+  return `
+    <div class="year-stat">
+      <div class="year-stat-value">${escapeHtml(String(value))}</div>
+      <div class="year-stat-label">${escapeHtml(label)}</div>
+    </div>
+  `;
+}

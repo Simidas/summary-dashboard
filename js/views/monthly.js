@@ -3,6 +3,7 @@
    ======================================== */
 
 import { getAvailableMonths, loadMonthlySummary } from '../data.js';
+import { createMonthCard } from '../components/card.js?v=20260521';
 import { createGiscusToggle } from '../components/giscus.js';
 
 const MONTH_DISPLAY_COUNT = 12;
