@@ -85,7 +85,7 @@
   min-height: 300px;
 }
 
-.giscus-container.loaded {
+.giscus-container.open {
   display: block;
 }
 

@@ -5,9 +5,9 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260521';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260521';
-import { createGiscusToggle } from '../components/giscus.js?v=20260521';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260531';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260531';
+import { createGiscusToggle } from '../components/giscus.js?v=20260531';
 
 const TIMELINE_DAYS = 14;
 
@@ -102,22 +102,26 @@ function renderHero(page, latest) {
 
   const today = new Date().toISOString().split('T')[0];
   const isToday = latest.date === today;
+  const summaryText = (latest.achievements || []).slice(0, 2).join('；');
+  const moodHtml = latest.mood
+    ? `<span class="mood" style="margin-left: 8px;">${escapeHtml(latest.mood)}</span>`
+    : '';
 
   hero.innerHTML = `
     <div class="hero-date">
       <span>📅</span>
-      <span>${latest.date}</span>
+      <span>${escapeHtml(latest.date)}</span>
       <span>${isToday ? '· 今天' : ''}</span>
-      ${latest.mood ? `<span class="mood" style="margin-left: 8px;">${latest.mood}</span>` : ''}
+      ${moodHtml}
     </div>
     <h1 class="hero-title">
       ${isToday ? '今日复盘' : '昨日复盘'}
     </h1>
     <p class="hero-summary">
-      ${(latest.achievements || []).slice(0, 2).join('；')}...
+      ${escapeHtml(summaryText)}...
     </p>
     <div class="hero-meta">
-      ${(latest.tags || []).slice(0, 4).map(t => `<span class="tag">${t}</span>`).join('')}
+      ${(latest.tags || []).slice(0, 4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
     </div>
   `;
 
@@ -128,6 +132,13 @@ function renderHero(page, latest) {
   } else {
     page.insertBefore(hero, page.firstChild);
   }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 /**

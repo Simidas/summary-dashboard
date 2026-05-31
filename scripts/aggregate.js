@@ -28,16 +28,18 @@ const YEARLY_DIR = path.join(ROOT_DIR, 'data', 'summaries', 'yearly');
 });
 
 /**
- * Get ISO week number
+ * Get ISO week year and week number
  * @param {Date} date
- * @returns {number}
+ * @returns {{year: number, week: number}}
  */
-function getISOWeek(date) {
+function getISOWeekInfo(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  const isoYear = d.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: isoYear, week };
 }
 
 /**
@@ -67,9 +69,9 @@ function parseDate(dateStr) {
  * @returns {string}
  */
 function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
@@ -80,8 +82,7 @@ function formatDate(date) {
  */
 function getWeekString(dateStr) {
   const date = parseDate(dateStr);
-  const year = date.getFullYear();
-  const week = getISOWeek(date);
+  const { year, week } = getISOWeekInfo(date);
   return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
@@ -113,20 +114,18 @@ function getWeekDateRange(yearWeekStr) {
   const yearNum = parseInt(year, 10);
   const weekNum = parseInt(weekStr, 10);
   
-  // Find first day of year
-  const firstDayOfYear = new Date(yearNum, 0, 1);
-  // Get to the Monday of that week
-  const dayOfWeek = firstDayOfYear.getDay() || 7;
-  const daysToMonday = dayOfWeek - 1;
-  const firstMonday = new Date(firstDayOfYear);
-  firstMonday.setDate(firstDayOfYear.getDate() - daysToMonday);
+  // ISO week 1 is the week containing Jan 4.
+  const jan4 = new Date(Date.UTC(yearNum, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const firstMonday = new Date(jan4);
+  firstMonday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
   
   // Add (weekNum - 1) weeks
   const weekStart = new Date(firstMonday);
-  weekStart.setDate(firstMonday.getDate() + (weekNum - 1) * 7);
+  weekStart.setUTCDate(firstMonday.getUTCDate() + (weekNum - 1) * 7);
   
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
   
   return `${formatDate(weekStart)} ~ ${formatDate(weekEnd)}`;
 }

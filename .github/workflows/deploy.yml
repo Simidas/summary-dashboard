@@ -11,6 +11,9 @@ on:
     branches:
       - main
     paths:
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
       - 'data/summaries/**'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -74,7 +77,7 @@ jobs:
       # Deploy to Cloudflare Workers/Pages
       - name: Deploy to Cloudflare
         run: |
-          wrangler pages deploy . --project-name=summary-dashboard --commit-message="${{ github.event.head_commit.message }}"
+          wrangler pages deploy . --project-name=summary-dashboard --commit-message="${{ github.event.head_commit.message || github.workflow }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

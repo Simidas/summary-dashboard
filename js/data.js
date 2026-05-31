@@ -59,7 +59,7 @@ async function scanAvailableDailyDates() {
     const results = await Promise.all(
       batch.map(({ dateStr, promise }) =>
         Promise.race([
-          promise.then(r => r.ok ? dateStr : null),
+          promise.then(r => r.ok ? dateStr : null).catch(() => null),
           new Promise(resolve => setTimeout(() => resolve(null), 3000))
         ])
       )
@@ -104,7 +104,7 @@ async function scanAvailableWeeks() {
     const batch = weeks.slice(i, i + BATCH_SIZE);
     const checks = batch.map(week =>
       Promise.race([
-        fetch(`data/summaries/weekly/${week}.json`).then(r => r.ok ? week : null),
+        fetch(`data/summaries/weekly/${week}.json`).then(r => r.ok ? week : null).catch(() => null),
         new Promise(resolve => setTimeout(() => resolve(null), 3000))
       ])
     );
@@ -112,6 +112,7 @@ async function scanAvailableWeeks() {
     existingWeeks.push(...results.filter(Boolean));
   }
   _availableWeeks = existingWeeks;
+  return _availableWeeks;
 }
 
 /**
@@ -143,7 +144,7 @@ async function scanAvailableMonths() {
     const batch = months.slice(i, i + BATCH_SIZE);
     const checks = batch.map(month =>
       Promise.race([
-        fetch(`data/summaries/monthly/${month}.json`).then(r => r.ok ? month : null),
+        fetch(`data/summaries/monthly/${month}.json`).then(r => r.ok ? month : null).catch(() => null),
         new Promise(resolve => setTimeout(() => resolve(null), 3000))
       ])
     );
@@ -151,6 +152,7 @@ async function scanAvailableMonths() {
     existingMonths.push(...results.filter(Boolean));
   }
   _availableMonths = existingMonths;
+  return _availableMonths;
 }
 
 /**
@@ -177,7 +179,7 @@ async function scanAvailableYears() {
     const batch = years.slice(i, i + BATCH_SIZE);
     const checks = batch.map(year =>
       Promise.race([
-        fetch(`data/summaries/yearly/${year}.json`).then(r => r.ok ? year : null),
+        fetch(`data/summaries/yearly/${year}.json`).then(r => r.ok ? year : null).catch(() => null),
         new Promise(resolve => setTimeout(() => resolve(null), 3000))
       ])
     );
@@ -185,6 +187,7 @@ async function scanAvailableYears() {
     existingYears.push(...results.filter(Boolean));
   }
   _availableYears = existingYears;
+  return _availableYears;
 }
 
 /**

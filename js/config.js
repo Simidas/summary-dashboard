@@ -11,7 +11,7 @@ export const GISCUS_CONFIG = {
   repoId: 'R_kgDOR0YGCw',
   category: 'General',
   categoryId: 'DIC_kwDOR0YGC84C5mS9',
-  mapping: 'pathname',
+  mapping: 'url',
   strict: '0',
   reactionsEnabled: '1',
   emitMetadata: '0',
