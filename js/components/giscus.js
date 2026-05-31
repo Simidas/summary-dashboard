@@ -24,7 +24,8 @@ export function createGiscusToggle(containerId, title = '展开评论区') {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (!container.classList.contains('loaded')) {
+    // First click: inject giscus script
+    if (!container.dataset.loaded) {
       const script = document.createElement('script');
       script.src = 'https://giscus.app/client.js';
       script.setAttribute('data-repo', GISCUS_CONFIG.repo);
@@ -43,13 +44,15 @@ export function createGiscusToggle(containerId, title = '展开评论区') {
       script.crossOrigin = 'anonymous';
       script.async = true;
       container.appendChild(script);
-      container.classList.add('loaded');
+      container.dataset.loaded = 'true';
+      container.classList.add('open');
       toggle.querySelector('span').textContent = '收起评论区';
-    } else {
-      container.classList.toggle('loaded');
-      const isLoaded = container.classList.contains('loaded');
-      toggle.querySelector('span').textContent = isLoaded ? '收起评论区' : '展开评论区';
+      return;
     }
+
+    // Subsequent clicks: toggle visibility only
+    const isOpen = container.classList.toggle('open');
+    toggle.querySelector('span').textContent = isOpen ? '收起评论区' : '展开评论区';
   });
 
   return toggle;

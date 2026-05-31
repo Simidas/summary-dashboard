@@ -33,7 +33,7 @@ export function formatDateFull(dateStr) {
  * @returns {string} Monday, Tuesday...
  */
 export function getWeekday(dateStr) {
-  const date = new Date(dateStr);
+  const date = new Date(dateStr + 'T00:00:00');
   const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return weekdays[date.getDay()];
 }

@@ -41,23 +41,33 @@ async function scanAvailableDailyDates() {
     // manifest doesn't exist, fall through
   }
   
-  // Fallback: try to fetch known dates (last 30 days) — parallel with timeout
+  // Fallback: try to fetch known dates (last 30 days) — batched parallel with timeout
   const dates = [];
   const today = new Date();
-  const checks = [];
+  const allChecks = [];
   for (let i = 0; i < 30; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
-    checks.push(
-      Promise.race([
-        fetch(`data/summaries/daily/${dateStr}.json`).then(r => r.ok ? dateStr : null),
-        new Promise(resolve => setTimeout(() => resolve(null), 3000))
-      ])
-    );
+    allChecks.push({ dateStr, promise: fetch(`data/summaries/daily/${dateStr}.json`) });
   }
-  const results = await Promise.all(checks);
-  _availableDates = results.filter(Boolean).sort().reverse();
+
+  // Batch in groups of 6 to avoid browser connection limit
+  const BATCH_SIZE = 6;
+  for (let i = 0; i < allChecks.length; i += BATCH_SIZE) {
+    const batch = allChecks.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(({ dateStr, promise }) =>
+        Promise.race([
+          promise.then(r => r.ok ? dateStr : null),
+          new Promise(resolve => setTimeout(() => resolve(null), 3000))
+        ])
+      )
+    );
+    dates.push(...results.filter(Boolean));
+  }
+
+  _availableDates = dates.sort().reverse();
   return _availableDates;
 }
 
@@ -77,7 +87,7 @@ async function scanAvailableWeeks() {
     }
   } catch (e) {}
   
-  // Fallback: try W01-W53 for recent years — parallel with timeout
+  // Fallback: try W01-W53 for recent years — batched parallel with timeout
   const weeks = [];
   const years = [2026];
   years.forEach(year => {
@@ -87,16 +97,21 @@ async function scanAvailableWeeks() {
     }
   });
   
-  // Filter to only existing ones — parallel with timeout
-  const checks = weeks.map(week =>
-    Promise.race([
-      fetch(`data/summaries/weekly/${week}.json`).then(r => r.ok ? week : null),
-      new Promise(resolve => setTimeout(() => resolve(null), 3000))
-    ])
-  );
-  const results = await Promise.all(checks);
-  _availableWeeks = results.filter(Boolean);
-  return _availableWeeks;
+  // Filter to only existing ones — batched parallel with timeout
+  const BATCH_SIZE = 6;
+  const existingWeeks = [];
+  for (let i = 0; i < weeks.length; i += BATCH_SIZE) {
+    const batch = weeks.slice(i, i + BATCH_SIZE);
+    const checks = batch.map(week =>
+      Promise.race([
+        fetch(`data/summaries/weekly/${week}.json`).then(r => r.ok ? week : null),
+        new Promise(resolve => setTimeout(() => resolve(null), 3000))
+      ])
+    );
+    const results = await Promise.all(checks);
+    existingWeeks.push(...results.filter(Boolean));
+  }
+  _availableWeeks = existingWeeks;
 }
 
 /**
@@ -115,22 +130,27 @@ async function scanAvailableMonths() {
     }
   } catch (e) {}
   
-  // Fallback: try 2026-01 to 2026-12 — parallel with timeout
+  // Fallback: try 2026-01 to 2026-12 — batched parallel with timeout
   const months = [];
   for (let m = 1; m <= 12; m++) {
     const monthStr = `2026-${String(m).padStart(2, '0')}`;
     months.push(monthStr);
   }
   
-  const checks = months.map(month =>
-    Promise.race([
-      fetch(`data/summaries/monthly/${month}.json`).then(r => r.ok ? month : null),
-      new Promise(resolve => setTimeout(() => resolve(null), 3000))
-    ])
-  );
-  const results = await Promise.all(checks);
-  _availableMonths = results.filter(Boolean);
-  return _availableMonths;
+  const BATCH_SIZE = 6;
+  const existingMonths = [];
+  for (let i = 0; i < months.length; i += BATCH_SIZE) {
+    const batch = months.slice(i, i + BATCH_SIZE);
+    const checks = batch.map(month =>
+      Promise.race([
+        fetch(`data/summaries/monthly/${month}.json`).then(r => r.ok ? month : null),
+        new Promise(resolve => setTimeout(() => resolve(null), 3000))
+      ])
+    );
+    const results = await Promise.all(checks);
+    existingMonths.push(...results.filter(Boolean));
+  }
+  _availableMonths = existingMonths;
 }
 
 /**
@@ -149,17 +169,22 @@ async function scanAvailableYears() {
     }
   } catch (e) {}
   
-  // Fallback: try 2026 — parallel with timeout
+  // Fallback: try 2026 — batched parallel with timeout
   const years = ['2026'];
-  const checks = years.map(year =>
-    Promise.race([
-      fetch(`data/summaries/yearly/${year}.json`).then(r => r.ok ? year : null),
-      new Promise(resolve => setTimeout(() => resolve(null), 3000))
-    ])
-  );
-  const results = await Promise.all(checks);
-  _availableYears = results.filter(Boolean);
-  return _availableYears;
+  const BATCH_SIZE = 6;
+  const existingYears = [];
+  for (let i = 0; i < years.length; i += BATCH_SIZE) {
+    const batch = years.slice(i, i + BATCH_SIZE);
+    const checks = batch.map(year =>
+      Promise.race([
+        fetch(`data/summaries/yearly/${year}.json`).then(r => r.ok ? year : null),
+        new Promise(resolve => setTimeout(() => resolve(null), 3000))
+      ])
+    );
+    const results = await Promise.all(checks);
+    existingYears.push(...results.filter(Boolean));
+  }
+  _availableYears = existingYears;
 }
 
 /**

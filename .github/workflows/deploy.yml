@@ -47,6 +47,12 @@ jobs:
       - name: Run aggregation script
         run: node scripts/aggregate.js
 
+      # Inject build time into index.html
+      - name: Inject build time
+        run: |
+          BUILD_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          sed -i "s/BUILD_TIME_PLACEHOLDER/${BUILD_TIME}/g" index.html
+
       # Configure git
       - name: Configure git
         run: |

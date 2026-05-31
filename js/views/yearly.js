@@ -2,9 +2,9 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260521';
 import { createYearHeroCard } from '../components/card.js?v=20260521';
-import { createGiscusToggle } from '../components/giscus.js';
+import { createGiscusToggle } from '../components/giscus.js?v=20260521';
 
 let yearCards = [];
 
@@ -71,7 +71,7 @@ export async function renderYearlyView(container, params = {}) {
 
   // Create year hero cards
   yearsData.forEach(({ year, data }, index) => {
-    const heroCard = createYearHeroCard(data, index === 0);
+    const heroCard = createYearHeroCard(data);
     heroCard.classList.add('animate-fade-in-up');
     heroCard.style.animationDelay = `${index * 100}ms`;
     page.appendChild(heroCard);

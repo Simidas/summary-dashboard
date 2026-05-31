@@ -15,7 +15,6 @@ class Router {
 
     // Listen for hash changes
     window.addEventListener('hashchange', () => this.handleRoute());
-    window.addEventListener('load', () => this.handleRoute());
   }
 
   /**

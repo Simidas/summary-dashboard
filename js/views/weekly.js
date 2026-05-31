@@ -2,9 +2,9 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklySummary } from '../data.js';
+import { getAvailableWeeks, loadWeeklySummary } from '../data.js?v=20260521';
 import { createWeekCard } from '../components/card.js?v=20260521';
-import { createGiscusToggle } from '../components/giscus.js';
+import { createGiscusToggle } from '../components/giscus.js?v=20260521';
 
 const WEEK_DISPLAY_COUNT = 8;
 

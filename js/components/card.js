@@ -69,8 +69,9 @@ export function createSummaryCard(data, expanded = false) {
   body.className = 'card-body';
   body.innerHTML = buildCardBodyHTML(data);
 
-  // Click to toggle
-  card.addEventListener('click', () => {
+  // Click to toggle — but not when clicking tags
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.tag')) return;
     card.classList.toggle('expanded');
   });
 
