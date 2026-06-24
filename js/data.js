@@ -27,21 +27,19 @@ let _availableYears = null;
  */
 async function scanAvailableDailyDates() {
   if (_availableDates) return _availableDates;
-  
-  // For static sites, we need to know the available dates upfront
-  // Try to load a manifest file if it exists
+
   try {
-    const response = await fetch('data/summaries/daily/manifest.json');
+    const response = await fetch('data/records/daily/manifest.json');
     if (response.ok) {
       const manifest = await response.json();
       _availableDates = manifest.dates || [];
       return _availableDates;
     }
   } catch (e) {
-    // manifest doesn't exist, fall through
+    // manifest doesn't exist, fall through to date probing
   }
   
-  // Fallback: try to fetch known dates (last 30 days) — batched parallel with timeout
+  // Fallback: try to fetch known manual records (last 30 days).
   const dates = [];
   const today = new Date();
   const allChecks = [];
@@ -49,7 +47,7 @@ async function scanAvailableDailyDates() {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
-    allChecks.push({ dateStr, promise: fetch(`data/summaries/daily/${dateStr}.json`) });
+    allChecks.push({ dateStr, promise: fetch(`data/records/daily/${dateStr}.json`) });
   }
 
   // Batch in groups of 6 to avoid browser connection limit
@@ -191,7 +189,7 @@ async function scanAvailableYears() {
 }
 
 /**
- * Load daily summary JSON
+ * Load daily record JSON
  * @param {string} dateStr - YYYY-MM-DD
  * @returns {Promise<Object|null>}
  */
@@ -201,19 +199,19 @@ export async function loadDailySummary(dateStr) {
   }
 
   try {
-    const response = await fetch(`data/summaries/daily/${dateStr}.json`);
+    const response = await fetch(`data/records/daily/${dateStr}.json`);
     if (!response.ok) return null;
     const data = await response.json();
     cache.daily[dateStr] = data;
     return data;
   } catch (e) {
-    console.warn(`Failed to load daily summary for ${dateStr}:`, e);
+    console.warn(`Failed to load daily record for ${dateStr}:`, e);
     return null;
   }
 }
 
 /**
- * Load multiple daily summaries
+ * Load multiple daily records
  * @param {string[]} dateStrs - array of YYYY-MM-DD
  * @returns {Promise<Object[]>}
  */
@@ -231,8 +229,8 @@ export async function loadDailySummaries(dateStrs) {
 }
 
 /**
- * Get available daily summary dates
- * Scans actual JSON files in data/summaries/daily/
+ * Get available daily record dates
+ * Scans actual JSON files in data/records/daily/
  * @returns {Promise<string[]>}
  */
 export async function getAvailableDailyDates() {

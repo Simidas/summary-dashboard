@@ -26,10 +26,7 @@ export function createSummaryCard(data, expanded = false) {
   card.className = 'card' + (expanded ? ' expanded' : '');
   card.dataset.date = data.date;
 
-  // Build preview text from achievements
-  const previewText = data.achievements && data.achievements.length > 0
-    ? data.achievements[0]
-    : '';
+  const previewText = getDailyPreview(data);
 
   // Header with date, weekday, and tags
   const header = document.createElement('div');
@@ -45,8 +42,9 @@ export function createSummaryCard(data, expanded = false) {
 
   const tagsContainer = document.createElement('div');
   tagsContainer.className = 'card-tags';
-  if (data.tags && data.tags.length > 0) {
-    tagsContainer.appendChild(createTags(data.tags.slice(0, 3)));
+  const tags = getDailyTags(data);
+  if (tags.length > 0) {
+    tagsContainer.appendChild(createTags(tags.slice(0, 3)));
   }
 
   header.appendChild(dateDiv);
@@ -89,6 +87,10 @@ export function createSummaryCard(data, expanded = false) {
  * @returns {string}
  */
 function buildCardBodyHTML(data) {
+  if (Array.isArray(data.records)) {
+    return buildCompositeDailyBodyHTML(data);
+  }
+
   let html = '';
 
   // Achievements
@@ -158,6 +160,125 @@ function buildCardBodyHTML(data) {
   `;
 
   return html;
+}
+
+function buildCompositeDailyBodyHTML(data) {
+  let html = '';
+  const review = data.dailyReview || {};
+
+  if (review.mostImportantThing || review.reflection || review.tomorrowFirstStep) {
+    html += `
+      <div class="card-section">
+        <div class="card-section-title">🧭 今日复盘</div>
+        <div class="card-section-content">
+          ${review.mostImportantThing ? `<p><strong>最重要的事：</strong>${escapeHtml(review.mostImportantThing)}</p>` : ''}
+          ${review.reflection ? `<p><strong>反思：</strong>${escapeHtml(review.reflection)}</p>` : ''}
+          ${review.tomorrowFirstStep ? `<p><strong>明天第一步：</strong>${escapeHtml(review.tomorrowFirstStep)}</p>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  if (data.records && data.records.length > 0) {
+    html += `
+      <div class="card-section">
+        <div class="card-section-title">📝 场景记录</div>
+        <div class="record-list">
+          ${data.records.map(record => buildRecordHTML(record)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return html || `
+    <div class="card-section">
+      <div class="card-section-content">这一天还没有填写记录。</div>
+    </div>
+  `;
+}
+
+function buildRecordHTML(record) {
+  const body = record.summary || record.raw || record.content || '';
+  const nextActions = record.nextActions || [];
+  const blockers = record.blockers || [];
+  const contentSeeds = record.contentSeeds || [];
+  const suggestions = record.aiAnalysis?.suggestions || record.ai?.suggestions || [];
+
+  return `
+    <article class="record-item">
+      <div class="record-meta">
+        <span>${escapeHtml(getDomainLabel(record.domain))}</span>
+        <span>${escapeHtml(getTypeLabel(record.type))}</span>
+      </div>
+      ${body ? `<p class="record-body">${escapeHtml(body)}</p>` : ''}
+      ${buildInlineListHTML('卡点', blockers)}
+      ${buildInlineListHTML('下一步', nextActions)}
+      ${buildInlineListHTML('内容素材', contentSeeds)}
+      ${buildInlineListHTML('AI 建议', suggestions)}
+    </article>
+  `;
+}
+
+function buildInlineListHTML(label, items = []) {
+  if (!items.length) return '';
+
+  return `
+    <div class="record-inline-list">
+      <strong>${escapeHtml(label)}：</strong>
+      <span>${items.map(item => escapeHtml(item)).join('；')}</span>
+    </div>
+  `;
+}
+
+function getDailyPreview(data) {
+  if (data.dailyReview?.mostImportantThing) return data.dailyReview.mostImportantThing;
+  if (data.dailyReview?.reflection) return data.dailyReview.reflection;
+
+  const firstRecord = Array.isArray(data.records) ? data.records[0] : null;
+  if (firstRecord) {
+    return firstRecord.summary || firstRecord.raw || firstRecord.content || '';
+  }
+
+  return data.achievements && data.achievements.length > 0
+    ? data.achievements[0]
+    : '';
+}
+
+function getDailyTags(data) {
+  if (Array.isArray(data.records)) {
+    const tags = new Set();
+    data.records.forEach(record => {
+      if (record.domain) tags.add(getDomainLabel(record.domain));
+      (record.tags || []).forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags);
+  }
+
+  return data.tags || [];
+}
+
+function getDomainLabel(domain) {
+  const labels = {
+    work: '主业',
+    side_business: '副业',
+    life: '生活',
+    content: '内容'
+  };
+  return labels[domain] || domain || '未分类';
+}
+
+function getTypeLabel(type) {
+  const labels = {
+    progress: '进展',
+    thought: '想法',
+    decision: '决策',
+    blocker: '卡点',
+    followup: '行动',
+    reflection: '反思',
+    diary: '日记',
+    content_seed: '素材'
+  };
+  return labels[type] || type || '记录';
 }
 
 /**

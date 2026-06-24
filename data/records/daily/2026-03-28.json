@@ -1,0 +1,233 @@
+{
+  "date": "2026-03-28",
+  "source": "hermes-migrated",
+  "records": [
+    {
+      "id": "record-20260328-001",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "progress",
+      "raw": "内容创作私有仓库 summary-content 正式建立",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-002",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "progress",
+      "raw": "第一篇公众号文章《AI工作流复盘：我的每日记录系统》完成初稿",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-003",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "progress",
+      "raw": "MacBook SSH Key 配置完成，git push 无需密码",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-004",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "thought",
+      "raw": "内容创作流程规范：素材 → 草稿 → 审核 → 发布",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-005",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "followup",
+      "raw": "公众号文章配图设计",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "公众号文章配图设计"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-006",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "followup",
+      "raw": "GitHub Actions 自动部署脚本编写",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "GitHub Actions 自动部署脚本编写"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-007",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "reflection",
+      "raw": "SSH config 多密钥管理：不同域名用不同 key，避免覆盖",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260328-008",
+      "createdAt": "2026-03-28T21:00:00+08:00",
+      "domain": "content",
+      "type": "reflection",
+      "raw": "GitHub private repo 协作权限配置细节",
+      "summary": "",
+      "projects": [
+        "内容创作",
+        "AI自动化"
+      ],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "内容创作私有仓库 summary-content 正式建立",
+    "reflection": "SSH config 多密钥管理：不同域名用不同 key，避免覆盖",
+    "tomorrowFirstStep": "公众号文章配图设计",
+    "contentCreated": true,
+    "mood": "🟢"
+  }
+}

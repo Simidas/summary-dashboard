@@ -3,8 +3,8 @@
   "week": "W14",
   "dateRange": "2026-03-30 ~ 2026-04-05",
   "days": 1,
-  "totalAchievements": 2,
-  "totalDiscussions": 2,
+  "totalAchievements": 3,
+  "totalDiscussions": 4,
   "totalFollowUps": 3,
   "topProjects": [
     "复盘项目",
@@ -16,6 +16,7 @@
     "规范立项"
   ],
   "contentPublished": 0,
+  "contentSeeds": 0,
   "dailyRecords": [
     "2026-03-30"
   ]

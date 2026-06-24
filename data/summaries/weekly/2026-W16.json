@@ -3,8 +3,8 @@
   "week": "W16",
   "dateRange": "2026-04-13 ~ 2026-04-19",
   "days": 1,
-  "totalAchievements": 3,
-  "totalDiscussions": 2,
+  "totalAchievements": 4,
+  "totalDiscussions": 4,
   "totalFollowUps": 2,
   "topProjects": [
     "PDF Q&A",
@@ -16,6 +16,7 @@
     "生活琐碎"
   ],
   "contentPublished": 0,
+  "contentSeeds": 0,
   "dailyRecords": [
     "2026-04-15"
   ]

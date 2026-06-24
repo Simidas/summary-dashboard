@@ -1,0 +1,287 @@
+{
+  "date": "2026-04-15",
+  "source": "hermes-migrated",
+  "records": [
+    {
+      "id": "record-20260415-001",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "life",
+      "type": "progress",
+      "raw": "晨跑2.22km + 俯卧撑3组，连续第二天运动",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-002",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "确定本月核心目标：AI产品建设（PDF Q&A）",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-003",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "summary-dashboard 项目梳理，明确更新方向",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-004",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "life",
+      "type": "thought",
+      "raw": "和老婆共享 summary-dashboard，向她透明化每日工作",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-005",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "thought",
+      "raw": "AI产品建设的完整开发流程梳理",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-006",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "推进 PDF Q&A 项目 MVP",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "推进 PDF Q&A 项目 MVP"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-007",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "继续 summary-dashboard 功能更新",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "继续 summary-dashboard 功能更新"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-008",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "life",
+      "type": "reflection",
+      "raw": "目标分散+ADHD执行功能障碍双重影响，需要聚焦一件事",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-009",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "life",
+      "type": "reflection",
+      "raw": "UTC时间需显式转换 CST，避免'凌晨跑步'的误解",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260415-010",
+      "createdAt": "2026-04-15T21:00:00+08:00",
+      "domain": "life",
+      "type": "progress",
+      "raw": "跑步20分钟 2.22km + 俯卧撑3组",
+      "summary": "",
+      "projects": [
+        "PDF Q&A",
+        "summary-dashboard"
+      ],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "晨跑2.22km + 俯卧撑3组，连续第二天运动",
+    "reflection": "目标分散+ADHD执行功能障碍双重影响，需要聚焦一件事",
+    "tomorrowFirstStep": "推进 PDF Q&A 项目 MVP",
+    "contentCreated": false,
+    "mood": "🟡"
+  }
+}

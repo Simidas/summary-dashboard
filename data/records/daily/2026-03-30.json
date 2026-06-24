@@ -1,0 +1,289 @@
+{
+  "date": "2026-03-30",
+  "source": "hermes-migrated",
+  "records": [
+    {
+      "id": "record-20260330-001",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "OpenClaw cron delivery 修复：定时任务终于能正确触发",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-002",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "会话摘要主动记录规范正式立项，命名「复盘」项目",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-003",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "thought",
+      "raw": "Agent 长期记忆方案：向量数据库 vs 结构化日志",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-004",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "thought",
+      "raw": "summary-dashboard Phase 1 实现细节评审",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-005",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "复盘项目 Phase 2：Weekly/Monthly 聚合视图"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-006",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "GitHub Actions 定时构建流程设计",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "GitHub Actions 定时构建流程设计"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-007",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "Giscus 匿名评论配置验证",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "Giscus 匿名评论配置验证"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-008",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "reflection",
+      "raw": "OpenClaw cron 表达式时区问题：系统默认 UTC，需显式设置 Asia/Shanghai",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-009",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "reflection",
+      "raw": "GitHub Discussions 作为 CMS 评论系统的优缺点",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260330-010",
+      "createdAt": "2026-03-30T21:00:00+08:00",
+      "domain": "life",
+      "type": "progress",
+      "raw": "俯卧撑 3组 × 15个",
+      "summary": "",
+      "projects": [
+        "复盘项目",
+        "OpenClaw"
+      ],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "OpenClaw cron delivery 修复：定时任务终于能正确触发",
+    "reflection": "OpenClaw cron 表达式时区问题：系统默认 UTC，需显式设置 Asia/Shanghai",
+    "tomorrowFirstStep": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+    "contentCreated": false,
+    "mood": "🟢"
+  }
+}

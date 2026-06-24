@@ -1,115 +1,148 @@
-# 聚合脚本
+# 脚本说明
 
-用于将每日摘要聚合为周/月/年维度的统计数据。
+这个目录用于维护复盘站的数据流：手动创建每日综合记录、迁移旧 Hermes 数据、从每日记录生成周/月/年聚合数据。
+
+## 数据流
+
+```text
+data/records/daily/YYYY-MM-DD.json
+        ↓
+scripts/aggregate.js
+        ↓
+data/summaries/weekly/YYYY-WXX.json
+data/summaries/monthly/YYYY-MM.json
+data/summaries/yearly/YYYY.json
+```
+
+旧 Hermes Daily JSON 已迁移到统一结构，原始文件归档在：
+
+```text
+data/legacy/hermes-daily/
+```
+
+## new-daily-record.js
+
+创建一份手动填写的每日综合记录模板。
+
+```bash
+node scripts/new-daily-record.js
+node scripts/new-daily-record.js 2026-06-24
+```
+
+生成文件：
+
+```text
+data/records/daily/YYYY-MM-DD.json
+```
+
+核心结构：
+
+```json
+{
+  "date": "2026-06-24",
+  "source": "manual",
+  "records": [
+    {
+      "id": "record-20260624-001",
+      "createdAt": "2026-06-24T09:00:00+08:00",
+      "domain": "work",
+      "type": "progress",
+      "raw": "",
+      "summary": "",
+      "projects": [],
+      "tags": [],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "private",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      }
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "",
+    "reflection": "",
+    "tomorrowFirstStep": "",
+    "contentCreated": false,
+    "mood": ""
+  }
+}
+```
+
+## migrate-legacy-daily.js
+
+把归档的旧 Hermes Daily JSON 转为统一的每日综合记录结构。
+
+```bash
+node scripts/migrate-legacy-daily.js
+```
+
+默认不会覆盖已经存在的新记录。如需强制重新迁移：
+
+```bash
+node scripts/migrate-legacy-daily.js --force
+```
+
+输入目录：
+
+```text
+data/legacy/hermes-daily/
+```
+
+输出目录：
+
+```text
+data/records/daily/
+```
 
 ## aggregate.js
 
-### 功能
-
-- 扫描 `data/summaries/daily/` 目录下的所有 JSON 文件
-- 生成 `data/summaries/weekly/YYYY-WXX.json`（按 ISO 周分组）
-- 生成 `data/summaries/monthly/YYYY-MM.json`（按月份分组）
-- 生成 `data/summaries/yearly/YYYY.json`（按年份分组）
-
-### 数据格式
-
-**每日摘要** `data/summaries/daily/YYYY-MM-DD.json`
-```json
-{
-  "date": "2026-03-30",
-  "week": "2026-W13",
-  "weekday": "Monday",
-  "achievements": ["成就1", "成就2"],
-  "discussions": ["讨论1"],
-  "followUps": ["待跟进1"],
-  "learnings": ["教训1"],
-  "projects": ["项目A"],
-  "contentCreated": true,
-  "exercise": "跑步30分钟",
-  "tags": ["AI自动化", "技术踩坑"],
-  "mood": "🟢"
-}
-```
-
-**每周摘要** `data/summaries/weekly/YYYY-WXX.json`
-```json
-{
-  "year": 2026,
-  "week": "W13",
-  "dateRange": "2026-03-24 ~ 2026-03-30",
-  "days": 7,
-  "totalAchievements": 12,
-  "totalDiscussions": 3,
-  "totalFollowUps": 5,
-  "topProjects": ["项目A", "项目B"],
-  "topTags": ["AI自动化", "踩坑"],
-  "contentPublished": 2,
-  "dailyRecords": ["2026-03-24", "2026-03-25", ...]
-}
-```
-
-**每月摘要** `data/summaries/monthly/YYYY-MM.json`
-```json
-{
-  "year": 2026,
-  "month": "03",
-  "monthName": "三月",
-  "totalAchievements": 45,
-  "totalDiscussions": 12,
-  "weeks": ["W10", "W11", "W12", "W13"],
-  "topProjects": ["项目A"],
-  "topTags": ["AI自动化"],
-  "contentPublished": 3
-}
-```
-
-**每年摘要** `data/summaries/yearly/YYYY.json`
-```json
-{
-  "year": 2026,
-  "totalAchievements": 200,
-  "totalProjects": 5,
-  "totalContentPublished": 12,
-  "topTags": ["AI自动化", "踩坑"],
-  "months": ["2026-01", "2026-02", ...]
-}
-```
-
-## 本地运行
+从 `data/records/daily/` 扫描每日综合记录，生成周/月/年聚合 JSON 和 manifest。
 
 ```bash
-cd /root/projects/summary-dashboard
+node scripts/aggregate.js
+```
+
+输出：
+
+```text
+data/records/daily/manifest.json
+data/summaries/weekly/manifest.json
+data/summaries/monthly/manifest.json
+data/summaries/yearly/manifest.json
+data/summaries/weekly/YYYY-WXX.json
+data/summaries/monthly/YYYY-MM.json
+data/summaries/yearly/YYYY.json
+```
+
+## generate-manifest.js
+
+只重建 manifest，不重新计算聚合数据。
+
+```bash
+node scripts/generate-manifest.js
+```
+
+## 本地检查
+
+```bash
+node --check scripts/new-daily-record.js
+node --check scripts/migrate-legacy-daily.js
+node --check scripts/aggregate.js
 node scripts/aggregate.js
 ```
 
 ## GitHub Actions
 
-聚合脚本在 GitHub Actions 中自动运行：
+工作流会在以下情况下运行：
 
-- **触发时间**：每日 09:00 UTC（北京时间 17:00）
-- **触发方式**：
-  1. 定时触发（cron）
-  2. 手动触发（workflow_dispatch）
-  3. 当 `data/summaries/` 目录有变更时
-
-### 本地测试
-
-```bash
-# 1. 确保有每日数据
-ls data/summaries/daily/
-
-# 2. 运行聚合
-node scripts/aggregate.js
-
-# 3. 检查生成的文件
-ls data/summaries/weekly/
-ls data/summaries/monthly/
-ls data/summaries/yearly/
+```text
+定时触发
+手动触发
+main 分支中 index/css/js/data/records/data/summaries/scripts/templates 等路径变化
 ```
 
-### 数据来源
-
-每日摘要数据来自 workspace 仓库：
-`/root/.openclaw/workspace/memory/summaries/daily/`
-
-GitHub Actions 在构建时会从 [Ledazhushou](https://github.com/Simidas/Ledazhushou) 仓库拉取最新数据。
+部署前会运行 `scripts/aggregate.js`，并提交生成的 manifest 与聚合数据。

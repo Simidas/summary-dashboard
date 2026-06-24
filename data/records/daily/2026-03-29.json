@@ -1,0 +1,338 @@
+{
+  "date": "2026-03-29",
+  "source": "hermes-migrated",
+  "records": [
+    {
+      "id": "record-20260329-001",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "背景去除项目 v2.0 正式上线，支持批量处理和 API 调用",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-002",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "progress",
+      "raw": "PayPal Live 环境调通，支付回调接收正常",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-003",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "content",
+      "type": "progress",
+      "raw": "公众号第二篇文章《从零搭建 AI 写作助手》发布",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-004",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "thought",
+      "raw": "背景去除项目商业化路径：ToB API 收费 vs ToC 订阅",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-005",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "thought",
+      "raw": "OpenClaw Agent 在后台持续运行的最佳实践",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-006",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "背景去除项目 v2.1 需求评审",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "背景去除项目 v2.1 需求评审"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-007",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "followup",
+      "raw": "PayPal Webhook 签名验证加固",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "PayPal Webhook 签名验证加固"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-008",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "content",
+      "type": "followup",
+      "raw": "公众号文章 SEO 优化",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [
+        "公众号文章 SEO 优化"
+      ],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-009",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "side_business",
+      "type": "reflection",
+      "raw": "PayPal Sandbox 和 Live 环境 token 不通用，需要单独申请",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-010",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "content",
+      "type": "reflection",
+      "raw": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    },
+    {
+      "id": "record-20260329-011",
+      "createdAt": "2026-03-29T21:00:00+08:00",
+      "domain": "life",
+      "type": "progress",
+      "raw": "晨跑 30 分钟",
+      "summary": "",
+      "projects": [
+        "背景去除项目",
+        "OpenClaw",
+        "内容创作"
+      ],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "public",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      },
+      "source": "hermes"
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "背景去除项目 v2.0 正式上线，支持批量处理和 API 调用",
+    "reflection": "PayPal Sandbox 和 Live 环境 token 不通用，需要单独申请",
+    "tomorrowFirstStep": "背景去除项目 v2.1 需求评审",
+    "contentCreated": true,
+    "mood": "🟢"
+  }
+}

@@ -1,13 +1,15 @@
-# 🌾 复盘 — AI 工作复盘展示站
+# 🌾 复盘 — 个人经营复盘系统
 
 > 每天种下一行记录，到了年底回头看，是一片金色的收成。
 
-一个展示 AI 自动化工作复盘的公开仪表盘。数据翔实但不过度装修，读起来像翻一本认真写的笔记本。
+一个面向主业、副业、生活和内容产出的个人经营复盘站。试运行阶段以手动每日综合记录为核心，先让记录能驱动行动，再逐步引入 AI 分析和洞察。
 
 ## 功能特性
 
-- **Daily View** — 最近14天复盘记录，点击展开完整内容
-- **Weekly/Monthly/Yearly** — 聚合视图（开发中）
+- **Daily View** — 最近 14 天每日综合记录，支持按场景展开查看
+- **Weekly/Monthly/Yearly** — 从每日记录聚合出的周、月、年视图
+- **四场景记录** — 主业、副业、生活和自我、内容产出
+- **手动记录模板** — 通过脚本生成当天记录文件
 - **Giscus 评论** — 基于 GitHub Discussions 的评论区
 - **键盘导航** — ← → 键切换相邻日期
 - **标签系统** — 项目、话题分类
@@ -71,36 +73,82 @@ summary-dashboard/
 │   │   └── giscus.js       # Giscus 评论组件
 │   └── utils/
 │       └── date.js         # 日期工具函数
-├── data/summaries/daily/  # 每日复盘数据 (JSON)
+├── data/records/daily/    # 每日综合记录 (JSON)
+├── data/summaries/        # 周/月/年聚合数据 (JSON)
+├── data/legacy/           # 已迁移的历史数据
+├── scripts/               # 记录生成、迁移、聚合脚本
+├── templates/             # 手动记录模板
 ├── SPEC.md                 # 设计规范文档
+├── PRD.md                  # 迭代 PRD
+├── WORKFLOW_GUIDE.md       # 使用指南
 └── README.md
 ```
 
 ## 数据格式
 
-每日复盘 JSON 示例：
+每日综合记录 JSON 示例：
 
 ```json
 {
-  "date": "2026-03-30",
-  "week": "2026-W13",
-  "weekday": "Monday",
-  "achievements": ["完成 cron delivery 修复"],
-  "discussions": ["Agent 长期记忆方案"],
-  "followUps": ["复盘项目 Phase 2"],
-  "learnings": ["OpenClaw cron 时区问题"],
-  "projects": ["复盘项目", "OpenClaw"],
-  "tags": ["OpenClaw", "复盘项目"],
-  "mood": "🟢"
+  "date": "2026-06-24",
+  "source": "manual",
+  "records": [
+    {
+      "id": "record-20260624-001",
+      "createdAt": "2026-06-24T09:00:00+08:00",
+      "domain": "work",
+      "type": "progress",
+      "raw": "梳理租赁合同状态流转，发现历史状态不统一。",
+      "summary": "",
+      "projects": ["租赁系统"],
+      "tags": ["合同", "状态机"],
+      "blockers": ["老数据状态含义不一致"],
+      "decisions": [],
+      "nextActions": ["画出现有合同状态流转图"],
+      "contentSeeds": ["复杂业务系统里的状态机设计"],
+      "visibility": "private",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      }
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "完成合同状态流转梳理",
+    "reflection": "先理解业务语义，再写迁移逻辑。",
+    "tomorrowFirstStep": "补充异常状态案例",
+    "contentCreated": false,
+    "mood": ""
+  }
 }
+```
+
+旧 Hermes 自动生成的 Daily JSON 已迁移为统一结构，并归档到 `data/legacy/hermes-daily/`。
+
+### 新建当天记录
+
+```bash
+node scripts/new-daily-record.js
+```
+
+指定日期：
+
+```bash
+node scripts/new-daily-record.js 2026-06-24
+```
+
+生成聚合数据：
+
+```bash
+node scripts/aggregate.js
 ```
 
 ## 部署
 
-项目使用 GitHub Actions 每日自动构建：
+项目使用 GitHub Actions 自动构建：
 
-1. GitHub Actions 定时任务（每日 00:05 UTC）从 `memory/summaries/` 拉取数据
-2. 生成 weekly/monthly/yearly 聚合 JSON
+1. 提交 `data/records/daily/` 下的每日综合记录
+2. GitHub Actions 生成 weekly/monthly/yearly 聚合 JSON
 3. 自动部署到 Cloudflare Pages
 
 ## 技术栈

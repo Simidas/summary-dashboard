@@ -6,7 +6,7 @@ on:
     - cron: '5 0 * * *'
   # Manual trigger
   workflow_dispatch:
-  # Run on push to main (when summaries are updated)
+  # Run on push to main (when records or generated summaries are updated)
   push:
     branches:
       - main
@@ -14,8 +14,11 @@ on:
       - 'index.html'
       - 'css/**'
       - 'js/**'
+      - 'data/records/**'
       - 'data/summaries/**'
+      - 'data/legacy/**'
       - 'scripts/**'
+      - 'templates/**'
       - '.github/workflows/**'
 
 jobs:
@@ -65,7 +68,7 @@ jobs:
       # Commit and push changes (only if there are changes)
       - name: Commit and push changes
         run: |
-          git add data/summaries/
+          git add data/records/daily/manifest.json data/summaries/
           if git diff --staged --quiet; then
             echo "No new data to commit"
           else

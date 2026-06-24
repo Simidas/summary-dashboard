@@ -8,10 +8,10 @@
 // TODO(Phase 4): Add Cloudflare Workers API for server-side search
 
 import router from './router.js';
-import { renderDailyView } from './views/daily.js?v=20260531';
-import { renderWeeklyView } from './views/weekly.js?v=20260531';
-import { renderMonthlyView } from './views/monthly.js?v=20260531';
-import { renderYearlyView } from './views/yearly.js?v=20260531';
+import { renderDailyView } from './views/daily.js?v=20260624';
+import { renderWeeklyView } from './views/weekly.js?v=20260624';
+import { renderMonthlyView } from './views/monthly.js?v=20260624';
+import { renderYearlyView } from './views/yearly.js?v=20260624';
 import { createGiscusToggle } from './components/giscus.js';
 
 // DOM Elements

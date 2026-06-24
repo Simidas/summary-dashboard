@@ -1,0 +1,32 @@
+{
+  "date": "YYYY-MM-DD",
+  "source": "manual",
+  "records": [
+    {
+      "id": "record-YYYYMMDD-001",
+      "createdAt": "YYYY-MM-DDT09:00:00+08:00",
+      "domain": "work",
+      "type": "progress",
+      "raw": "",
+      "summary": "",
+      "projects": [],
+      "tags": [],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": [],
+      "contentSeeds": [],
+      "visibility": "private",
+      "aiAnalysis": {
+        "analysis": "",
+        "suggestions": []
+      }
+    }
+  ],
+  "dailyReview": {
+    "mostImportantThing": "",
+    "reflection": "",
+    "tomorrowFirstStep": "",
+    "contentCreated": false,
+    "mood": ""
+  }
+}

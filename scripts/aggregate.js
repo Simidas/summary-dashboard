@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Aggregate Daily Summaries into Weekly/Monthly/Yearly JSON files
+ * Aggregate unified daily records into Weekly/Monthly/Yearly JSON files
  * 
  * Usage: node scripts/aggregate.js
  * 
- * Scans data/summaries/daily/ for all JSON files, then generates:
+ * Scans data/records/daily/ for all JSON files, then generates:
  * - data/summaries/weekly/YYYY-WXX.json
  * - data/summaries/monthly/YYYY-MM.json
  * - data/summaries/yearly/YYYY.json
@@ -15,7 +15,7 @@ const path = require('path');
 
 // Directories
 const ROOT_DIR = path.join(__dirname, '..');
-const DAILY_DIR = path.join(ROOT_DIR, 'data', 'summaries', 'daily');
+const DAILY_DIR = path.join(ROOT_DIR, 'data', 'records', 'daily');
 const WEEKLY_DIR = path.join(ROOT_DIR, 'data', 'summaries', 'weekly');
 const MONTHLY_DIR = path.join(ROOT_DIR, 'data', 'summaries', 'monthly');
 const YEARLY_DIR = path.join(ROOT_DIR, 'data', 'summaries', 'yearly');
@@ -156,43 +156,92 @@ function getTopN(freqMap, n = 5) {
     .map(([item]) => item);
 }
 
+function getRecords(day) {
+  return Array.isArray(day.records) ? day.records : [];
+}
+
+function getRecordProjects(record) {
+  return Array.isArray(record.projects) ? record.projects : [];
+}
+
+function getRecordTags(record) {
+  return Array.isArray(record.tags) ? record.tags : [];
+}
+
+function countRecordStats(records) {
+  return records.reduce((stats, record) => {
+    if (record.type === 'progress') stats.achievements++;
+    if (['thought', 'decision', 'reflection'].includes(record.type)) stats.discussions++;
+    if (record.type === 'followup') stats.followUps++;
+    if (record.type !== 'followup') {
+      stats.followUps += (record.nextActions || []).length;
+    }
+    stats.contentSeeds += (record.contentSeeds || []).length;
+    if (record.type === 'content_seed') stats.contentSeeds++;
+    return stats;
+  }, {
+    achievements: 0,
+    discussions: 0,
+    followUps: 0,
+    contentSeeds: 0
+  });
+}
+
+function collectRecordFields(days) {
+  const records = days.flatMap(getRecords);
+  const allProjects = [];
+  const allTags = [];
+  let contentPublished = 0;
+
+  records.forEach(record => {
+    allProjects.push(...getRecordProjects(record));
+    allTags.push(...getRecordTags(record));
+  });
+
+  days.forEach(day => {
+    if (day.dailyReview?.contentCreated) contentPublished++;
+  });
+
+  return { records, allProjects, allTags, contentPublished };
+}
+
 /**
- * Load all daily summaries
+ * Load all unified daily records
  * @returns {Object[]}
  */
-function loadDailySummaries() {
+function loadDailyRecords() {
   if (!fs.existsSync(DAILY_DIR)) {
-    console.log(`Daily directory not found: ${DAILY_DIR}`);
+    console.log(`Daily records directory not found: ${DAILY_DIR}`);
     return [];
   }
   
   const files = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json');
-  const summaries = [];
+  const records = [];
   
   files.forEach(file => {
     const filePath = path.join(DAILY_DIR, file);
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
       const data = JSON.parse(content);
-      summaries.push(data);
+      records.push(data);
     } catch (e) {
       console.warn(`Failed to load ${file}: ${e.message}`);
     }
   });
   
   // Sort by date
-  summaries.sort((a, b) => a.date.localeCompare(b.date));
-  return summaries;
+  records.sort((a, b) => a.date.localeCompare(b.date));
+  return records;
 }
 
 /**
  * Aggregate into weekly summaries
- * @param {Object[]} dailySummaries
+ * @param {Object[]} dailyRecords
  */
-function aggregateWeekly(dailySummaries) {
+function aggregateWeekly(dailyRecords) {
   const byWeek = new Map();
   
-  dailySummaries.forEach(day => {
+  dailyRecords.forEach(day => {
     const weekStr = getWeekString(day.date);
     if (!byWeek.has(weekStr)) {
       byWeek.set(weekStr, []);
@@ -204,22 +253,8 @@ function aggregateWeekly(dailySummaries) {
     const dates = days.map(d => d.date).sort();
     const dateRange = getWeekDateRange(weekStr);
     
-    // Aggregate stats
-    let totalAchievements = 0;
-    let totalDiscussions = 0;
-    let totalFollowUps = 0;
-    const allProjects = [];
-    const allTags = [];
-    let contentPublished = 0;
-    
-    days.forEach(d => {
-      totalAchievements += (d.achievements || []).length;
-      totalDiscussions += (d.discussions || []).length;
-      totalFollowUps += (d.followUps || []).length;
-      allProjects.push(...(d.projects || []));
-      allTags.push(...(d.tags || []));
-      if (d.contentCreated) contentPublished++;
-    });
+    const { records, allProjects, allTags, contentPublished } = collectRecordFields(days);
+    const stats = countRecordStats(records);
     
     const projectFreq = countFrequencies(allProjects);
     const tagFreq = countFrequencies(allTags);
@@ -229,12 +264,13 @@ function aggregateWeekly(dailySummaries) {
       week: weekStr.split('-')[1],
       dateRange,
       days: days.length,
-      totalAchievements,
-      totalDiscussions,
-      totalFollowUps,
+      totalAchievements: stats.achievements,
+      totalDiscussions: stats.discussions,
+      totalFollowUps: stats.followUps,
       topProjects: getTopN(projectFreq, 3),
       topTags: getTopN(tagFreq, 5),
       contentPublished,
+      contentSeeds: stats.contentSeeds,
       dailyRecords: dates
     };
     
@@ -246,12 +282,12 @@ function aggregateWeekly(dailySummaries) {
 
 /**
  * Aggregate into monthly summaries
- * @param {Object[]} dailySummaries
+ * @param {Object[]} dailyRecords
  */
-function aggregateMonthly(dailySummaries) {
+function aggregateMonthly(dailyRecords) {
   const byMonth = new Map();
   
-  dailySummaries.forEach(day => {
+  dailyRecords.forEach(day => {
     const monthStr = getMonthString(day.date);
     if (!byMonth.has(monthStr)) {
       byMonth.set(monthStr, []);
@@ -266,20 +302,8 @@ function aggregateMonthly(dailySummaries) {
     // Get unique weeks
     const weeks = [...new Set(days.map(d => getWeekString(d.date)))].sort();
     
-    // Aggregate stats
-    let totalAchievements = 0;
-    let totalDiscussions = 0;
-    const allProjects = [];
-    const allTags = [];
-    let contentPublished = 0;
-    
-    days.forEach(d => {
-      totalAchievements += (d.achievements || []).length;
-      totalDiscussions += (d.discussions || []).length;
-      allProjects.push(...(d.projects || []));
-      allTags.push(...(d.tags || []));
-      if (d.contentCreated) contentPublished++;
-    });
+    const { records, allProjects, allTags, contentPublished } = collectRecordFields(days);
+    const stats = countRecordStats(records);
     
     const projectFreq = countFrequencies(allProjects);
     const tagFreq = countFrequencies(allTags);
@@ -288,12 +312,13 @@ function aggregateMonthly(dailySummaries) {
       year: parseInt(yearStr, 10),
       month: monthNum,
       monthName,
-      totalAchievements,
-      totalDiscussions,
+      totalAchievements: stats.achievements,
+      totalDiscussions: stats.discussions,
       weeks: weeks.map(w => w.split('-')[1]), // Just WXX
       topProjects: getTopN(projectFreq, 3),
       topTags: getTopN(tagFreq, 5),
-      contentPublished
+      contentPublished,
+      contentSeeds: stats.contentSeeds
     };
     
     const outputPath = path.join(MONTHLY_DIR, `${monthStr}.json`);
@@ -304,12 +329,12 @@ function aggregateMonthly(dailySummaries) {
 
 /**
  * Aggregate into yearly summaries
- * @param {Object[]} dailySummaries
+ * @param {Object[]} dailyRecords
  */
-function aggregateYearly(dailySummaries) {
+function aggregateYearly(dailyRecords) {
   const byYear = new Map();
   
-  dailySummaries.forEach(day => {
+  dailyRecords.forEach(day => {
     const yearStr = getYearString(day.date);
     if (!byYear.has(yearStr)) {
       byYear.set(yearStr, []);
@@ -321,26 +346,17 @@ function aggregateYearly(dailySummaries) {
     // Get unique months
     const months = [...new Set(days.map(d => getMonthString(d.date)))].sort();
     
-    // Aggregate stats
-    let totalAchievements = 0;
-    const allProjects = new Set();
-    let totalContentPublished = 0;
-    const allTags = [];
-    
-    days.forEach(d => {
-      totalAchievements += (d.achievements || []).length;
-      (d.projects || []).forEach(p => allProjects.add(p));
-      allTags.push(...(d.tags || []));
-      if (d.contentCreated) totalContentPublished++;
-    });
-    
+    const { records, allProjects, allTags, contentPublished } = collectRecordFields(days);
+    const stats = countRecordStats(records);
+    const projectSet = new Set(allProjects);
     const tagFreq = countFrequencies(allTags);
     
     const yearData = {
       year: parseInt(yearStr, 10),
-      totalAchievements,
-      totalProjects: allProjects.size,
-      totalContentPublished,
+      totalAchievements: stats.achievements,
+      totalProjects: projectSet.size,
+      totalContentPublished: contentPublished,
+      contentSeeds: stats.contentSeeds,
       topTags: getTopN(tagFreq, 5),
       months
     };
@@ -359,28 +375,28 @@ function main() {
   console.log(`Daily dir: ${DAILY_DIR}`);
   console.log('');
   
-  const summaries = loadDailySummaries();
-  console.log(`Loaded ${summaries.length} daily summaries`);
+  const records = loadDailyRecords();
+  console.log(`Loaded ${records.length} daily records`);
   
-  if (summaries.length === 0) {
-    console.log('No summaries found. Skipping aggregation.');
+  if (records.length === 0) {
+    console.log('No daily records found. Skipping aggregation.');
     return;
   }
   
-  const dateRange = `${summaries[0].date} to ${summaries[summaries.length - 1].date}`;
+  const dateRange = `${records[0].date} to ${records[records.length - 1].date}`;
   console.log(`Date range: ${dateRange}`);
   console.log('');
   
   console.log('Generating weekly summaries...');
-  aggregateWeekly(summaries);
+  aggregateWeekly(records);
   console.log('');
   
   console.log('Generating monthly summaries...');
-  aggregateMonthly(summaries);
+  aggregateMonthly(records);
   console.log('');
   
   console.log('Generating yearly summaries...');
-  aggregateYearly(summaries);
+  aggregateYearly(records);
   console.log('');
 
   // Generate manifest files for efficient JS scanning
@@ -390,13 +406,13 @@ function main() {
 
   // Generate daily manifest
   const dailyFiles = fs.readdirSync(DAILY_DIR).filter(f => f.endsWith('.json') && f !== 'manifest.json').map(f => f.replace('.json', '')).sort().reverse();
-  fs.writeFileSync(path.join(DAILY_DIR, 'manifest.json'), JSON.stringify({ dates: dailyFiles }), 'utf-8');
+  fs.writeFileSync(path.join(DAILY_DIR, 'manifest.json'), JSON.stringify({ dates: dailyFiles }, null, 2), 'utf-8');
   console.log('Generated daily manifest:', dailyFiles.length, 'files');
 
   // Generate weekly/monthly/yearly manifests
-  fs.writeFileSync(path.join(WEEKLY_DIR, 'manifest.json'), JSON.stringify({ weeks: weekFiles }), 'utf-8');
-  fs.writeFileSync(path.join(MONTHLY_DIR, 'manifest.json'), JSON.stringify({ months: monthFiles }), 'utf-8');
-  fs.writeFileSync(path.join(YEARLY_DIR, 'manifest.json'), JSON.stringify({ years: yearFiles }), 'utf-8');
+  fs.writeFileSync(path.join(WEEKLY_DIR, 'manifest.json'), JSON.stringify({ weeks: weekFiles }, null, 2), 'utf-8');
+  fs.writeFileSync(path.join(MONTHLY_DIR, 'manifest.json'), JSON.stringify({ months: monthFiles }, null, 2), 'utf-8');
+  fs.writeFileSync(path.join(YEARLY_DIR, 'manifest.json'), JSON.stringify({ years: yearFiles }, null, 2), 'utf-8');
   console.log('Generated manifest files for all aggregation levels');
   console.log('');
 

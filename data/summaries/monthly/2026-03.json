@@ -2,23 +2,24 @@
   "year": 2026,
   "month": "03",
   "monthName": "三月",
-  "totalAchievements": 8,
-  "totalDiscussions": 5,
+  "totalAchievements": 10,
+  "totalDiscussions": 11,
   "weeks": [
     "W13",
     "W14"
   ],
   "topProjects": [
-    "内容创作",
     "OpenClaw",
-    "AI自动化"
+    "内容创作",
+    "背景去除项目"
   ],
   "topTags": [
-    "内容创作",
-    "Git",
-    "AI自动化",
     "背景去除",
-    "PayPal"
+    "PayPal",
+    "AI项目",
+    "公众号",
+    "OpenClaw"
   ],
-  "contentPublished": 2
+  "contentPublished": 2,
+  "contentSeeds": 0
 }

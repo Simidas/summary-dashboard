@@ -5,9 +5,9 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260531';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260531';
-import { createGiscusToggle } from '../components/giscus.js?v=20260531';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260624';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260624';
+import { createGiscusToggle } from '../components/giscus.js?v=20260624';
 
 const TIMELINE_DAYS = 14;
 
@@ -102,7 +102,8 @@ function renderHero(page, latest) {
 
   const today = new Date().toISOString().split('T')[0];
   const isToday = latest.date === today;
-  const summaryText = (latest.achievements || []).slice(0, 2).join('；');
+  const summaryText = getHeroSummary(latest);
+  const tags = getHeroTags(latest);
   const moodHtml = latest.mood
     ? `<span class="mood" style="margin-left: 8px;">${escapeHtml(latest.mood)}</span>`
     : '';
@@ -121,7 +122,7 @@ function renderHero(page, latest) {
       ${escapeHtml(summaryText)}...
     </p>
     <div class="hero-meta">
-      ${(latest.tags || []).slice(0, 4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+      ${tags.slice(0, 4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
     </div>
   `;
 
@@ -132,6 +133,41 @@ function renderHero(page, latest) {
   } else {
     page.insertBefore(hero, page.firstChild);
   }
+}
+
+function getHeroSummary(data) {
+  if (data.dailyReview?.mostImportantThing) return data.dailyReview.mostImportantThing;
+  if (data.dailyReview?.reflection) return data.dailyReview.reflection;
+
+  const firstRecord = Array.isArray(data.records) ? data.records[0] : null;
+  if (firstRecord) {
+    return firstRecord.summary || firstRecord.raw || firstRecord.content || '';
+  }
+
+  return (data.achievements || []).slice(0, 2).join('；');
+}
+
+function getHeroTags(data) {
+  if (Array.isArray(data.records)) {
+    const tags = new Set();
+    data.records.forEach(record => {
+      if (record.domain) tags.add(getDomainLabel(record.domain));
+      (record.tags || []).forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags);
+  }
+
+  return data.tags || [];
+}
+
+function getDomainLabel(domain) {
+  const labels = {
+    work: '主业',
+    side_business: '副业',
+    life: '生活',
+    content: '内容'
+  };
+  return labels[domain] || domain || '未分类';
 }
 
 function escapeHtml(str) {
