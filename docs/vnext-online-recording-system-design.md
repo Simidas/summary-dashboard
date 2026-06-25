@@ -92,7 +92,7 @@ OWNER_EMAIL=you@gmail.com
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 AI_PROVIDER=minimax
 MINIMAX_MODEL=MiniMax-M3
-MINIMAX_API_BASE_URL=https://api.minimax.io/v1
+MINIMAX_API_BASE_URL=https://api.minimaxi.com/v1
 ```
 
 Secrets：

@@ -15,7 +15,7 @@ async function generateMiniMaxSuggestion(env, record, recentRecords = []) {
   }
 
   const model = env.MINIMAX_MODEL || 'MiniMax-M3';
-  const baseUrl = env.MINIMAX_API_BASE_URL || 'https://api.minimax.io/v1';
+  const baseUrl = env.MINIMAX_API_BASE_URL || 'https://api.minimaxi.com/v1';
   const prompt = buildCompanionPrompt(record, recentRecords);
 
   try {
