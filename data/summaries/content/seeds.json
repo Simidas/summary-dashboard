@@ -1,0 +1,396 @@
+{
+  "seeds": [
+    {
+      "id": "content-seed-20260329-record-20260329-003",
+      "title": "公众号第二篇文章《从零搭建 AI 写作助手》发布",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260329-003",
+      "sourceDate": "2026-03-29",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260329-record-20260329-008",
+      "title": "公众号文章 SEO 优化",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260329-008",
+      "sourceDate": "2026-03-29",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "nextAction": "公众号文章 SEO 优化"
+    },
+    {
+      "id": "content-seed-20260329-record-20260329-010",
+      "title": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260329-010",
+      "sourceDate": "2026-03-29",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-001",
+      "title": "内容创作私有仓库 summary-content 正式建立",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-001",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-002",
+      "title": "第一篇公众号文章《AI工作流复盘：我的每日记录系统》完成初稿",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-002",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-003",
+      "title": "MacBook SSH Key 配置完成，git push 无需密码",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-003",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-004",
+      "title": "内容创作流程规范：素材 → 草稿 → 审核 → 发布",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-004",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-005",
+      "title": "公众号文章配图设计",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-005",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": "公众号文章配图设计"
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-006",
+      "title": "GitHub Actions 自动部署脚本编写",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-006",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": "GitHub Actions 自动部署脚本编写"
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-007",
+      "title": "SSH config 多密钥管理：不同域名用不同 key，避免覆盖",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-007",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    },
+    {
+      "id": "content-seed-20260328-record-20260328-008",
+      "title": "GitHub private repo 协作权限配置细节",
+      "sourceDomain": "content",
+      "sourceDomainLabel": "内容产出",
+      "sourceRecordId": "record-20260328-008",
+      "sourceDate": "2026-03-28",
+      "status": "idea",
+      "angle": "",
+      "outline": [],
+      "tags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ],
+      "nextAction": ""
+    }
+  ],
+  "byStatus": {
+    "idea": [
+      {
+        "id": "content-seed-20260329-record-20260329-003",
+        "title": "公众号第二篇文章《从零搭建 AI 写作助手》发布",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260329-003",
+        "sourceDate": "2026-03-29",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "背景去除",
+          "PayPal",
+          "AI项目",
+          "公众号"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260329-record-20260329-008",
+        "title": "公众号文章 SEO 优化",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260329-008",
+        "sourceDate": "2026-03-29",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "背景去除",
+          "PayPal",
+          "AI项目",
+          "公众号"
+        ],
+        "nextAction": "公众号文章 SEO 优化"
+      },
+      {
+        "id": "content-seed-20260329-record-20260329-010",
+        "title": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260329-010",
+        "sourceDate": "2026-03-29",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "背景去除",
+          "PayPal",
+          "AI项目",
+          "公众号"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-001",
+        "title": "内容创作私有仓库 summary-content 正式建立",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-001",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-002",
+        "title": "第一篇公众号文章《AI工作流复盘：我的每日记录系统》完成初稿",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-002",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-003",
+        "title": "MacBook SSH Key 配置完成，git push 无需密码",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-003",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-004",
+        "title": "内容创作流程规范：素材 → 草稿 → 审核 → 发布",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-004",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-005",
+        "title": "公众号文章配图设计",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-005",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": "公众号文章配图设计"
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-006",
+        "title": "GitHub Actions 自动部署脚本编写",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-006",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": "GitHub Actions 自动部署脚本编写"
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-007",
+        "title": "SSH config 多密钥管理：不同域名用不同 key，避免覆盖",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-007",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      },
+      {
+        "id": "content-seed-20260328-record-20260328-008",
+        "title": "GitHub private repo 协作权限配置细节",
+        "sourceDomain": "content",
+        "sourceDomainLabel": "内容产出",
+        "sourceRecordId": "record-20260328-008",
+        "sourceDate": "2026-03-28",
+        "status": "idea",
+        "angle": "",
+        "outline": [],
+        "tags": [
+          "内容创作",
+          "Git",
+          "AI自动化"
+        ],
+        "nextAction": ""
+      }
+    ]
+  },
+  "stats": {
+    "total": 11,
+    "idea": 11,
+    "outline": 0,
+    "drafting": 0,
+    "published": 0,
+    "dropped": 0
+  }
+}

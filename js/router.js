@@ -5,10 +5,15 @@
 class Router {
   constructor() {
     this.routes = {
+      home: [],
       daily: [],
       weekly: [],
       monthly: [],
-      yearly: []
+      yearly: [],
+      domain: [],
+      projects: [],
+      diary: [],
+      content: []
     };
     this.currentRoute = null;
     this.onChange = null;
@@ -19,7 +24,7 @@ class Router {
 
   /**
    * Register route handler
-   * @param {string} route - daily|weekly|monthly|yearly
+   * @param {string} route
    * @param {Function} handler - callback function
    */
   on(route, handler) {
@@ -41,7 +46,7 @@ class Router {
    * @returns {string}
    */
   getCurrentRoute() {
-    const hash = window.location.hash.slice(1) || 'daily';
+    const hash = window.location.hash.slice(1) || 'home';
     return hash.split('/')[0].split('?')[0];
   }
 
@@ -68,7 +73,7 @@ class Router {
 
     // Validate route
     if (!this.routes[route]) {
-      this.navigate('daily');
+      this.navigate('home');
       return;
     }
 

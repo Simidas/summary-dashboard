@@ -1,0 +1,148 @@
+{
+  "id": "life",
+  "label": "生活和自我",
+  "description": "家庭关系、陪伴质量、情绪能量和自我照顾。",
+  "recordCount": 7,
+  "progressCount": 4,
+  "discussionCount": 3,
+  "followupCount": 0,
+  "contentSeedCount": 0,
+  "topProjects": [],
+  "topTags": [
+    "AI产品",
+    "工作提效",
+    "生活琐碎",
+    "背景去除",
+    "PayPal",
+    "AI项目"
+  ],
+  "currentFocus": "跑步20分钟 2.22km + 俯卧撑3组",
+  "nextAction": "",
+  "openFollowUps": [],
+  "overdueFollowUps": [],
+  "blockers": [],
+  "contentSeeds": [],
+  "recentRecords": [
+    {
+      "id": "record-20260415-010",
+      "date": "2026-04-15",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "progress",
+      "text": "跑步20分钟 2.22km + 俯卧撑3组",
+      "projects": [],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260415-009",
+      "date": "2026-04-15",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "reflection",
+      "text": "UTC时间需显式转换 CST，避免'凌晨跑步'的误解",
+      "projects": [],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260415-008",
+      "date": "2026-04-15",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "reflection",
+      "text": "目标分散+ADHD执行功能障碍双重影响，需要聚焦一件事",
+      "projects": [],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260415-004",
+      "date": "2026-04-15",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "thought",
+      "text": "和老婆共享 summary-dashboard，向她透明化每日工作",
+      "projects": [],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260415-001",
+      "date": "2026-04-15",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "progress",
+      "text": "晨跑2.22km + 俯卧撑3组，连续第二天运动",
+      "projects": [],
+      "tags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260330-010",
+      "date": "2026-03-30",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "progress",
+      "text": "俯卧撑 3组 × 15个",
+      "projects": [],
+      "tags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    },
+    {
+      "id": "record-20260329-011",
+      "date": "2026-03-29",
+      "domain": "life",
+      "domainLabel": "生活和自我",
+      "type": "progress",
+      "text": "晨跑 30 分钟",
+      "projects": [],
+      "tags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ],
+      "blockers": [],
+      "decisions": [],
+      "nextActions": []
+    }
+  ],
+  "latestRecordDate": "2026-04-15"
+}

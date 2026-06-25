@@ -27,7 +27,7 @@ export const GISCUS_CONFIG = {
  */
 export const SITE = {
   name: '复盘',
-  description: '个人 AI 复盘展示站 — 每天种下一行记录，到了年底回头看，是一片金色的收成。',
+  description: '个人经营复盘系统 — 用每日综合记录驱动主业、副业、生活和内容产出。',
   url: 'https://summary.zhuwd.com',
   github: 'https://github.com/Simidas/summary-dashboard'
 };
@@ -36,8 +36,12 @@ export const SITE = {
  * View display names
  */
 export const VIEW_NAMES = {
+  home: 'Home',
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
-  yearly: 'Yearly'
+  yearly: 'Yearly',
+  projects: 'Projects',
+  diary: 'Diary',
+  content: 'Content'
 };

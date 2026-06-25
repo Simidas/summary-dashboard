@@ -1,0 +1,31 @@
+{
+  "week": "2026-W14",
+  "dateRange": "2026-03-30 ~ 2026-04-05",
+  "theme": "聚焦 复盘项目",
+  "summary": "本周记录 1 天，沉淀 10 条场景记录。主线集中在 复盘项目。",
+  "wins": [
+    "OpenClaw cron delivery 修复：定时任务终于能正确触发",
+    "会话摘要主动记录规范正式立项，命名「复盘」项目",
+    "俯卧撑 3组 × 15个"
+  ],
+  "blockers": [
+    "本周没有显式记录阻塞"
+  ],
+  "patterns": [
+    "OpenClaw",
+    "复盘项目",
+    "规范立项"
+  ],
+  "decisions": [],
+  "nextWeekFocus": [
+    "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+    "GitHub Actions 定时构建流程设计",
+    "Giscus 匿名评论配置验证"
+  ],
+  "aiLeverage": [],
+  "openFollowUps": [
+    "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+    "GitHub Actions 定时构建流程设计",
+    "Giscus 匿名评论配置验证"
+  ]
+}

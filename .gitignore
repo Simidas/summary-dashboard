@@ -1,1 +1,5 @@
 .wrangler/
+
+# Private Diary entries stay local unless explicitly exported as public summaries.
+data/records/diary/*.json
+!data/records/diary/manifest.json

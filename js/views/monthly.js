@@ -2,9 +2,9 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260624';
-import { createMonthCard } from '../components/card.js?v=20260624';
-import { createGiscusToggle } from '../components/giscus.js?v=20260624';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260625a';
+import { createMonthCard } from '../components/card.js?v=20260625a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260625a';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -59,9 +59,11 @@ export async function renderMonthlyView(container, params = {}) {
 
   // Collect data for chart
   const chartData = [];
+  const monthlyDataList = [];
   for (const monthStr of recentMonths) {
     const data = await loadMonthlySummary(monthStr);
     if (data) {
+      monthlyDataList.push(data);
       chartData.push({
         month: monthStr,
         monthName: data.monthName,
@@ -121,6 +123,9 @@ export async function renderMonthlyView(container, params = {}) {
     monthCards.push({ card, monthData, monthStr });
   }
 
+  if (monthlyDataList[0]) {
+    page.appendChild(createMonthlyInsight(monthlyDataList[0]));
+  }
   page.appendChild(chartSection);
   page.appendChild(grid);
   
@@ -149,4 +154,40 @@ function createGiscusSection(topic) {
   const toggle = createGiscusToggle('giscus-monthly', '展开评论区');
   section.querySelector('.giscus-header').appendChild(toggle);
   return section;
+}
+
+function createMonthlyInsight(monthData) {
+  const section = document.createElement('section');
+  section.className = 'ops-panel monthly-insight animate-fade-in-up';
+  section.innerHTML = `
+    <div class="section-heading">
+      <h2 class="section-title">${escapeHtml(monthData.monthName)}策略复盘</h2>
+      <span class="panel-date">${escapeHtml(`${monthData.year}-${monthData.month}`)}</span>
+    </div>
+    <p class="panel-lead">${escapeHtml(monthData.modeSummary || '')}</p>
+    <div class="insight-grid">
+      ${buildInsightColumn('场景投入', (monthData.domainDistribution || []).map(item => `${item.label}: ${item.count}`))}
+      ${buildInsightColumn('重复问题', monthData.repeatedBlockers || [])}
+      ${buildInsightColumn('下月策略', monthData.nextMonthStrategy || [])}
+    </div>
+  `;
+  return section;
+}
+
+function buildInsightColumn(title, items = []) {
+  const list = items.length ? items : ['暂无记录'];
+  return `
+    <div class="insight-column">
+      <h3>${escapeHtml(title)}</h3>
+      <ul class="plain-list">
+        ${list.slice(0, 5).map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
 }

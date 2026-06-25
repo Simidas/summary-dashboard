@@ -1,0 +1,140 @@
+{
+  "name": "AI自动化",
+  "slug": "ai",
+  "status": "active",
+  "firstSeen": "2026-03-28",
+  "lastUpdated": "2026-03-28",
+  "timeline": [
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-001",
+      "type": "progress",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "内容创作私有仓库 summary-content 正式建立",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-002",
+      "type": "progress",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "第一篇公众号文章《AI工作流复盘：我的每日记录系统》完成初稿",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-003",
+      "type": "progress",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "MacBook SSH Key 配置完成，git push 无需密码",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-004",
+      "type": "thought",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "内容创作流程规范：素材 → 草稿 → 审核 → 发布",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-005",
+      "type": "followup",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "公众号文章配图设计",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": [
+        "公众号文章配图设计"
+      ]
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-006",
+      "type": "followup",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "GitHub Actions 自动部署脚本编写",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": [
+        "GitHub Actions 自动部署脚本编写"
+      ]
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-007",
+      "type": "reflection",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "SSH config 多密钥管理：不同域名用不同 key，避免覆盖",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-03-28",
+      "recordId": "record-20260328-008",
+      "type": "reflection",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "text": "GitHub private repo 协作权限配置细节",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    }
+  ],
+  "decisions": [],
+  "blockers": [],
+  "nextActions": [
+    "公众号文章配图设计",
+    "GitHub Actions 自动部署脚本编写"
+  ],
+  "tags": [
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化",
+    "内容创作",
+    "Git",
+    "AI自动化"
+  ],
+  "summary": "GitHub private repo 协作权限配置细节",
+  "topTags": [
+    "内容创作",
+    "Git",
+    "AI自动化"
+  ],
+  "openFollowUps": []
+}

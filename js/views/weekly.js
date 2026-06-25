@@ -2,9 +2,9 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklySummary } from '../data.js?v=20260624';
-import { createWeekCard } from '../components/card.js?v=20260624';
-import { createGiscusToggle } from '../components/giscus.js?v=20260624';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260625a';
+import { createWeekCard } from '../components/card.js?v=20260625a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260625a';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -56,14 +56,16 @@ export async function renderWeeklyView(container, params = {}) {
   const skeleton = page.querySelector('.aggregation-grid');
   if (skeleton) skeleton.remove();
 
-  // Build header
-  const header = page.querySelector('.view-header');
-
   // Create grid
   const grid = document.createElement('div');
   grid.className = 'aggregation-grid';
 
   weekCards = [];
+
+  const latestInsight = await loadWeeklyInsight(recentWeeks[0]);
+  if (latestInsight) {
+    page.appendChild(createInsightPanel(latestInsight));
+  }
 
   for (let i = 0; i < recentWeeks.length; i++) {
     const weekStr = recentWeeks[i];
@@ -106,4 +108,40 @@ function createGiscusSection(topic) {
   const toggle = createGiscusToggle('giscus-weekly', '展开评论区');
   section.querySelector('.giscus-header').appendChild(toggle);
   return section;
+}
+
+function createInsightPanel(insight) {
+  const panel = document.createElement('section');
+  panel.className = 'ops-panel weekly-insight animate-fade-in-up';
+  panel.innerHTML = `
+    <div class="section-heading">
+      <h2 class="section-title">${escapeHtml(insight.theme || '本周洞察')}</h2>
+      <span class="panel-date">${escapeHtml(insight.dateRange || insight.week || '')}</span>
+    </div>
+    <p class="panel-lead">${escapeHtml(insight.summary || '')}</p>
+    <div class="insight-grid">
+      ${buildInsightColumn('胜利', insight.wins)}
+      ${buildInsightColumn('卡点', insight.blockers)}
+      ${buildInsightColumn('下周聚焦', insight.nextWeekFocus)}
+    </div>
+  `;
+  return panel;
+}
+
+function buildInsightColumn(title, items = []) {
+  const list = items.length ? items : ['暂无记录'];
+  return `
+    <div class="insight-column">
+      <h3>${escapeHtml(title)}</h3>
+      <ul class="plain-list">
+        ${list.slice(0, 4).map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
 }

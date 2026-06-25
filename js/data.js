@@ -10,7 +10,13 @@ const cache = {
   daily: {},
   weekly: {},
   monthly: {},
-  yearly: {}
+  yearly: {},
+  domains: {},
+  projects: {},
+  followups: {},
+  content: {},
+  diary: {},
+  insights: {}
 };
 
 // Track if we've scanned the directory (for static hosting without server)
@@ -18,6 +24,23 @@ let _availableDates = null;
 let _availableWeeks = null;
 let _availableMonths = null;
 let _availableYears = null;
+
+async function loadJson(path, cacheBucket, cacheKey) {
+  if (cacheBucket && cacheBucket[cacheKey]) {
+    return cacheBucket[cacheKey];
+  }
+
+  try {
+    const response = await fetch(path);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (cacheBucket) cacheBucket[cacheKey] = data;
+    return data;
+  } catch (e) {
+    console.warn(`Failed to load ${path}:`, e);
+    return null;
+  }
+}
 
 /**
  * Scan directory for available JSON files (via fetch attempt)
@@ -358,6 +381,55 @@ export async function getAvailableYears() {
   return scanAvailableYears();
 }
 
+export async function loadDomainOverview() {
+  return loadJson('data/summaries/domains/overview.json', cache.domains, 'overview');
+}
+
+export async function loadDomainSummary(domain) {
+  return loadJson(`data/summaries/domains/${domain}.json`, cache.domains, domain);
+}
+
+export async function loadProjectsManifest() {
+  return loadJson('data/summaries/projects/manifest.json', cache.projects, 'manifest');
+}
+
+export async function loadProjectSummary(slug) {
+  return loadJson(`data/summaries/projects/${slug}.json`, cache.projects, slug);
+}
+
+export async function loadOpenFollowups() {
+  return loadJson('data/summaries/followups/open.json', cache.followups, 'open');
+}
+
+export async function loadContentSeeds() {
+  return loadJson('data/summaries/content/seeds.json', cache.content, 'seeds');
+}
+
+export async function loadWeeklyInsight(weekStr) {
+  return loadJson(`data/summaries/insights/weekly/${weekStr}.json`, cache.insights, weekStr);
+}
+
+export async function loadDiaryManifest() {
+  return loadJson('data/records/diary/manifest.json', cache.diary, 'manifest');
+}
+
+export async function loadDiaryEntry(id) {
+  return loadJson(`data/records/diary/${id}.json`, cache.diary, id);
+}
+
+export async function loadDiaryEntries() {
+  const manifest = await loadDiaryManifest();
+  const entries = manifest?.entries || [];
+  const loaded = [];
+
+  for (const id of entries) {
+    const entry = await loadDiaryEntry(id);
+    if (entry) loaded.push(entry);
+  }
+
+  return loaded;
+}
+
 /**
  * Clear all cache
  */
@@ -366,4 +438,10 @@ export function clearCache() {
   cache.weekly = {};
   cache.monthly = {};
   cache.yearly = {};
+  cache.domains = {};
+  cache.projects = {};
+  cache.followups = {};
+  cache.content = {};
+  cache.diary = {};
+  cache.insights = {};
 }

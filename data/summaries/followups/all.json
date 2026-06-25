@@ -1,51 +1,5 @@
 {
-  "year": 2026,
-  "month": "03",
-  "monthName": "三月",
-  "totalAchievements": 10,
-  "totalDiscussions": 11,
-  "weeks": [
-    "W13",
-    "W14"
-  ],
-  "topProjects": [
-    "OpenClaw",
-    "内容创作",
-    "背景去除项目"
-  ],
-  "topTags": [
-    "背景去除",
-    "PayPal",
-    "AI项目",
-    "公众号",
-    "OpenClaw"
-  ],
-  "contentPublished": 2,
-  "contentSeeds": 0,
-  "domainDistribution": [
-    {
-      "domain": "work",
-      "label": "主业",
-      "count": 0
-    },
-    {
-      "domain": "side_business",
-      "label": "副业",
-      "count": 16
-    },
-    {
-      "domain": "life",
-      "label": "生活和自我",
-      "count": 2
-    },
-    {
-      "domain": "content",
-      "label": "内容产出",
-      "count": 11
-    }
-  ],
-  "repeatedBlockers": [],
-  "openFollowUps": [
+  "followups": [
     {
       "id": "followup-20260330-record-20260330-005-1",
       "text": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
@@ -57,8 +11,8 @@
       "closedAt": null,
       "sourceDate": "2026-03-30",
       "sourceRecordId": "record-20260330-005",
-      "ageDays": 0,
-      "overdue": false
+      "ageDays": 16,
+      "overdue": true
     },
     {
       "id": "followup-20260330-record-20260330-006-1",
@@ -71,8 +25,8 @@
       "closedAt": null,
       "sourceDate": "2026-03-30",
       "sourceRecordId": "record-20260330-006",
-      "ageDays": 0,
-      "overdue": false
+      "ageDays": 16,
+      "overdue": true
     },
     {
       "id": "followup-20260330-record-20260330-007-1",
@@ -85,8 +39,8 @@
       "closedAt": null,
       "sourceDate": "2026-03-30",
       "sourceRecordId": "record-20260330-007",
-      "ageDays": 0,
-      "overdue": false
+      "ageDays": 16,
+      "overdue": true
     },
     {
       "id": "followup-20260329-record-20260329-006-1",
@@ -99,8 +53,8 @@
       "closedAt": null,
       "sourceDate": "2026-03-29",
       "sourceRecordId": "record-20260329-006",
-      "ageDays": 1,
-      "overdue": false
+      "ageDays": 17,
+      "overdue": true
     },
     {
       "id": "followup-20260329-record-20260329-007-1",
@@ -113,8 +67,8 @@
       "closedAt": null,
       "sourceDate": "2026-03-29",
       "sourceRecordId": "record-20260329-007",
-      "ageDays": 1,
-      "overdue": false
+      "ageDays": 17,
+      "overdue": true
     },
     {
       "id": "followup-20260329-record-20260329-008-1",
@@ -127,14 +81,64 @@
       "closedAt": null,
       "sourceDate": "2026-03-29",
       "sourceRecordId": "record-20260329-008",
-      "ageDays": 1,
+      "ageDays": 17,
+      "overdue": true
+    },
+    {
+      "id": "followup-20260328-record-20260328-005-1",
+      "text": "公众号文章配图设计",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "project": "内容创作",
+      "status": "open",
+      "createdAt": "2026-03-28",
+      "closedAt": null,
+      "sourceDate": "2026-03-28",
+      "sourceRecordId": "record-20260328-005",
+      "ageDays": 18,
+      "overdue": true
+    },
+    {
+      "id": "followup-20260328-record-20260328-006-1",
+      "text": "GitHub Actions 自动部署脚本编写",
+      "domain": "content",
+      "domainLabel": "内容产出",
+      "project": "内容创作",
+      "status": "open",
+      "createdAt": "2026-03-28",
+      "closedAt": null,
+      "sourceDate": "2026-03-28",
+      "sourceRecordId": "record-20260328-006",
+      "ageDays": 18,
+      "overdue": true
+    },
+    {
+      "id": "followup-20260415-record-20260415-006-1",
+      "text": "推进 PDF Q&A 项目 MVP",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "project": "PDF Q&A",
+      "status": "open",
+      "createdAt": "2026-04-15",
+      "closedAt": null,
+      "sourceDate": "2026-04-15",
+      "sourceRecordId": "record-20260415-006",
+      "ageDays": 0,
+      "overdue": false
+    },
+    {
+      "id": "followup-20260415-record-20260415-007-1",
+      "text": "继续 summary-dashboard 功能更新",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "project": "PDF Q&A",
+      "status": "open",
+      "createdAt": "2026-04-15",
+      "closedAt": null,
+      "sourceDate": "2026-04-15",
+      "sourceRecordId": "record-20260415-007",
+      "ageDays": 0,
       "overdue": false
     }
-  ],
-  "nextMonthStrategy": [
-    "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
-    "GitHub Actions 定时构建流程设计",
-    "Giscus 匿名评论配置验证"
-  ],
-  "modeSummary": "三月共沉淀 29 条记录，主要集中在 OpenClaw。"
+  ]
 }

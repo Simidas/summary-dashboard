@@ -17,5 +17,63 @@
     "生活琐碎"
   ],
   "contentPublished": 0,
-  "contentSeeds": 0
+  "contentSeeds": 0,
+  "domainDistribution": [
+    {
+      "domain": "work",
+      "label": "主业",
+      "count": 0
+    },
+    {
+      "domain": "side_business",
+      "label": "副业",
+      "count": 5
+    },
+    {
+      "domain": "life",
+      "label": "生活和自我",
+      "count": 5
+    },
+    {
+      "domain": "content",
+      "label": "内容产出",
+      "count": 0
+    }
+  ],
+  "repeatedBlockers": [],
+  "openFollowUps": [
+    {
+      "id": "followup-20260415-record-20260415-006-1",
+      "text": "推进 PDF Q&A 项目 MVP",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "project": "PDF Q&A",
+      "status": "open",
+      "createdAt": "2026-04-15",
+      "closedAt": null,
+      "sourceDate": "2026-04-15",
+      "sourceRecordId": "record-20260415-006",
+      "ageDays": 0,
+      "overdue": false
+    },
+    {
+      "id": "followup-20260415-record-20260415-007-1",
+      "text": "继续 summary-dashboard 功能更新",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "project": "PDF Q&A",
+      "status": "open",
+      "createdAt": "2026-04-15",
+      "closedAt": null,
+      "sourceDate": "2026-04-15",
+      "sourceRecordId": "record-20260415-007",
+      "ageDays": 0,
+      "overdue": false
+    }
+  ],
+  "nextMonthStrategy": [
+    "推进 PDF Q&A 项目 MVP",
+    "继续 summary-dashboard 功能更新"
+  ],
+  "modeSummary": "四月共沉淀 10 条记录，主要集中在 PDF Q&A。"
 }

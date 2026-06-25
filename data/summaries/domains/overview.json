@@ -1,0 +1,280 @@
+{
+  "generatedAt": "2026-06-24T16:14:44.390Z",
+  "latestDate": "2026-04-15",
+  "todayFocus": "晨跑2.22km + 俯卧撑3组，连续第二天运动",
+  "tomorrowFirstStep": "推进 PDF Q&A 项目 MVP",
+  "domains": [
+    {
+      "id": "work",
+      "label": "主业",
+      "description": "公寓租赁行业系统后端开发、业务理解和技术沉淀。",
+      "recordCount": 0,
+      "progressCount": 0,
+      "followupCount": 0,
+      "contentSeedCount": 0,
+      "currentFocus": "",
+      "nextAction": "",
+      "openFollowUps": [],
+      "overdueFollowUps": [],
+      "blockers": [],
+      "topProjects": [],
+      "topTags": [],
+      "latestRecordDate": null
+    },
+    {
+      "id": "side_business",
+      "label": "副业",
+      "description": "网站产品出海、产品实验、增长验证和商业化。",
+      "recordCount": 21,
+      "progressCount": 6,
+      "followupCount": 7,
+      "contentSeedCount": 0,
+      "currentFocus": "继续 summary-dashboard 功能更新",
+      "nextAction": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+      "openFollowUps": [
+        {
+          "id": "followup-20260330-record-20260330-005-1",
+          "text": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-005",
+          "ageDays": 16,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260330-record-20260330-006-1",
+          "text": "GitHub Actions 定时构建流程设计",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-006",
+          "ageDays": 16,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260330-record-20260330-007-1",
+          "text": "Giscus 匿名评论配置验证",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-007",
+          "ageDays": 16,
+          "overdue": true
+        }
+      ],
+      "overdueFollowUps": [
+        {
+          "id": "followup-20260330-record-20260330-005-1",
+          "text": "复盘项目 Phase 2：Weekly/Monthly 聚合视图",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-005",
+          "ageDays": 16,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260330-record-20260330-006-1",
+          "text": "GitHub Actions 定时构建流程设计",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-006",
+          "ageDays": 16,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260330-record-20260330-007-1",
+          "text": "Giscus 匿名评论配置验证",
+          "domain": "side_business",
+          "domainLabel": "副业",
+          "project": "复盘项目",
+          "status": "open",
+          "createdAt": "2026-03-30",
+          "closedAt": null,
+          "sourceDate": "2026-03-30",
+          "sourceRecordId": "record-20260330-007",
+          "ageDays": 16,
+          "overdue": true
+        }
+      ],
+      "blockers": [],
+      "topProjects": [
+        "OpenClaw",
+        "复盘项目",
+        "背景去除项目",
+        "内容创作",
+        "PDF Q&A"
+      ],
+      "topTags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项",
+        "背景去除",
+        "PayPal",
+        "AI项目"
+      ],
+      "latestRecordDate": "2026-04-15"
+    },
+    {
+      "id": "life",
+      "label": "生活和自我",
+      "description": "家庭关系、陪伴质量、情绪能量和自我照顾。",
+      "recordCount": 7,
+      "progressCount": 4,
+      "followupCount": 0,
+      "contentSeedCount": 0,
+      "currentFocus": "跑步20分钟 2.22km + 俯卧撑3组",
+      "nextAction": "",
+      "openFollowUps": [],
+      "overdueFollowUps": [],
+      "blockers": [],
+      "topProjects": [],
+      "topTags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎",
+        "背景去除",
+        "PayPal",
+        "AI项目"
+      ],
+      "latestRecordDate": "2026-04-15"
+    },
+    {
+      "id": "content",
+      "label": "内容产出",
+      "description": "从真实经历中沉淀公众号选题、素材和草稿。",
+      "recordCount": 11,
+      "progressCount": 4,
+      "followupCount": 3,
+      "contentSeedCount": 0,
+      "currentFocus": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+      "nextAction": "公众号文章 SEO 优化",
+      "openFollowUps": [
+        {
+          "id": "followup-20260329-record-20260329-008-1",
+          "text": "公众号文章 SEO 优化",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "背景去除项目",
+          "status": "open",
+          "createdAt": "2026-03-29",
+          "closedAt": null,
+          "sourceDate": "2026-03-29",
+          "sourceRecordId": "record-20260329-008",
+          "ageDays": 17,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260328-record-20260328-005-1",
+          "text": "公众号文章配图设计",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "内容创作",
+          "status": "open",
+          "createdAt": "2026-03-28",
+          "closedAt": null,
+          "sourceDate": "2026-03-28",
+          "sourceRecordId": "record-20260328-005",
+          "ageDays": 18,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260328-record-20260328-006-1",
+          "text": "GitHub Actions 自动部署脚本编写",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "内容创作",
+          "status": "open",
+          "createdAt": "2026-03-28",
+          "closedAt": null,
+          "sourceDate": "2026-03-28",
+          "sourceRecordId": "record-20260328-006",
+          "ageDays": 18,
+          "overdue": true
+        }
+      ],
+      "overdueFollowUps": [
+        {
+          "id": "followup-20260329-record-20260329-008-1",
+          "text": "公众号文章 SEO 优化",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "背景去除项目",
+          "status": "open",
+          "createdAt": "2026-03-29",
+          "closedAt": null,
+          "sourceDate": "2026-03-29",
+          "sourceRecordId": "record-20260329-008",
+          "ageDays": 17,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260328-record-20260328-005-1",
+          "text": "公众号文章配图设计",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "内容创作",
+          "status": "open",
+          "createdAt": "2026-03-28",
+          "closedAt": null,
+          "sourceDate": "2026-03-28",
+          "sourceRecordId": "record-20260328-005",
+          "ageDays": 18,
+          "overdue": true
+        },
+        {
+          "id": "followup-20260328-record-20260328-006-1",
+          "text": "GitHub Actions 自动部署脚本编写",
+          "domain": "content",
+          "domainLabel": "内容产出",
+          "project": "内容创作",
+          "status": "open",
+          "createdAt": "2026-03-28",
+          "closedAt": null,
+          "sourceDate": "2026-03-28",
+          "sourceRecordId": "record-20260328-006",
+          "ageDays": 18,
+          "overdue": true
+        }
+      ],
+      "blockers": [],
+      "topProjects": [
+        "内容创作",
+        "AI自动化",
+        "背景去除项目",
+        "OpenClaw"
+      ],
+      "topTags": [
+        "内容创作",
+        "Git",
+        "AI自动化",
+        "背景去除",
+        "PayPal",
+        "AI项目"
+      ],
+      "latestRecordDate": "2026-03-29"
+    }
+  ]
+}

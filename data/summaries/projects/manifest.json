@@ -1,0 +1,116 @@
+{
+  "projects": [
+    {
+      "name": "PDF Q&A",
+      "slug": "pdf-q-a",
+      "status": "active",
+      "summary": "继续 summary-dashboard 功能更新",
+      "firstSeen": "2026-04-15",
+      "lastUpdated": "2026-04-15",
+      "recordCount": 5,
+      "openFollowUps": 2,
+      "topTags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ]
+    },
+    {
+      "name": "summary-dashboard",
+      "slug": "summary-dashboard",
+      "status": "active",
+      "summary": "继续 summary-dashboard 功能更新",
+      "firstSeen": "2026-04-15",
+      "lastUpdated": "2026-04-15",
+      "recordCount": 5,
+      "openFollowUps": 0,
+      "topTags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ]
+    },
+    {
+      "name": "OpenClaw",
+      "slug": "openclaw",
+      "status": "active",
+      "summary": "GitHub Discussions 作为 CMS 评论系统的优缺点",
+      "firstSeen": "2026-03-29",
+      "lastUpdated": "2026-03-30",
+      "recordCount": 19,
+      "openFollowUps": 0,
+      "topTags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号",
+        "OpenClaw",
+        "复盘项目"
+      ]
+    },
+    {
+      "name": "复盘项目",
+      "slug": "project-bqhow0",
+      "status": "active",
+      "summary": "GitHub Discussions 作为 CMS 评论系统的优缺点",
+      "firstSeen": "2026-03-30",
+      "lastUpdated": "2026-03-30",
+      "recordCount": 9,
+      "openFollowUps": 3,
+      "topTags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
+      ]
+    },
+    {
+      "name": "内容创作",
+      "slug": "project-anzf5h",
+      "status": "active",
+      "summary": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+      "firstSeen": "2026-03-28",
+      "lastUpdated": "2026-03-29",
+      "recordCount": 18,
+      "openFollowUps": 2,
+      "topTags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号",
+        "内容创作",
+        "Git"
+      ]
+    },
+    {
+      "name": "背景去除项目",
+      "slug": "project-twegvz",
+      "status": "active",
+      "summary": "Cloudflare Workers 处理图片的内存限制：需分流大文件到 R2",
+      "firstSeen": "2026-03-29",
+      "lastUpdated": "2026-03-29",
+      "recordCount": 10,
+      "openFollowUps": 3,
+      "topTags": [
+        "背景去除",
+        "PayPal",
+        "AI项目",
+        "公众号"
+      ]
+    },
+    {
+      "name": "AI自动化",
+      "slug": "ai",
+      "status": "active",
+      "summary": "GitHub private repo 协作权限配置细节",
+      "firstSeen": "2026-03-28",
+      "lastUpdated": "2026-03-28",
+      "recordCount": 8,
+      "openFollowUps": 0,
+      "topTags": [
+        "内容创作",
+        "Git",
+        "AI自动化"
+      ]
+    }
+  ]
+}

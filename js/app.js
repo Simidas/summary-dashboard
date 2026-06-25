@@ -7,12 +7,7 @@
 // TODO(Phase 3): Implement responsive sidebar navigation for desktop (>1024px)
 // TODO(Phase 4): Add Cloudflare Workers API for server-side search
 
-import router from './router.js';
-import { renderDailyView } from './views/daily.js?v=20260624';
-import { renderWeeklyView } from './views/weekly.js?v=20260624';
-import { renderMonthlyView } from './views/monthly.js?v=20260624';
-import { renderYearlyView } from './views/yearly.js?v=20260624';
-import { createGiscusToggle } from './components/giscus.js';
+import router from './router.js?v=20260625a';
 
 // DOM Elements
 let app, mainContent, navLinks, header, mobileMenu;
@@ -108,75 +103,79 @@ function setupHeaderScroll() {
   }, { passive: true });
 }
 
+async function renderRoute(activeRoute, params, loader, renderName) {
+  updateActiveNav(activeRoute);
+  window.scrollTo(0, 0);
+
+  try {
+    const module = await loader();
+    await module[renderName](mainContent, params);
+  } catch (error) {
+    console.error(`Failed to render route ${activeRoute}:`, error);
+    mainContent.innerHTML = `
+      <div class="page">
+        <div class="empty-state">
+          <div class="empty-state-icon">!</div>
+          <p class="empty-state-text">页面加载失败，请刷新后重试。</p>
+        </div>
+      </div>
+    `;
+  }
+}
+
 /**
  * Setup all routes
  */
 function setupRoutes() {
+  // Home view
+  router.on('home', async (params) => {
+    await renderRoute('home', params, () => import('./views/home.js?v=20260625a'), 'renderHomeView');
+  });
+
   // Daily view
   router.on('daily', async (params) => {
-    updateActiveNav('daily');
-    window.scrollTo(0, 0);
-    await renderDailyView(mainContent, params);
+    await renderRoute('daily', params, () => import('./views/daily.js?v=20260625a'), 'renderDailyView');
   });
 
   // Weekly view
   router.on('weekly', async (params) => {
-    updateActiveNav('weekly');
-    window.scrollTo(0, 0);
-    await renderWeeklyView(mainContent, params);
+    await renderRoute('weekly', params, () => import('./views/weekly.js?v=20260625a'), 'renderWeeklyView');
   });
 
   // Monthly view
   router.on('monthly', async (params) => {
-    updateActiveNav('monthly');
-    window.scrollTo(0, 0);
-    await renderMonthlyView(mainContent, params);
+    await renderRoute('monthly', params, () => import('./views/monthly.js?v=20260625a'), 'renderMonthlyView');
   });
 
   // Yearly view
   router.on('yearly', async (params) => {
-    updateActiveNav('yearly');
-    window.scrollTo(0, 0);
-    await renderYearlyView(mainContent, params);
+    await renderRoute('yearly', params, () => import('./views/yearly.js?v=20260625a'), 'renderYearlyView');
+  });
+
+  router.on('domain', async (params) => {
+    await renderRoute('', params, () => import('./views/domain.js?v=20260625a'), 'renderDomainView');
+  });
+
+  router.on('projects', async (params) => {
+    await renderRoute('projects', params, () => import('./views/projects.js?v=20260625a'), 'renderProjectsView');
+  });
+
+  router.on('diary', async (params) => {
+    await renderRoute('diary', params, () => import('./views/diary.js?v=20260625a'), 'renderDiaryView');
+  });
+
+  router.on('content', async (params) => {
+    await renderRoute('content', params, () => import('./views/content.js?v=20260625a'), 'renderContentView');
   });
 }
 
-/**
- * Render skeleton view for upcoming features
- * @param {HTMLElement} container
- * @param {Object} config
- */
-function renderSkeletonView(container, config) {
-  container.innerHTML = `
-    <div class="page">
-      <div class="view-header animate-fade-in-up">
-        <h1 class="view-title">${config.title}</h1>
-      </div>
-      <div class="coming-soon animate-fade-in-up" style="animation-delay: 100ms;">
-        <div class="coming-soon-icon">${config.icon}</div>
-        <h2 class="coming-soon-title">Coming Soon</h2>
-        <p class="coming-soon-desc">${config.desc}</p>
-      </div>
-      <div class="giscus-section" style="margin-top: var(--space-8);">
-        <div class="giscus-header">
-          <h3 class="giscus-title">来聊聊</h3>
-        </div>
-        <div class="giscus-container" id="giscus-skeleton"></div>
-      </div>
-    </div>
-  `;
-
-  // Lazy load giscus for skeleton views using shared component
-  const giscusHeader = container.querySelector('.giscus-header');
-  if (giscusHeader) {
-    const toggle = createGiscusToggle('giscus-skeleton', '展开评论区');
-    toggle.style.marginTop = 'var(--space-2)';
-    giscusHeader.appendChild(toggle);
-  }
+// Initialize on DOM ready. Some browser restore/cache paths can evaluate
+// the module after DOMContentLoaded has already fired.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
-
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', init);
 
 // Export for debugging
 window.app = { router };

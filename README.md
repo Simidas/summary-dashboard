@@ -8,7 +8,10 @@
 
 - **Daily View** — 最近 14 天每日综合记录，支持按场景展开查看
 - **Weekly/Monthly/Yearly** — 从每日记录聚合出的周、月、年视图
-- **四场景记录** — 主业、副业、生活和自我、内容产出
+- **Home 四场景面板** — 主业、副业、生活和自我、内容产出的当前重点和下一步
+- **Projects** — 按项目线查看时间线、决策、卡点和 open follow-up
+- **Diary** — 私密碎片记录入口，支持本地草稿和 JSON 记录展示
+- **Content** — 从记录中提取公众号素材和选题
 - **手动记录模板** — 通过脚本生成当天记录文件
 - **Giscus 评论** — 基于 GitHub Discussions 的评论区
 - **键盘导航** — ← → 键切换相邻日期
@@ -66,7 +69,12 @@ summary-dashboard/
 │   ├── router.js           # Hash 路由
 │   ├── data.js             # 数据加载+缓存
 │   ├── views/
-│   │   └── daily.js        # Daily 视图
+│   │   ├── home.js         # Home 四场景面板
+│   │   ├── daily.js        # Daily 视图
+│   │   ├── domain.js       # 场景详情
+│   │   ├── projects.js     # 项目线视图
+│   │   ├── diary.js        # Diary 视图
+│   │   └── content.js      # 内容素材池
 │   ├── components/
 │   │   ├── card.js         # 卡片组件
 │   │   ├── tag.js          # 标签组件
@@ -74,7 +82,8 @@ summary-dashboard/
 │   └── utils/
 │       └── date.js         # 日期工具函数
 ├── data/records/daily/    # 每日综合记录 (JSON)
-├── data/summaries/        # 周/月/年聚合数据 (JSON)
+├── data/records/diary/    # Diary 记录 (JSON)
+├── data/summaries/        # 聚合数据 (JSON)
 ├── data/legacy/           # 已迁移的历史数据
 ├── scripts/               # 记录生成、迁移、聚合脚本
 ├── templates/             # 手动记录模板
@@ -135,6 +144,13 @@ node scripts/new-daily-record.js
 
 ```bash
 node scripts/new-daily-record.js 2026-06-24
+```
+
+新建 Diary：
+
+```bash
+node scripts/new-diary-entry.js
+node scripts/new-diary-entry.js 2026-06-24
 ```
 
 生成聚合数据：

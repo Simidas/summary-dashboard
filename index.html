@@ -18,30 +18,35 @@
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/variables.css?v=20260624">
-  <link rel="stylesheet" href="css/base.css?v=20260624">
-  <link rel="stylesheet" href="css/layout.css?v=20260624">
-  <link rel="stylesheet" href="css/components.css?v=20260624">
-  <link rel="stylesheet" href="css/pages/daily.css?v=20260624">
-  <link rel="stylesheet" href="css/pages/weekly.css?v=20260624">
-  <link rel="stylesheet" href="css/pages/monthly.css?v=20260624">
-  <link rel="stylesheet" href="css/pages/yearly.css?v=20260624">
+  <link rel="stylesheet" href="css/variables.css?v=20260625a">
+  <link rel="stylesheet" href="css/base.css?v=20260625a">
+  <link rel="stylesheet" href="css/layout.css?v=20260625a">
+  <link rel="stylesheet" href="css/components.css?v=20260625a">
+  <link rel="stylesheet" href="css/pages/daily.css?v=20260625a">
+  <link rel="stylesheet" href="css/pages/weekly.css?v=20260625a">
+  <link rel="stylesheet" href="css/pages/monthly.css?v=20260625a">
+  <link rel="stylesheet" href="css/pages/yearly.css?v=20260625a">
+  <link rel="stylesheet" href="css/pages/operations.css?v=20260625a">
 </head>
 <body>
   <div id="app">
     <!-- Header -->
     <header class="site-header">
       <div class="header-inner">
-        <a href="#daily" class="logo">
+        <a href="#home" class="logo">
           🌾 <span>复盘</span>
         </a>
 
         <!-- Desktop Navigation -->
         <nav class="main-nav" aria-label="主导航">
-          <a href="#daily" class="nav-link active" data-route="daily">Daily</a>
+          <a href="#home" class="nav-link active" data-route="home">Home</a>
+          <a href="#daily" class="nav-link" data-route="daily">Daily</a>
           <a href="#weekly" class="nav-link" data-route="weekly">Weekly</a>
           <a href="#monthly" class="nav-link" data-route="monthly">Monthly</a>
           <a href="#yearly" class="nav-link" data-route="yearly">Yearly</a>
+          <a href="#projects" class="nav-link" data-route="projects">Projects</a>
+          <a href="#diary" class="nav-link" data-route="diary">Diary</a>
+          <a href="#content" class="nav-link" data-route="content">Content</a>
         </nav>
 
         <!-- Mobile Menu Toggle -->
@@ -54,10 +59,14 @@
 
       <!-- Mobile Navigation -->
       <nav class="mobile-menu" aria-label="移动端导航">
-        <a href="#daily" class="nav-link active" data-route="daily">Daily</a>
+        <a href="#home" class="nav-link active" data-route="home">Home</a>
+        <a href="#daily" class="nav-link" data-route="daily">Daily</a>
         <a href="#weekly" class="nav-link" data-route="weekly">Weekly</a>
         <a href="#monthly" class="nav-link" data-route="monthly">Monthly</a>
         <a href="#yearly" class="nav-link" data-route="yearly">Yearly</a>
+        <a href="#projects" class="nav-link" data-route="projects">Projects</a>
+        <a href="#diary" class="nav-link" data-route="diary">Diary</a>
+        <a href="#content" class="nav-link" data-route="content">Content</a>
       </nav>
     </header>
 
@@ -68,13 +77,13 @@
 
     <!-- Footer -->
     <footer class="site-footer">
-      <p>© 2026 <a href="#daily">复盘</a> · 用 <a href="https://github.com/Simidas/summary-dashboard" target="_blank" rel="noopener">OpenClaw</a> 构建</p>
+      <p>© 2026 <a href="#home">复盘</a> · 用 <a href="https://github.com/Simidas/summary-dashboard" target="_blank" rel="noopener">OpenClaw</a> 构建</p>
       <p class="deploy-time" id="deploy-time"></p>
     </footer>
   </div>
 
   <!-- App Script -->
-  <script type="module" src="js/app.js?v=20260624"></script>
+  <script type="module" src="js/app.js?v=20260625a"></script>
 
   <!-- Deploy time indicator (build-time injected) -->
   <script>

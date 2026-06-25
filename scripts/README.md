@@ -1,6 +1,6 @@
 # 脚本说明
 
-这个目录用于维护复盘站的数据流：手动创建每日综合记录、迁移旧 Hermes 数据、从每日记录生成周/月/年聚合数据。
+这个目录用于维护复盘站的数据流：手动创建每日综合记录和 Diary，迁移旧 Hermes 数据，从每日记录生成周/月/年、场景、项目、follow-up 和内容素材聚合数据。
 
 ## 数据流
 
@@ -12,6 +12,11 @@ scripts/aggregate.js
 data/summaries/weekly/YYYY-WXX.json
 data/summaries/monthly/YYYY-MM.json
 data/summaries/yearly/YYYY.json
+data/summaries/domains/*.json
+data/summaries/projects/*.json
+data/summaries/followups/*.json
+data/summaries/content/seeds.json
+data/summaries/insights/weekly/*.json
 ```
 
 旧 Hermes Daily JSON 已迁移到统一结构，原始文件归档在：
@@ -98,9 +103,30 @@ data/legacy/hermes-daily/
 data/records/daily/
 ```
 
+## new-diary-entry.js
+
+创建一条私密 Diary 记录模板。
+
+```bash
+node scripts/new-diary-entry.js
+node scripts/new-diary-entry.js 2026-06-24
+```
+
+生成文件：
+
+```text
+data/records/diary/diary-YYYYMMDD-001.json
+```
+
+并自动更新：
+
+```text
+data/records/diary/manifest.json
+```
+
 ## aggregate.js
 
-从 `data/records/daily/` 扫描每日综合记录，生成周/月/年聚合 JSON 和 manifest。
+从 `data/records/daily/` 扫描每日综合记录，生成页面使用的静态聚合 JSON 和 manifest。
 
 ```bash
 node scripts/aggregate.js
@@ -116,6 +142,11 @@ data/summaries/yearly/manifest.json
 data/summaries/weekly/YYYY-WXX.json
 data/summaries/monthly/YYYY-MM.json
 data/summaries/yearly/YYYY.json
+data/summaries/domains/overview.json
+data/summaries/projects/manifest.json
+data/summaries/followups/open.json
+data/summaries/content/seeds.json
+data/summaries/insights/weekly/YYYY-WXX.json
 ```
 
 ## generate-manifest.js
@@ -130,6 +161,7 @@ node scripts/generate-manifest.js
 
 ```bash
 node --check scripts/new-daily-record.js
+node --check scripts/new-diary-entry.js
 node --check scripts/migrate-legacy-daily.js
 node --check scripts/aggregate.js
 node scripts/aggregate.js
