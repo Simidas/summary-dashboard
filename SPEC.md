@@ -1,6 +1,8 @@
 # 个人 AI 复盘展示站 — SPEC.md
 
 > 本文件是项目的设计规范文档，所有实现必须严格遵循。如需调整，必须先更新此文档再改代码。
+>
+> 当前待开发版本的系统设计以 [docs/vnext-online-recording-system-design.md](docs/vnext-online-recording-system-design.md) 为准。该版本会从 Cloudflare Pages 静态站升级为 Cloudflare Workers + D1 + Google OAuth 的在线记录系统。
 
 ---
 
