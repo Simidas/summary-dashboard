@@ -161,11 +161,58 @@ node scripts/aggregate.js
 
 ## 部署
 
-项目使用 GitHub Actions 自动构建：
+### 方式一：GitHub Actions 自动部署（推荐）
 
-1. 提交 `data/records/daily/` 下的每日综合记录
-2. GitHub Actions 生成 weekly/monthly/yearly 聚合 JSON
-3. 自动部署到 Cloudflare Pages
+项目配置了 GitHub Actions 工作流，实现全自动构建与部署：
+
+1. 提交 `data/records/daily/` 下的每日综合记录到 `main` 分支
+2. GitHub Actions 运行 `scripts/aggregate.js` 生成 weekly/monthly/yearly 聚合 JSON
+3. 自动注入构建时间到 `index.html`
+4. 自动提交聚合数据变更并推送回仓库
+5. 使用 `wrangler pages deploy` 部署到 Cloudflare Pages
+
+触发条件：
+- 每天 00:05 UTC（北京时间 08:05）自动运行
+- `main` 分支的代码/数据/脚本变更推送时自动触发
+- 支持手动触发（`workflow_dispatch`）
+
+所需 Secrets（在 GitHub 仓库 Settings → Secrets 中配置）：
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API Token（需 Workers Scripts 编辑权限）
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare Account ID
+
+### 方式二：本地手动部署
+
+如果需要在本地直接部署（例如紧急更新或调试）：
+
+**前置要求：**
+- 安装 [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)：`npm install -g wrangler`
+- 配置 Cloudflare 认证（以下任选一种）：
+  - 环境变量：`export CLOUDFLARE_API_TOKEN=your_token`
+  - 交互式登录：`wrangler login`
+
+**部署命令：**
+
+```bash
+# 进入项目目录
+cd summary-dashboard
+
+# 可选：重新生成聚合数据
+node scripts/aggregate.js
+
+# 直接部署当前目录到 Cloudflare Pages
+wrangler pages deploy . --project-name=summary-dashboard --commit-message="手动部署"
+```
+
+部署成功后，Wrangler 会返回预览 URL（如 `https://<hash>.summary-dashboard.pages.dev`）。
+
+**生产域名：** https://blog.zhuwd.com（在 Cloudflare Dashboard → Pages → Custom domains 中绑定）
+
+### 部署说明
+
+- 本项目为**纯静态单页应用**（HTML + CSS + JS），无需构建步骤
+- `wrangler pages deploy .` 直接上传根目录所有文件到 Cloudflare Pages CDN
+- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260625a` 进行缓存刷新
+- 数据文件（`data/` 下的 JSON）由 `scripts/aggregate.js` 生成，部署时一并上传
 
 ## 技术栈
 
