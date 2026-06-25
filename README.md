@@ -218,6 +218,8 @@ wrangler pages deploy . --project-name=summary-dashboard --commit-message="手�
 
 下一版会升级为 Cloudflare Workers + D1，支持 Google 登录、在线记录和 AI 陪伴建议。当前部署工作交给部署 agent 执行，代码侧已经提供 Worker、D1 migration 和本地辅助脚本。
 
+部署交接文档见：[docs/deployment-handoff-malayyan.md](./docs/deployment-handoff-malayyan.md)
+
 本地开发：
 
 ```bash
