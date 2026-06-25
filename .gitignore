@@ -1,4 +1,6 @@
 .wrangler/
+.dev.vars
+public/
 
 # Private Diary entries stay local unless explicitly exported as public summaries.
 data/records/diary/*.json

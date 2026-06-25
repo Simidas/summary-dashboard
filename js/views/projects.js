@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260625a';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260625b';
 
 export async function renderProjectsView(container, params = {}) {
   if (params.date) {

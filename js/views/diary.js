@@ -2,7 +2,7 @@
    Diary View
    ======================================== */
 
-import { loadDiaryEntries } from '../data.js?v=20260625a';
+import { loadDiaryEntries } from '../data.js?v=20260625b';
 
 const DRAFT_KEY = 'summary-dashboard:diary-drafts';
 

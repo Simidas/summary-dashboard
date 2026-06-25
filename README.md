@@ -211,8 +211,46 @@ wrangler pages deploy . --project-name=summary-dashboard --commit-message="手�
 
 - 本项目为**纯静态单页应用**（HTML + CSS + JS），无需构建步骤
 - `wrangler pages deploy .` 直接上传根目录所有文件到 Cloudflare Pages CDN
-- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260625a` 进行缓存刷新
+- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260625b` 进行缓存刷新
 - 数据文件（`data/` 下的 JSON）由 `scripts/aggregate.js` 生成，部署时一并上传
+
+### vNext：Cloudflare Workers 在线记录
+
+下一版会升级为 Cloudflare Workers + D1，支持 Google 登录、在线记录和 AI 陪伴建议。当前部署工作交给部署 agent 执行，代码侧已经提供 Worker、D1 migration 和本地辅助脚本。
+
+本地开发：
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars
+npm run prepare:worker-assets
+npm run d1:migrate:local
+npm run dev:worker
+```
+
+生成历史 JSON 导入 SQL：
+
+```bash
+node scripts/import-json-to-d1.js --owner-id owner-import > .wrangler/import-daily-records.sql
+wrangler d1 execute summary-dashboard --local --file .wrangler/import-daily-records.sql
+```
+
+远端部署前需要配置：
+
+```bash
+wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put SESSION_SECRET
+wrangler secret put OPENAI_API_KEY
+wrangler d1 migrations apply summary-dashboard --remote
+npm run deploy:worker
+```
+
+Google OAuth 回调地址：
+
+```text
+http://localhost:8787/api/auth/google/callback
+https://你的域名/api/auth/google/callback
+```
 
 ## 技术栈
 
@@ -221,6 +259,7 @@ wrangler pages deploy . --project-name=summary-dashboard --commit-message="手�
 - ES Modules
 - Giscus (GitHub Discussions)
 - Phosphor Icons
+- Cloudflare Workers + D1（vNext 在线记录）
 
 ## 设计规范
 

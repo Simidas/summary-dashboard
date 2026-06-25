@@ -18,15 +18,15 @@
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/variables.css?v=20260625a">
-  <link rel="stylesheet" href="css/base.css?v=20260625a">
-  <link rel="stylesheet" href="css/layout.css?v=20260625a">
-  <link rel="stylesheet" href="css/components.css?v=20260625a">
-  <link rel="stylesheet" href="css/pages/daily.css?v=20260625a">
-  <link rel="stylesheet" href="css/pages/weekly.css?v=20260625a">
-  <link rel="stylesheet" href="css/pages/monthly.css?v=20260625a">
-  <link rel="stylesheet" href="css/pages/yearly.css?v=20260625a">
-  <link rel="stylesheet" href="css/pages/operations.css?v=20260625a">
+  <link rel="stylesheet" href="css/variables.css?v=20260625b">
+  <link rel="stylesheet" href="css/base.css?v=20260625b">
+  <link rel="stylesheet" href="css/layout.css?v=20260625b">
+  <link rel="stylesheet" href="css/components.css?v=20260625b">
+  <link rel="stylesheet" href="css/pages/daily.css?v=20260625b">
+  <link rel="stylesheet" href="css/pages/weekly.css?v=20260625b">
+  <link rel="stylesheet" href="css/pages/monthly.css?v=20260625b">
+  <link rel="stylesheet" href="css/pages/yearly.css?v=20260625b">
+  <link rel="stylesheet" href="css/pages/operations.css?v=20260625b">
 </head>
 <body>
   <div id="app">
@@ -48,6 +48,8 @@
           <a href="#diary" class="nav-link" data-route="diary">Diary</a>
           <a href="#content" class="nav-link" data-route="content">Content</a>
         </nav>
+
+        <div class="auth-controls" id="auth-controls" aria-live="polite"></div>
 
         <!-- Mobile Menu Toggle -->
         <button class="nav-toggle" aria-label="菜单" aria-expanded="false">
@@ -83,7 +85,7 @@
   </div>
 
   <!-- App Script -->
-  <script type="module" src="js/app.js?v=20260625a"></script>
+  <script type="module" src="js/app.js?v=20260625b"></script>
 
   <!-- Deploy time indicator (build-time injected) -->
   <script>

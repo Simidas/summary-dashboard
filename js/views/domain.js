@@ -2,7 +2,7 @@
    Domain View
    ======================================== */
 
-import { loadDomainSummary } from '../data.js?v=20260625a';
+import { loadDomainSummary } from '../data.js?v=20260625b';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

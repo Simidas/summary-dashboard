@@ -1,0 +1,21 @@
+name = "summary-dashboard"
+main = "src/worker.js"
+compatibility_date = "2026-06-25"
+
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "summary-dashboard"
+database_id = "replace-with-cloudflare-d1-database-id"
+
+[vars]
+APP_ORIGIN = "http://localhost:8787"
+OWNER_EMAIL = "replace-with-owner-google-email"
+GOOGLE_CLIENT_ID = "replace-with-google-client-id"
+AI_PROVIDER = "openai"
+OPENAI_MODEL = "gpt-4.1-mini"

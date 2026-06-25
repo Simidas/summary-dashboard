@@ -7,7 +7,9 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260625a';
+} from '../data.js?v=20260625b';
+import { createRecord, getDashboard } from '../api.js?v=20260625b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260625b';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -18,11 +20,13 @@ export async function renderHomeView(container) {
     </div>
   `;
 
-  const [overview, followups, content, projects] = await Promise.all([
+  const authState = getAuthState();
+  const [overview, followups, content, projects, dashboard] = await Promise.all([
     loadDomainOverview(),
     loadOpenFollowups(),
     loadContentSeeds(),
-    loadProjectsManifest()
+    loadProjectsManifest(),
+    isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null)
   ]);
 
   const domains = overview?.domains || [];
@@ -44,6 +48,8 @@ export async function renderHomeView(container) {
         <strong>${escapeHtml(overview?.tomorrowFirstStep || '先写下一个 25 分钟动作')}</strong>
       </div>
     </section>
+
+    ${buildOnlineRecordPanel(dashboard, authState)}
 
     <section class="section">
       <div class="section-heading">
@@ -82,6 +88,192 @@ export async function renderHomeView(container) {
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindOnlineRecordForm(page, dashboard);
+}
+
+function buildOnlineRecordPanel(dashboard, authState) {
+  if (!authState.apiAvailable) {
+    return `
+      <section class="access-note">
+        <strong>静态预览</strong>
+        <p>当前环境没有连接 Workers API，页面继续展示本地 JSON 数据。</p>
+      </section>
+    `;
+  }
+
+  if (!authState.user) {
+    return `
+      <section class="record-capture-panel">
+        <div>
+          <div class="ops-kicker">Online Recording</div>
+          <h2>登录后开始记录</h2>
+          <p>写下一句真实状态，系统会帮你收束成一个更小的下一步。</p>
+        </div>
+        <a class="primary-action" href="/api/auth/google/start">Google 登录</a>
+      </section>
+    `;
+  }
+
+  if (authState.user.role !== 'owner') {
+    return `
+      <section class="access-note">
+        <strong>只读账号</strong>
+        <p>当前 Google 账号不是作者账号，只能浏览公开内容。</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="record-capture-panel" data-online-record-panel>
+      <div class="record-capture-intro">
+        <div class="ops-kicker">今天的入口</div>
+        <h2>${dashboard?.hasRecordedToday ? '今天已经留下记录' : '先写一句真实状态'}</h2>
+        ${buildDashboardFeedback(dashboard)}
+      </div>
+      <form class="online-record-form" id="online-record-form">
+        <textarea id="online-record-content" name="content" rows="5" placeholder="现在最想记录什么？"></textarea>
+        <div class="record-form-grid">
+          <label>
+            <span>场景</span>
+            <select name="domain" id="online-record-domain">
+              <option value="life">生活和自我</option>
+              <option value="work">主业</option>
+              <option value="side_business">副业</option>
+              <option value="content">内容产出</option>
+            </select>
+          </label>
+          <label>
+            <span>类型</span>
+            <select name="type">
+              <option value="thought">想法</option>
+              <option value="reflection">反思</option>
+              <option value="progress">进展</option>
+              <option value="blocker">卡点</option>
+              <option value="diary">日记</option>
+              <option value="content_seed">内容素材</option>
+            </select>
+          </label>
+          <label>
+            <span>可见性</span>
+            <select name="visibility">
+              <option value="private">私密</option>
+              <option value="public">公开</option>
+            </select>
+          </label>
+        </div>
+        <div class="record-form-footer">
+          <span class="form-status" id="online-record-status"></span>
+          <button class="primary-action" type="submit">记录并生成建议</button>
+        </div>
+      </form>
+      <div id="online-record-result"></div>
+    </section>
+  `;
+}
+
+function buildDashboardFeedback(dashboard) {
+  if (!dashboard || dashboard.mode !== 'owner') {
+    return '<p class="record-feedback-text">从一句话开始就够了，不需要一次整理完整。</p>';
+  }
+
+  const state = dashboard.userState || {};
+  return `
+    <div class="record-feedback">
+      <div>
+        <span>${dashboard.hasRecordedToday ? '今日已记录' : '今日未记录'}</span>
+        <strong>${escapeHtml(dashboard.nextSmallStep || '先写下一个 25 分钟动作')}</strong>
+      </div>
+      <div class="record-feedback-stats">
+        <span>连续 ${state.currentStreakDays || 0} 天</span>
+        <span>本周 ${state.thisWeekRecordDays || 0} 天</span>
+        <span>累计 ${state.totalRecords || 0} 条</span>
+      </div>
+    </div>
+  `;
+}
+
+function bindOnlineRecordForm(page, dashboard) {
+  const form = page.querySelector('#online-record-form');
+  if (!form) return;
+
+  const input = form.querySelector('#online-record-content');
+  const domain = form.querySelector('#online-record-domain');
+  const status = page.querySelector('#online-record-status');
+  const result = page.querySelector('#online-record-result');
+  const intro = page.querySelector('.record-capture-intro');
+  const savedDomain = localStorage.getItem('summary-dashboard:last-domain');
+  if (savedDomain) domain.value = savedDomain;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const content = input.value.trim();
+    if (!content) {
+      status.textContent = '先写一句就可以。';
+      return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    status.textContent = '保存中...';
+    result.innerHTML = '';
+
+    try {
+      const data = await createRecord({
+        content,
+        domain: form.elements.domain.value,
+        type: form.elements.type.value,
+        visibility: form.elements.visibility.value
+      });
+      localStorage.setItem('summary-dashboard:last-domain', form.elements.domain.value);
+      input.value = '';
+      status.textContent = '已保存';
+      result.innerHTML = buildAiResult(data.aiSuggestion);
+      if (intro) {
+        intro.innerHTML = `
+          <div class="ops-kicker">今天的入口</div>
+          <h2>刚刚这条已经接住了</h2>
+          ${buildDashboardFeedback({
+            mode: 'owner',
+            hasRecordedToday: true,
+            nextSmallStep: data.aiSuggestion?.nextSmallStep,
+            userState: data.userState || dashboard?.userState || {}
+          })}
+        `;
+      }
+    } catch (error) {
+      status.textContent = '';
+      result.innerHTML = `
+        <div class="access-note danger-note">
+          <strong>保存失败</strong>
+          <p>${escapeHtml(error.message || '请稍后重试。')}</p>
+        </div>
+      `;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+function buildAiResult(aiSuggestion) {
+  if (!aiSuggestion) {
+    return '<div class="empty-inline">记录已保存，AI 建议稍后生成。</div>';
+  }
+
+  return `
+    <article class="ai-result-card">
+      <div class="domain-card-topline">
+        <span>${aiSuggestion.status === 'completed' ? 'AI 建议' : 'AI 待重试'}</span>
+        <span>${escapeHtml(aiSuggestion.model || '')}</span>
+      </div>
+      ${aiSuggestion.summary ? `<p><strong>我听到的是：</strong>${escapeHtml(aiSuggestion.summary)}</p>` : ''}
+      ${aiSuggestion.validation ? `<p><strong>值得肯定的是：</strong>${escapeHtml(aiSuggestion.validation)}</p>` : ''}
+      <div class="next-small-step">
+        <span>现在只做这一步</span>
+        <strong>${escapeHtml(aiSuggestion.nextSmallStep || '先把这条记录保存下来。')}</strong>
+      </div>
+      ${aiSuggestion.encouragement ? `<p>${escapeHtml(aiSuggestion.encouragement)}</p>` : ''}
+    </article>
+  `;
 }
 
 function buildDomainCard(domain) {
