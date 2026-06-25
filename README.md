@@ -240,7 +240,7 @@ wrangler d1 execute summary-dashboard --local --file .wrangler/import-daily-reco
 ```bash
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put SESSION_SECRET
-wrangler secret put OPENAI_API_KEY
+wrangler secret put MINIMAX_API_KEY
 wrangler d1 migrations apply summary-dashboard --remote
 npm run deploy:worker
 ```

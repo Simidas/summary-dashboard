@@ -34,7 +34,8 @@ async function handleApi(request, env, ctx) {
         db: Boolean(env.DB),
         assets: Boolean(env.ASSETS),
         googleOAuth: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
-        ai: Boolean(env.OPENAI_API_KEY)
+        ai: Boolean(env.MINIMAX_API_KEY || env.OPENAI_API_KEY),
+        aiProvider: env.AI_PROVIDER || 'minimax'
       });
     }
 

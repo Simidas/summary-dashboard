@@ -1,6 +1,60 @@
 import { buildCompanionPrompt } from '../prompts/companion.js';
 
 export async function generateCompanionSuggestion(env, record, recentRecords = []) {
+  const provider = env.AI_PROVIDER || 'minimax';
+  if (provider === 'minimax') {
+    return generateMiniMaxSuggestion(env, record, recentRecords);
+  }
+
+  return generateOpenAISuggestion(env, record, recentRecords);
+}
+
+async function generateMiniMaxSuggestion(env, record, recentRecords = []) {
+  if (!env.MINIMAX_API_KEY) {
+    return failedSuggestion(env, 'MiniMax API key is not configured');
+  }
+
+  const model = env.MINIMAX_MODEL || 'MiniMax-M3';
+  const baseUrl = env.MINIMAX_API_BASE_URL || 'https://api.minimax.io/v1';
+  const prompt = buildCompanionPrompt(record, recentRecords);
+
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${env.MINIMAX_API_KEY}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: '你只输出可解析的 JSON，不要输出 Markdown，不要输出代码块。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.4
+      })
+    });
+
+    if (!response.ok) {
+      return failedSuggestion(env, `MiniMax request failed: ${response.status}`);
+    }
+
+    const raw = await response.json();
+    const text = raw.choices?.[0]?.message?.content || '';
+    const parsed = JSON.parse(extractJsonText(text));
+    return normalizeSuggestion(env, parsed, raw);
+  } catch (error) {
+    return failedSuggestion(env, error.message);
+  }
+}
+
+async function generateOpenAISuggestion(env, record, recentRecords = []) {
   if (!env.OPENAI_API_KEY) {
     return failedSuggestion(env, 'OpenAI API key is not configured');
   }
@@ -41,7 +95,7 @@ export async function generateCompanionSuggestion(env, record, recentRecords = [
 
     const raw = await response.json();
     const text = extractOutputText(raw);
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(extractJsonText(text));
     return normalizeSuggestion(env, parsed, raw);
   } catch (error) {
     return failedSuggestion(env, error.message);
@@ -52,8 +106,8 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
   const nextSmallStep = String(suggestion.nextSmallStep || suggestion.next_small_step || '').trim();
 
   return {
-    provider: env.AI_PROVIDER || 'openai',
-    model: env.OPENAI_MODEL || 'gpt-4.1-mini',
+    provider: currentProvider(env),
+    model: currentModel(env),
     status: nextSmallStep ? 'completed' : 'failed',
     summary: toText(suggestion.summary),
     validation: toText(suggestion.validation),
@@ -71,8 +125,8 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
 
 function failedSuggestion(env, message) {
   return {
-    provider: env.AI_PROVIDER || 'openai',
-    model: env.OPENAI_MODEL || 'gpt-4.1-mini',
+    provider: currentProvider(env),
+    model: currentModel(env),
     status: 'failed',
     summary: null,
     validation: null,
@@ -101,6 +155,18 @@ function extractOutputText(response) {
   return texts.join('\n').trim();
 }
 
+function extractJsonText(text) {
+  const withoutThinking = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  const fenced = withoutThinking.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced ? fenced[1].trim() : withoutThinking;
+  const first = candidate.indexOf('{');
+  const last = candidate.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && last > first) {
+    return candidate.slice(first, last + 1);
+  }
+  return candidate;
+}
+
 function toText(value) {
   if (value == null) return null;
   const text = String(value).trim();
@@ -111,4 +177,13 @@ function toArray(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter(Boolean);
   return [value];
+}
+
+function currentProvider(env) {
+  return env.AI_PROVIDER || 'minimax';
+}
+
+function currentModel(env) {
+  if (currentProvider(env) === 'minimax') return env.MINIMAX_MODEL || 'MiniMax-M3';
+  return env.OPENAI_MODEL || 'gpt-4.1-mini';
 }

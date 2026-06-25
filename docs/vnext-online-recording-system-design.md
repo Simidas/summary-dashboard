@@ -90,8 +90,9 @@ database_id = "<cloudflare-d1-database-id>"
 APP_ORIGIN=https://your-domain.example
 OWNER_EMAIL=you@gmail.com
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-AI_PROVIDER=openai
-OPENAI_MODEL=<chosen-openai-model>
+AI_PROVIDER=minimax
+MINIMAX_MODEL=MiniMax-M3
+MINIMAX_API_BASE_URL=https://api.minimax.io/v1
 ```
 
 Secrets：
@@ -99,7 +100,7 @@ Secrets：
 ```text
 GOOGLE_CLIENT_SECRET
 SESSION_SECRET
-OPENAI_API_KEY
+MINIMAX_API_KEY
 ```
 
 本地开发可提供 `.dev.vars.example`，但真实 `.dev.vars` 不提交。
@@ -498,10 +499,10 @@ Mutation 包括：
 本版推荐做 provider abstraction：
 
 ```text
-AI_PROVIDER=openai
+AI_PROVIDER=minimax
 ```
 
-默认使用 OpenAI API，由 Worker 服务端调用。未来可切换 Workers AI。
+默认使用 MiniMax API，由 Worker 服务端调用，模型使用 `MiniMax-M3`。代码保留 OpenAI 分支作为备用，但部署默认走 MiniMax。
 
 ### 7.2 Prompt 输入
 
@@ -655,7 +656,7 @@ http://localhost:8787/api/auth/google/callback
 ```bash
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put SESSION_SECRET
-wrangler secret put OPENAI_API_KEY
+wrangler secret put MINIMAX_API_KEY
 ```
 
 6. 设置普通环境变量。
