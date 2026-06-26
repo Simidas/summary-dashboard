@@ -87,11 +87,19 @@
   <!-- App Script -->
   <script type="module" src="js/app.js?v=20260625b"></script>
 
-  <!-- Deploy time indicator (build-time injected) -->
+  <!-- Deploy time indicator -->
   <script>
     (function() {
       const el = document.getElementById('deploy-time');
-      if (el) el.textContent = '部署时间：BUILD_TIME_PLACEHOLDER';
+      if (el) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        el.textContent = '部署时间：' + year + '-' + month + '-' + day + ' ' + hours + ':' + minutes;
+      }
     })();
   </script>
 </body>
