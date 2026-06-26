@@ -267,6 +267,7 @@ https://你的域名/api/auth/google/callback
 
 详见 [SPEC.md](./SPEC.md)
 
+加油
 ---
 
 Built with 🌾 by [Simidas](https://github.com/Simidas)
