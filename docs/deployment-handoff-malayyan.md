@@ -259,7 +259,7 @@ Cloudflare 自动部署的 Deploy command 应配置为：
 npm run deploy:worker
 ```
 
-不要直接配置成 `npx wrangler deploy`，否则 `public/` 不会生成。Worker 会在运行期兜底创建缺失的 D1 表；如需显式执行 migration，可手动运行 `npm run d1:migrate:remote`，或使用 `npm run deploy:worker:migrate`。
+不要直接配置成 `npx wrangler deploy`，否则 `public/` 不会生成。D1 schema 不在 Worker 运行期兜底创建；首次部署、schema 变更，或线上出现缺表/缺字段导致的 500 时，手动执行 `npm run d1:migrate:remote`。如果希望本次部署前显式跑 migration，可以使用 `npm run deploy:worker:migrate`。
 
 部署后先用 Workers 默认域名验证，再绑定生产域名。
 

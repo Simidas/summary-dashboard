@@ -9,7 +9,6 @@ import { handlePeriodReviews } from './routes/period-reviews.js';
 import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
 import { fail, ok } from './lib/response.js';
-import { ensureRuntimeSchema, isSchemaError } from './lib/runtime-schema.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -50,15 +49,7 @@ async function handleApi(request, env, ctx) {
       return fail(500, 'DB_NOT_CONFIGURED', 'D1 database binding is not configured');
     }
 
-    const retryRequest = request.clone();
-    try {
-      return await dispatchApiRoute(request, env, ctx, path);
-    } catch (error) {
-      if (!isSchemaError(error)) throw error;
-      console.warn('Detected missing D1 schema, applying runtime schema and retrying request', error);
-      await ensureRuntimeSchema(env);
-      return dispatchApiRoute(retryRequest, env, ctx, path);
-    }
+    return dispatchApiRoute(request, env, ctx, path);
   } catch (error) {
     console.error('API error', error);
     return fail(500, 'INTERNAL_ERROR', '服务暂时不可用');

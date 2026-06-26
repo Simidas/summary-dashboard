@@ -247,7 +247,7 @@ npm run deploy:worker
 ```
 
 `npm run deploy:worker` 会依次执行静态资源准备和 Worker 部署。Cloudflare 自动部署的 Deploy command 也应使用这个命令，不要直接使用 `npx wrangler deploy`。
-Worker 会在运行期兜底创建缺失的 D1 表。若需要显式执行 migration，可手动运行 `npm run d1:migrate:remote`，或使用 `npm run deploy:worker:migrate`。
+D1 schema 不在 Worker 运行期兜底创建。首次部署、schema 变更，或线上出现缺表/缺字段导致的 500 时，手动执行 `npm run d1:migrate:remote`；如果希望本次部署前显式跑 migration，可以使用 `npm run deploy:worker:migrate`。
 
 Google OAuth 回调地址：
 
