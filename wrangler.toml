@@ -1,6 +1,6 @@
 name = "summary-dashboard"
 main = "src/worker.js"
-compatibility_date = "2026-06-25"
+compatibility_date = "2026-05-27"
 
 [assets]
 directory = "./public"
@@ -11,12 +11,12 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "summary-dashboard"
-database_id = "replace-with-cloudflare-d1-database-id"
+database_id = "89e0f5dc-fc9a-43f0-8949-359f2fc2a73b"
 
 [vars]
-APP_ORIGIN = "http://localhost:8787"
-OWNER_EMAIL = "replace-with-owner-google-email"
-GOOGLE_CLIENT_ID = "replace-with-google-client-id"
+APP_ORIGIN = "https://blog.zhuwd.com"
+OWNER_EMAIL = "simidas2017@gmail.com"
+GOOGLE_CLIENT_ID = "170227201818-4fnb0r4ga5tfq7cd3gnnhs5riv72v1qd.apps.googleusercontent.com"
 AI_PROVIDER = "minimax"
 MINIMAX_MODEL = "MiniMax-M3"
 MINIMAX_API_BASE_URL = "https://api.minimaxi.com/v1"
