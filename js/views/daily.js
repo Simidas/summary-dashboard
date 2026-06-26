@@ -5,9 +5,12 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260625b';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260625b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260625b';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626a';
+import { getRecords } from '../api.js?v=20260626a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626a';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626a';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626a';
 
 const TIMELINE_DAYS = 14;
 
@@ -48,10 +51,15 @@ export async function renderDailyView(container, params = {}) {
   container.appendChild(page);
 
   // Load data
-  const availableDates = await getAvailableDailyDates();
+  const authState = getAuthState();
+  const [availableDates, onlineRecordsData] = await Promise.all([
+    getAvailableDailyDates(),
+    isApiEnabled() && authState.user ? getRecords({ limit: 20 }).catch(() => null) : Promise.resolve(null)
+  ]);
   summaries = await loadDailySummaries(availableDates);
+  const onlineRecords = onlineRecordsData?.records || [];
 
-  if (summaries.length === 0) {
+  if (summaries.length === 0 && onlineRecords.length === 0) {
     page.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">🌙</div>
@@ -63,6 +71,18 @@ export async function renderDailyView(container, params = {}) {
 
   // Remove skeleton now that real data is ready
   skeleton.remove();
+
+  if (onlineRecords.length) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'operations-page';
+    wrapper.innerHTML = buildOnlineRecordsSection(onlineRecords, {
+      title: '最近在线记录',
+      emptyText: '还没有线上记录。'
+    });
+    page.appendChild(wrapper);
+  }
+
+  if (summaries.length === 0) return;
 
   // Build main content
   renderHero(page, summaries[0]);

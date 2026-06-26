@@ -7,9 +7,10 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260625b';
-import { createRecord, getDashboard } from '../api.js?v=20260625b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260625b';
+} from '../data.js?v=20260626a';
+import { createRecord, getDashboard, getRecords } from '../api.js?v=20260626a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626a';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626a';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -21,18 +22,20 @@ export async function renderHomeView(container) {
   `;
 
   const authState = getAuthState();
-  const [overview, followups, content, projects, dashboard] = await Promise.all([
+  const [overview, followups, content, projects, dashboard, onlineRecordsData] = await Promise.all([
     loadDomainOverview(),
     loadOpenFollowups(),
     loadContentSeeds(),
     loadProjectsManifest(),
-    isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null)
+    isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getRecords({ limit: 8 }).catch(() => null) : Promise.resolve(null)
   ]);
 
   const domains = overview?.domains || [];
   const openFollowups = followups?.followups || [];
   const seeds = content?.seeds || [];
   const activeProjects = projects?.projects || [];
+  const onlineRecords = onlineRecordsData?.records || [];
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
@@ -50,6 +53,11 @@ export async function renderHomeView(container) {
     </section>
 
     ${buildOnlineRecordPanel(dashboard, authState)}
+
+    ${authState.apiAvailable && authState.user ? buildOnlineRecordsSection(onlineRecords, {
+      title: authState.user.role === 'owner' ? '最近在线记录' : '公开在线记录',
+      emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
+    }) : ''}
 
     <section class="section">
       <div class="section-heading">
@@ -228,6 +236,7 @@ function bindOnlineRecordForm(page, dashboard) {
       input.value = '';
       status.textContent = '已保存';
       result.innerHTML = buildAiResult(data.aiSuggestion);
+      prependOnlineRecord(page, data.record, data.aiSuggestion);
       if (intro) {
         intro.innerHTML = `
           <div class="ops-kicker">今天的入口</div>
@@ -252,6 +261,25 @@ function bindOnlineRecordForm(page, dashboard) {
       button.disabled = false;
     }
   });
+}
+
+function prependOnlineRecord(page, record, aiSuggestion) {
+  const list = page.querySelector('.online-record-list');
+  const section = page.querySelector('.online-records-section');
+  if (!section) return;
+
+  const recordWithSuggestion = { ...record, aiSuggestion };
+  const html = buildOnlineRecordsSection([recordWithSuggestion], { title: '最近在线记录' });
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  const freshCard = temp.querySelector('.online-record-card');
+
+  if (list && freshCard) {
+    list.prepend(freshCard);
+    return;
+  }
+
+  section.outerHTML = buildOnlineRecordsSection([recordWithSuggestion], { title: '最近在线记录' });
 }
 
 function buildAiResult(aiSuggestion) {

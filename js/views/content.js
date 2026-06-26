@@ -2,7 +2,7 @@
    Content View
    ======================================== */
 
-import { loadContentSeeds } from '../data.js?v=20260625b';
+import { loadContentSeeds } from '../data.js?v=20260626a';
 
 const STATUSES = ['all', 'idea', 'outline', 'drafting', 'published', 'dropped'];
 

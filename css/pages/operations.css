@@ -547,3 +547,44 @@
   border-left-color: #DC2626;
   background: #FEF2F2;
 }
+
+.online-records-section {
+  margin-bottom: var(--space-5);
+}
+
+.online-record-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.online-record-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.online-record-card p {
+  margin: var(--space-2) 0;
+  line-height: 1.75;
+}
+
+.record-next-step {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-left: 3px solid #16A34A;
+  border-radius: var(--radius-md);
+  background: #F0FDF4;
+}
+
+.record-next-step span {
+  display: block;
+  color: #15803D;
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.record-next-step strong {
+  display: block;
+  line-height: 1.6;
+}

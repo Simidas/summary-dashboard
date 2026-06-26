@@ -60,6 +60,15 @@ export function getDashboard() {
   return apiRequest('/api/dashboard');
 }
 
+export function getRecords(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/records${query ? `?${query}` : ''}`);
+}
+
 export function createRecord(input) {
   return apiRequest('/api/records', {
     method: 'POST',

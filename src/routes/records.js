@@ -83,8 +83,11 @@ async function listRecords(request, env) {
   params.push(limit);
 
   const rows = await env.DB.prepare(query).bind(...params).all();
+  const records = rows.results || [];
+  const suggestions = await loadLatestSuggestionsForRecords(env, records.map(row => row.id));
+
   return ok({
-    records: (rows.results || []).map(row => mapRecord(row))
+    records: records.map(row => mapRecord(row, suggestions.get(row.id)))
   });
 }
 
@@ -288,6 +291,26 @@ async function insertSuggestion(env, record, suggestion) {
     updated_at: now,
     ...suggestion
   });
+}
+
+async function loadLatestSuggestionsForRecords(env, recordIds) {
+  if (!recordIds.length) return new Map();
+
+  const placeholders = recordIds.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(`
+    SELECT s.*
+    FROM ai_suggestions s
+    JOIN (
+      SELECT record_id, MAX(created_at) AS created_at
+      FROM ai_suggestions
+      WHERE record_id IN (${placeholders})
+      GROUP BY record_id
+    ) latest
+      ON latest.record_id = s.record_id
+     AND latest.created_at = s.created_at
+  `).bind(...recordIds).all();
+
+  return new Map((rows.results || []).map(row => [row.record_id, row]));
 }
 
 async function getOwnerSession(request, env) {
