@@ -211,7 +211,7 @@ wrangler pages deploy . --project-name=summary-dashboard --commit-message="手�
 
 - 本项目为**纯静态单页应用**（HTML + CSS + JS），无需构建步骤
 - `wrangler pages deploy .` 直接上传根目录所有文件到 Cloudflare Pages CDN
-- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260626g` 进行缓存刷新
+- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260626h` 进行缓存刷新
 - 数据文件（`data/` 下的 JSON）由 `scripts/aggregate.js` 生成，部署时一并上传
 
 ### vNext：Cloudflare Workers 在线记录

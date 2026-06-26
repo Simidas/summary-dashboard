@@ -7,12 +7,13 @@ import {
   createRecord,
   getDomainSettings,
   getFollowups,
+  getProjects,
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626g';
-import { loadDomainSummary } from '../data.js?v=20260626g';
+} from '../api.js?v=20260626h';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626h';
+import { loadDomainSummary } from '../data.js?v=20260626h';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -24,11 +25,12 @@ export async function renderDomainView(container, params = {}) {
   `;
 
   const authState = getAuthState();
-  const [domain, onlineRecordsData, onlineSettingsData, onlineFollowupsData] = await Promise.all([
+  const [domain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData] = await Promise.all([
     loadDomainSummary(domainId),
     isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 20 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getDomainSettings(domainId).catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
   ]);
   if (!domain) {
     renderEmpty(container);
@@ -38,6 +40,7 @@ export async function renderDomainView(container, params = {}) {
   const onlineRecords = onlineRecordsData?.records || [];
   const onlineSettings = onlineSettingsData?.settings || {};
   const onlineFollowups = (onlineFollowupsData?.followups || []).filter(item => item.status === 'open' || item.status === 'deferred');
+  const onlineProjects = onlineProjectsData?.projects || [];
   const currentFocus = onlineSettings.currentFocus || domain.currentFocus || '这个场景还没有记录。';
   const nextAction = onlineSettings.nextAction || domain.nextAction || '等待下一条记录';
 
@@ -71,7 +74,7 @@ export async function renderDomainView(container, params = {}) {
         <div class="section-heading">
           <h2 class="section-title">未闭环事项</h2>
         </div>
-        ${buildDomainFollowupsPanel(authState, domainId, onlineFollowups, domain.openFollowUps || [])}
+        ${buildDomainFollowupsPanel(authState, domainId, onlineFollowups, domain.openFollowUps || [], onlineProjects)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -234,14 +237,16 @@ function buildFollowups(items) {
   `;
 }
 
-function buildDomainFollowupsPanel(authState, domainId, onlineFollowups, staticFollowups) {
+function buildDomainFollowupsPanel(authState, domainId, onlineFollowups, staticFollowups, projects = []) {
   if (authState.apiAvailable && authState.user?.role === 'owner') {
     return `
-      <form class="quick-inline-form" id="domain-followup-form">
-        <input name="text" placeholder="这个场景还有什么要闭环？">
-        <input name="project" placeholder="项目，可选">
-        <input name="dueDate" type="date" aria-label="截止日期">
-        <button class="primary-action" type="submit">新增</button>
+      <form class="quick-inline-form followup-quick-form" id="domain-followup-form">
+        <textarea name="text" rows="2" placeholder="这个场景还有什么要闭环？"></textarea>
+        <div class="followup-form-grid">
+          ${buildProjectSelect(projects)}
+          <input name="dueDate" type="date" aria-label="截止日期">
+          <button class="primary-action" type="submit">新增</button>
+        </div>
       </form>
       <div class="form-status" id="domain-followup-status"></div>
       <div class="compact-list manageable-list" id="domain-followup-list" data-domain="${escapeAttr(domainId)}">
@@ -251,6 +256,20 @@ function buildDomainFollowupsPanel(authState, domainId, onlineFollowups, staticF
   }
 
   return buildFollowups(staticFollowups);
+}
+
+function buildProjectSelect(projects = []) {
+  const options = projects
+    .filter(project => project?.name)
+    .map(project => `<option value="${escapeAttr(project.name)}">${escapeHtml(project.name)}</option>`)
+    .join('');
+
+  return `
+    <select name="project" aria-label="项目">
+      <option value="">不关联项目</option>
+      ${options || '<option value="" disabled>暂无可关联项目</option>'}
+    </select>
+  `;
 }
 
 function buildOnlineFollowupRow(item) {

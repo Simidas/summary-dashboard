@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626g';
+} from '../data.js?v=20260626h';
 import {
   createFollowup,
   createRecord,
@@ -16,10 +16,10 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626g';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626g';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626g';
+} from '../api.js?v=20260626h';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626h';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626h';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626h';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -45,6 +45,7 @@ export async function renderHomeView(container) {
   const domains = overview?.domains || [];
   const openFollowups = followups?.followups || [];
   const seeds = mergeContentSeeds(onlineContentData?.items || [], content?.seeds || []);
+  const onlineProjects = onlineProjectsData?.projects || [];
   const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
   const heroFocus = dashboard?.todayFocus
@@ -71,13 +72,6 @@ export async function renderHomeView(container) {
 
     ${buildOnlineRecordPanel(dashboard, authState)}
 
-    ${buildPetCompanionPanel(dashboard, authState)}
-
-    ${authState.apiAvailable && authState.user ? buildOnlineRecordsSection(onlineRecords, {
-      title: authState.user.role === 'owner' ? '最近在线记录' : '公开在线记录',
-      emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
-    }) : ''}
-
     <section class="section">
       <div class="section-heading">
         <h2 class="section-title">四个场景</h2>
@@ -93,7 +87,7 @@ export async function renderHomeView(container) {
           <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6))}
+        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6), onlineProjects)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -104,6 +98,11 @@ export async function renderHomeView(container) {
       </div>
     </section>
 
+    ${authState.apiAvailable && authState.user ? buildOnlineRecordsSection(onlineRecords, {
+      title: authState.user.role === 'owner' ? '最近在线记录' : '公开在线记录',
+      emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
+    }) : ''}
+
     <section class="ops-panel">
       <div class="section-heading">
         <h2 class="section-title">内容素材</h2>
@@ -111,6 +110,8 @@ export async function renderHomeView(container) {
       </div>
       ${buildSeedList(seeds.slice(0, 5))}
     </section>
+
+    ${buildPetCompanionPanel(dashboard, authState)}
   `;
 
   container.innerHTML = '';
@@ -386,21 +387,23 @@ function buildFollowupList(followups) {
   `;
 }
 
-function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
+function buildFollowupPanel(authState, onlineFollowups, staticFollowups, projects = []) {
   if (authState.apiAvailable && authState.user?.role === 'owner') {
     return `
-      <form class="quick-inline-form" id="home-followup-form">
-        <input name="text" placeholder="新增一个需要闭环的小事项">
-        <select name="domain" aria-label="场景">
-          <option value="">未分类</option>
-          <option value="work">主业</option>
-          <option value="side_business">副业</option>
-          <option value="life">生活和自我</option>
-          <option value="content">内容产出</option>
-        </select>
-        <input name="project" placeholder="项目，可选">
-        <input name="dueDate" type="date" aria-label="截止日期">
-        <button class="primary-action" type="submit">新增</button>
+      <form class="quick-inline-form followup-quick-form" id="home-followup-form">
+        <textarea name="text" rows="2" placeholder="新增一个需要闭环的小事项"></textarea>
+        <div class="followup-form-grid">
+          <select name="domain" aria-label="场景">
+            <option value="">未分类</option>
+            <option value="work">主业</option>
+            <option value="side_business">副业</option>
+            <option value="life">生活和自我</option>
+            <option value="content">内容产出</option>
+          </select>
+          ${buildProjectSelect(projects)}
+          <input name="dueDate" type="date" aria-label="截止日期">
+          <button class="primary-action" type="submit">新增</button>
+        </div>
       </form>
       <div class="form-status" id="home-followup-status"></div>
       <div class="compact-list manageable-list" id="home-followup-list">
@@ -410,6 +413,20 @@ function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
   }
 
   return buildFollowupList(staticFollowups);
+}
+
+function buildProjectSelect(projects = []) {
+  const options = projects
+    .filter(project => project?.name)
+    .map(project => `<option value="${escapeAttr(project.name)}">${escapeHtml(project.name)}</option>`)
+    .join('');
+
+  return `
+    <select name="project" aria-label="项目">
+      <option value="">不关联项目</option>
+      ${options || '<option value="" disabled>暂无可关联项目</option>'}
+    </select>
+  `;
 }
 
 function buildOnlineFollowupRow(item) {
