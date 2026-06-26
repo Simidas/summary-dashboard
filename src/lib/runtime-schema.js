@@ -193,6 +193,11 @@ export function ensureRuntimeSchema(env) {
   return schemaReady;
 }
 
+export function isSchemaError(error) {
+  const message = String(error?.message || error || '');
+  return /no such table|no such column|has no column|table .* has no column/i.test(message);
+}
+
 async function applySchema(env) {
   for (const statement of STATEMENTS) {
     await env.DB.prepare(statement).run();
