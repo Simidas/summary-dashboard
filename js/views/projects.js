@@ -2,20 +2,21 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626j';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626k';
 import {
   createFollowup,
   createProject,
   createRecord,
+  deleteProject,
   getFollowups,
   getProject,
   getProjects,
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626j';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626j';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626j';
+} from '../api.js?v=20260626k';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626k';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -229,10 +230,13 @@ function buildProjectCreatePanel(authState) {
   }
 
   return `
-    <section class="settings-panel">
-      <div class="section-heading">
-        <h2 class="section-title">新增项目</h2>
-      </div>
+    <details class="settings-panel collapsible-panel">
+      <summary>
+        <span>
+          <strong>新增项目</strong>
+          <small>新开一条长期主线</small>
+        </span>
+      </summary>
       <form id="project-create-form" class="dashboard-settings-form">
         <label>
           <span>项目名</span>
@@ -251,16 +255,19 @@ function buildProjectCreatePanel(authState) {
           <button class="primary-action" type="submit">创建项目</button>
         </div>
       </form>
-    </section>
+    </details>
   `;
 }
 
 function buildProjectEditPanel(project) {
   return `
-    <section class="settings-panel">
-      <div class="section-heading">
-        <h2 class="section-title">项目设置</h2>
-      </div>
+    <details class="settings-panel collapsible-panel">
+      <summary>
+        <span>
+          <strong>项目设置</strong>
+          <small>状态、重点、下一步</small>
+        </span>
+      </summary>
       <form id="project-edit-form" class="dashboard-settings-form">
         <label>
           <span>项目名</span>
@@ -291,7 +298,10 @@ function buildProjectEditPanel(project) {
           <button class="primary-action" type="submit">保存项目</button>
         </div>
       </form>
-    </section>
+      <div class="danger-zone">
+        <button class="danger-action" id="project-delete-button" type="button">删除项目</button>
+      </div>
+    </details>
   `;
 }
 
@@ -423,6 +433,23 @@ function bindProjectEditForm(page, project) {
       status.textContent = error.message || '保存失败';
     } finally {
       button.disabled = false;
+    }
+  });
+
+  const deleteButton = page.querySelector('#project-delete-button');
+  deleteButton?.addEventListener('click', async () => {
+    const confirmed = window.confirm(`确定删除项目「${project.name}」吗？已写入的记录不会被删除。`);
+    if (!confirmed) return;
+
+    deleteButton.disabled = true;
+    status.textContent = '删除中...';
+
+    try {
+      await deleteProject(project.slug || project.id);
+      window.location.hash = 'projects';
+    } catch (error) {
+      status.textContent = error.message || '删除失败';
+      deleteButton.disabled = false;
     }
   });
 }

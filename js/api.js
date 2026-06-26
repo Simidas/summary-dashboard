@@ -98,6 +98,12 @@ export function updateProject(slugOrId, input) {
   });
 }
 
+export function deleteProject(slugOrId) {
+  return apiRequest(`/api/projects/${encodeURIComponent(slugOrId)}`, {
+    method: 'DELETE'
+  });
+}
+
 export function getContentItems(params = {}) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {

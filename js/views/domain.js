@@ -11,9 +11,9 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626j';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626j';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626j';
+} from '../api.js?v=20260626k';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626k';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

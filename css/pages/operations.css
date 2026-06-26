@@ -739,6 +739,58 @@
   background: var(--bg-card);
 }
 
+.collapsible-panel {
+  padding: 0;
+}
+
+.collapsible-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.collapsible-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-panel summary::after {
+  content: "展开";
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.collapsible-panel[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.collapsible-panel[open] summary::after {
+  content: "收起";
+}
+
+.collapsible-panel summary span {
+  display: grid;
+  gap: 4px;
+}
+
+.collapsible-panel summary strong {
+  font-size: 0.9375rem;
+}
+
+.collapsible-panel summary small {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.collapsible-panel .dashboard-settings-form {
+  padding: var(--space-3);
+}
+
 .dashboard-settings-form {
   display: grid;
   grid-template-columns: 1fr;
@@ -778,6 +830,28 @@
 .dashboard-settings-form .form-wide,
 .dashboard-settings-form .record-form-footer {
   grid-column: 1 / -1;
+}
+
+.danger-zone {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.danger-action {
+  border: 1px solid #FCA5A5;
+  border-radius: var(--radius-md);
+  background: #FEF2F2;
+  color: #B91C1C;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.danger-action:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .quick-inline-form {

@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626j';
+} from '../data.js?v=20260626k';
 import {
   createFollowup,
   createRecord,
@@ -16,10 +16,10 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626j';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626j';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626j';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626j';
+} from '../api.js?v=20260626k';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626k';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626k';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
