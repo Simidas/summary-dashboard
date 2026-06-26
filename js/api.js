@@ -76,6 +76,35 @@ export function createRecord(input) {
   });
 }
 
+export function getProjects() {
+  return apiRequest('/api/projects');
+}
+
+export function getProject(slugOrId) {
+  return apiRequest(`/api/projects/${encodeURIComponent(slugOrId)}`);
+}
+
+export function createProject(input) {
+  return apiRequest('/api/projects', {
+    method: 'POST',
+    body: input
+  });
+}
+
+export function updateProject(slugOrId, input) {
+  return apiRequest(`/api/projects/${encodeURIComponent(slugOrId)}`, {
+    method: 'PATCH',
+    body: input
+  });
+}
+
+export function updateDashboardSettings(input) {
+  return apiRequest('/api/dashboard-settings', {
+    method: 'PATCH',
+    body: input
+  });
+}
+
 export function logout() {
   return apiRequest('/api/auth/logout', { method: 'POST' });
 }

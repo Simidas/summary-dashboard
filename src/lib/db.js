@@ -46,6 +46,22 @@ export function normalizeVisibility(visibility) {
   return VISIBILITIES.has(visibility) ? visibility : 'private';
 }
 
+export function normalizeProjectStatus(status) {
+  const allowed = new Set(['active', 'paused', 'shipped', 'dropped']);
+  return allowed.has(status) ? status : 'active';
+}
+
+export function slugifyProjectName(name) {
+  const normalized = String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return normalized || `project-${crypto.randomUUID().slice(0, 8)}`;
+}
+
 export function normalizeEnergy(energy) {
   if (energy == null || energy === '') return null;
   const value = Number(energy);
@@ -97,6 +113,23 @@ export function mapSuggestion(row) {
     errorMessage: row.error_message,
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  };
+}
+
+export function mapProject(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    summary: row.summary,
+    status: row.status,
+    currentFocus: row.current_focus,
+    nextAction: row.next_action,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    source: 'd1'
   };
 }
 

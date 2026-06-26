@@ -5,12 +5,12 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626a';
-import { getRecords } from '../api.js?v=20260626a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626a';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626a';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626a';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626b';
+import { getRecords } from '../api.js?v=20260626b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626b';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626b';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626b';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626b';
 
 const TIMELINE_DAYS = 14;
 

@@ -49,6 +49,7 @@ async function listRecords(request, env) {
   const domain = normalizeDomain(url.searchParams.get('domain'));
   const type = url.searchParams.get('type');
   const visibility = normalizeVisibility(url.searchParams.get('visibility') || 'public');
+  const project = String(url.searchParams.get('project') || '').trim();
   const params = [];
   const clauses = ['deleted_at IS NULL'];
 
@@ -71,6 +72,10 @@ async function listRecords(request, env) {
   if (type) {
     clauses.push('type = ?');
     params.push(normalizeType(type));
+  }
+  if (project) {
+    clauses.push('projects_json LIKE ?');
+    params.push(`%${project.replace(/[%_]/g, '')}%`);
   }
 
   const query = `

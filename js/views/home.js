@@ -7,10 +7,10 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626a';
-import { createRecord, getDashboard, getRecords } from '../api.js?v=20260626a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626a';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626a';
+} from '../data.js?v=20260626b';
+import { createRecord, getDashboard, getProjects, getRecords, updateDashboardSettings } from '../api.js?v=20260626b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626b';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626b';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -22,35 +22,43 @@ export async function renderHomeView(container) {
   `;
 
   const authState = getAuthState();
-  const [overview, followups, content, projects, dashboard, onlineRecordsData] = await Promise.all([
+  const [overview, followups, content, projects, dashboard, onlineRecordsData, onlineProjectsData] = await Promise.all([
     loadDomainOverview(),
     loadOpenFollowups(),
     loadContentSeeds(),
     loadProjectsManifest(),
     isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getRecords({ limit: 8 }).catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getRecords({ limit: 8 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
   ]);
 
   const domains = overview?.domains || [];
   const openFollowups = followups?.followups || [];
   const seeds = content?.seeds || [];
-  const activeProjects = projects?.projects || [];
+  const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
+  const heroFocus = dashboard?.settings?.todayFocus || overview?.todayFocus || '今天还没有记录最重要的事';
+  const heroNextStep = dashboard?.settings?.tomorrowFirstStep
+    || dashboard?.nextSmallStep
+    || overview?.tomorrowFirstStep
+    || '先写下一个 25 分钟动作';
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
   page.innerHTML = `
     <section class="ops-hero animate-fade-in-up">
       <div>
-        <div class="ops-kicker">${escapeHtml(overview?.latestDate || '')}</div>
+        <div class="ops-kicker">${escapeHtml(dashboard?.today || overview?.latestDate || '')}</div>
         <h1 class="ops-title">个人经营面板</h1>
-        <p class="ops-hero-focus">${escapeHtml(overview?.todayFocus || '今天还没有记录最重要的事')}</p>
+        <p class="ops-hero-focus" id="home-hero-focus">${escapeHtml(heroFocus)}</p>
       </div>
       <div class="ops-next-step">
         <span>明天第一步</span>
-        <strong>${escapeHtml(overview?.tomorrowFirstStep || '先写下一个 25 分钟动作')}</strong>
+        <strong id="home-hero-next-step">${escapeHtml(heroNextStep)}</strong>
       </div>
     </section>
+
+    ${buildDashboardSettingsPanel(dashboard, authState, heroFocus, heroNextStep)}
 
     ${buildOnlineRecordPanel(dashboard, authState)}
 
@@ -97,6 +105,60 @@ export async function renderHomeView(container) {
   container.innerHTML = '';
   container.appendChild(page);
   bindOnlineRecordForm(page, dashboard);
+  bindDashboardSettingsForm(page);
+}
+
+function buildDashboardSettingsPanel(dashboard, authState, heroFocus, heroNextStep) {
+  if (!authState.apiAvailable || authState.user?.role !== 'owner') return '';
+
+  return `
+    <section class="settings-panel">
+      <div class="section-heading">
+        <h2 class="section-title">面板头部设置</h2>
+      </div>
+      <form id="dashboard-settings-form" class="dashboard-settings-form">
+        <label>
+          <span>今日重点</span>
+          <input name="todayFocus" value="${escapeAttr(heroFocus)}" placeholder="今天最重要的一件事">
+        </label>
+        <label>
+          <span>下一步</span>
+          <input name="tomorrowFirstStep" value="${escapeAttr(heroNextStep)}" placeholder="一个小到能启动的动作">
+        </label>
+        <div class="record-form-footer">
+          <span class="form-status" id="dashboard-settings-status">${dashboard?.settings?.updatedAt ? `上次更新 ${escapeHtml(formatShortTime(dashboard.settings.updatedAt))}` : ''}</span>
+          <button class="primary-action" type="submit">保存头部</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
+function bindDashboardSettingsForm(page) {
+  const form = page.querySelector('#dashboard-settings-form');
+  if (!form) return;
+
+  const status = page.querySelector('#dashboard-settings-status');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const todayFocus = form.elements.todayFocus.value.trim();
+    const tomorrowFirstStep = form.elements.tomorrowFirstStep.value.trim();
+
+    button.disabled = true;
+    status.textContent = '保存中...';
+
+    try {
+      const data = await updateDashboardSettings({ todayFocus, tomorrowFirstStep });
+      page.querySelector('#home-hero-focus').textContent = data.settings.todayFocus || '今天还没有记录最重要的事';
+      page.querySelector('#home-hero-next-step').textContent = data.settings.tomorrowFirstStep || '先写下一个 25 分钟动作';
+      status.textContent = '已保存';
+    } catch (error) {
+      status.textContent = error.message || '保存失败';
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 function buildOnlineRecordPanel(dashboard, authState) {
@@ -365,6 +427,25 @@ function buildProjectList(projects) {
   `;
 }
 
+function mergeProjects(onlineProjects, staticProjects) {
+  const seen = new Set();
+  const result = [];
+
+  onlineProjects.forEach(project => {
+    seen.add(project.slug);
+    result.push({
+      ...project,
+      openFollowUps: 0
+    });
+  });
+
+  staticProjects.forEach(project => {
+    if (!seen.has(project.slug)) result.push(project);
+  });
+
+  return result;
+}
+
 function buildSeedList(seeds) {
   if (!seeds.length) {
     return '<div class="empty-inline">暂无内容素材。</div>';
@@ -387,4 +468,19 @@ function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = value == null ? '' : String(value);
   return div.innerHTML;
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
+function formatShortTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 }

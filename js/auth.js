@@ -2,7 +2,7 @@
    Auth State
    ======================================== */
 
-import { apiRequest, logout, setCsrfToken } from './api.js?v=20260626a';
+import { apiRequest, logout, setCsrfToken } from './api.js?v=20260626b';
 
 const authState = {
   loaded: false,

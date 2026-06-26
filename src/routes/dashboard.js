@@ -1,6 +1,7 @@
 import { mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
 import { ok } from '../lib/response.js';
 import { getSession } from '../lib/session.js';
+import { loadDashboardSettings, mapSettings } from './dashboard-settings.js';
 
 export async function handleDashboard(request, env) {
   const session = await getSession(request, env);
@@ -44,6 +45,8 @@ export async function handleDashboard(request, env) {
   const state = await env.DB.prepare('SELECT * FROM user_state WHERE owner_id = ?')
     .bind(ownerId)
     .first();
+  const settingsRow = await loadDashboardSettings(env, ownerId);
+  const settings = mapSettings(settingsRow);
 
   const weekStart = getShanghaiWeekStart();
   const weekCount = await env.DB.prepare(`
@@ -53,13 +56,15 @@ export async function handleDashboard(request, env) {
   `).bind(ownerId, weekStart).first();
 
   const suggestion = latestSuggestion ? mapSuggestion(latestSuggestion) : null;
-  const nextSmallStep = suggestion?.nextSmallStep
+  const nextSmallStep = settings.tomorrowFirstStep
+    || suggestion?.nextSmallStep
     || dailyReview?.tomorrow_first_step
     || '先写下一句真实状态，不需要完整复盘。';
 
   return ok({
     mode: 'owner',
     today,
+    settings,
     hasRecordedToday: Number(todayRow?.count || 0) > 0,
     latestRecord: latest ? mapRecord(latest, latestSuggestion) : null,
     nextSmallStep,

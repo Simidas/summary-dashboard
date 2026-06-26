@@ -1,6 +1,8 @@
 import { handleAuth } from './routes/auth.js';
 import { handleDailyReviews } from './routes/daily-reviews.js';
 import { handleDashboard } from './routes/dashboard.js';
+import { handleDashboardSettings } from './routes/dashboard-settings.js';
+import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
 import { fail, ok } from './lib/response.js';
 
@@ -45,6 +47,8 @@ async function handleApi(request, env, ctx) {
 
     if (path.startsWith('/api/auth/')) return handleAuth(request, env, ctx);
     if (path.startsWith('/api/records')) return handleRecords(request, env, ctx);
+    if (path.startsWith('/api/projects')) return handleProjects(request, env, ctx);
+    if (path === '/api/dashboard-settings') return handleDashboardSettings(request, env, ctx);
     if (path.startsWith('/api/daily-reviews/')) return handleDailyReviews(request, env, ctx);
     if (path === '/api/dashboard') return handleDashboard(request, env, ctx);
 

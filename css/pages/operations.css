@@ -588,3 +588,52 @@
   display: block;
   line-height: 1.6;
 }
+
+.settings-panel {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.dashboard-settings-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+@media (min-width: 760px) {
+  .dashboard-settings-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dashboard-settings-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.dashboard-settings-form input,
+.dashboard-settings-form select,
+.dashboard-settings-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.dashboard-settings-form textarea {
+  resize: vertical;
+}
+
+.dashboard-settings-form .form-wide,
+.dashboard-settings-form .record-form-footer {
+  grid-column: 1 / -1;
+}
