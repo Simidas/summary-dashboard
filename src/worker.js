@@ -9,6 +9,7 @@ import { handlePeriodReviews } from './routes/period-reviews.js';
 import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
 import { fail, ok } from './lib/response.js';
+import { ensureRuntimeSchema } from './lib/runtime-schema.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -48,6 +49,8 @@ async function handleApi(request, env, ctx) {
     if (!env.DB) {
       return fail(500, 'DB_NOT_CONFIGURED', 'D1 database binding is not configured');
     }
+
+    await ensureRuntimeSchema(env);
 
     if (path.startsWith('/api/auth/')) return handleAuth(request, env, ctx);
     if (path.startsWith('/api/records')) return handleRecords(request, env, ctx);

@@ -246,8 +246,8 @@ wrangler secret put MINIMAX_API_KEY
 npm run deploy:worker
 ```
 
-`npm run deploy:worker` 会依次执行静态资源准备、远端 D1 migration 和 Worker 部署。Cloudflare 自动部署的 Deploy command 也应使用这个命令，不要直接使用 `npx wrangler deploy`。
-自动部署所用的 Cloudflare API Token 需要同时具备 Workers 部署权限和 D1 编辑/migration 权限。
+`npm run deploy:worker` 会依次执行静态资源准备和 Worker 部署。Cloudflare 自动部署的 Deploy command 也应使用这个命令，不要直接使用 `npx wrangler deploy`。
+Worker 会在运行期兜底创建缺失的 D1 表。若需要显式执行 migration，可手动运行 `npm run d1:migrate:remote`，或使用 `npm run deploy:worker:migrate`。
 
 Google OAuth 回调地址：
 
