@@ -5,12 +5,12 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626e';
-import { getDailyReview, getRecords, updateDailyReview } from '../api.js?v=20260626e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626e';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626e';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626f';
+import { getDailyReview, getRecords, updateDailyReview } from '../api.js?v=20260626f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626f';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626f';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626f';
 
 const TIMELINE_DAYS = 14;
 
@@ -33,7 +33,7 @@ export async function renderDailyView(container, params = {}) {
 
   // Create page structure
   const page = document.createElement('div');
-  page.className = 'page';
+  page.className = 'page operations-page';
 
   // Loading state
   const skeleton = document.createElement('div');

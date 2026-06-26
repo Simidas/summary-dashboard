@@ -2,10 +2,10 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626e';
-import { createWeekCard } from '../components/card.js?v=20260626e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626e';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626e';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626f';
+import { createWeekCard } from '../components/card.js?v=20260626f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626f';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -21,7 +21,7 @@ export async function renderWeeklyView(container, params = {}) {
 
   // Loading skeleton
   const page = document.createElement('div');
-  page.className = 'page';
+  page.className = 'page operations-page';
   page.innerHTML = `
     <div class="view-header animate-fade-in-up">
       <h1 class="view-title">Weekly</h1>

@@ -2,10 +2,10 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626e';
-import { createMonthCard } from '../components/card.js?v=20260626e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626e';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626e';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626f';
+import { createMonthCard } from '../components/card.js?v=20260626f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626f';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -21,14 +21,14 @@ export async function renderMonthlyView(container, params = {}) {
 
   // Loading skeleton
   const page = document.createElement('div');
-  page.className = 'page';
+  page.className = 'page operations-page';
   page.innerHTML = `
     <div class="view-header animate-fade-in-up">
       <h1 class="view-title">Monthly</h1>
       <p class="view-subtitle">按月聚合的复盘数据</p>
     </div>
     <div class="monthly-chart" style="margin-bottom: var(--space-6);">
-      <div class="chart-placeholder" style="height: 120px; display: flex; align-items: flex-end; gap: 8px; padding: var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);">
+      <div class="chart-placeholder" style="height: 120px; display: flex; align-items: flex-end; gap: 8px; padding: var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);">
         ${Array(6).fill('<div class="skeleton" style="flex: 1; height: 60%;"></div>').join('')}
       </div>
     </div>
@@ -92,7 +92,7 @@ export async function renderMonthlyView(container, params = {}) {
   chartSection.className = 'monthly-chart-section animate-fade-in-up';
   chartSection.innerHTML = `
     <h2 class="section-title">📊 月度成就趋势</h2>
-    <div class="monthly-bar-chart" style="display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-top: var(--space-3);">
+    <div class="monthly-bar-chart" style="display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: var(--space-3); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-top: var(--space-3);">
       ${chartData.map(d => {
         const height = Math.max((d.totalAchievements / maxAchievements) * 100, 5);
         return `

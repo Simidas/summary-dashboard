@@ -95,13 +95,15 @@
 
 /* ---- Aggregation Views (shared across Weekly/Monthly/Yearly) ---- */
 .view-header {
-  margin-bottom: var(--space-6);
+  padding: var(--space-4) 0 var(--space-5);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-5);
 }
 
 .view-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-2);
 }
 
 .view-subtitle {
@@ -111,20 +113,20 @@
 
 .aggregation-grid {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 720px) {
   .aggregation-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 .aggregation-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--space-3);
   transition: box-shadow var(--transition-base), transform var(--transition-base);
   cursor: pointer;
@@ -138,14 +140,15 @@
 .aggregation-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: var(--space-2);
   margin-bottom: var(--space-2);
 }
 
 .aggregation-card-title {
-  font-family: var(--font-serif);
   font-size: 1rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .aggregation-card-stats {

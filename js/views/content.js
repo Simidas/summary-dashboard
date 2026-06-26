@@ -2,9 +2,9 @@
    Content View
    ======================================== */
 
-import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260626e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
-import { loadContentSeeds } from '../data.js?v=20260626e';
+import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260626f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626f';
+import { loadContentSeeds } from '../data.js?v=20260626f';
 
 const STATUSES = ['all', 'idea', 'outline', 'drafting', 'published', 'dropped'];
 
