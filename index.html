@@ -92,13 +92,23 @@
     (function() {
       const el = document.getElementById('deploy-time');
       if (el) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        el.textContent = '部署时间：' + year + '-' + month + '-' + day + ' ' + hours + ':' + minutes;
+        const commitTime = 'COMMIT_TIME_PLACEHOLDER';
+        if (!commitTime.includes('PLACEHOLDER')) {
+          const date = new Date(commitTime);
+          if (!Number.isNaN(date.getTime())) {
+            const parts = new Intl.DateTimeFormat('zh-CN', {
+              timeZone: 'Asia/Shanghai',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }).formatToParts(date);
+            const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+            el.textContent = '部署时间：' + values.year + '-' + values.month + '-' + values.day + ' ' + values.hour + ':' + values.minute;
+          }
+        }
       }
     })();
   </script>
