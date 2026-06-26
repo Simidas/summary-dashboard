@@ -34,6 +34,12 @@
 .ops-title {
   font-size: 2rem;
   margin: 4px 0 var(--space-2);
+  line-height: 1.18;
+}
+
+.ops-title-long {
+  max-width: 760px;
+  text-wrap: balance;
 }
 
 .ops-hero-focus {

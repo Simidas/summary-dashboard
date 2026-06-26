@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626f';
+} from '../data.js?v=20260626g';
 import {
   createFollowup,
   createRecord,
@@ -16,10 +16,10 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626f';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626f';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626f';
+} from '../api.js?v=20260626g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626g';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626g';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626g';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -59,8 +59,8 @@ export async function renderHomeView(container) {
   page.innerHTML = `
     <section class="ops-hero animate-fade-in-up">
       <div>
-        <div class="ops-kicker">${escapeHtml(dashboard?.today || overview?.latestDate || '')}</div>
-        <h1 class="ops-title">个人经营面板</h1>
+        <div class="ops-kicker">个人经营系统 · ${escapeHtml(dashboard?.today || overview?.latestDate || '')}</div>
+        <h1 class="ops-title ops-title-long">帮你持续记录、接住情绪、推进事情、定期复盘</h1>
         <p class="ops-hero-focus" id="home-hero-focus">${escapeHtml(heroFocus)}</p>
       </div>
       <div class="ops-next-step">
