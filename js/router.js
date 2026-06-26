@@ -59,8 +59,8 @@ class Router {
     const parts = hash.split('/');
     const params = {};
 
-    if (parts[1]) params.date = parts[1];
-    if (parts[2]) params.sub = parts[2];
+    if (parts[1]) params.date = decodeRoutePart(parts[1]);
+    if (parts[2]) params.sub = decodeRoutePart(parts[2]);
 
     return params;
   }
@@ -94,5 +94,19 @@ class Router {
 
 // Singleton instance
 const router = new Router();
+
+function decodeRoutePart(value) {
+  let decoded = String(value || '').split('?')[0];
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch (error) {
+      break;
+    }
+  }
+  return decoded;
+}
 
 export default router;

@@ -16,15 +16,15 @@ export async function handleProjects(request, env) {
 
   const match = path.match(/^\/api\/projects\/([^/]+)$/);
   if (match && request.method === 'GET') {
-    return getProject(request, env, match[1]);
+    return getProject(request, env, decodePathSegment(match[1]));
   }
 
   if (match && request.method === 'PATCH') {
-    return updateProject(request, env, match[1]);
+    return updateProject(request, env, decodePathSegment(match[1]));
   }
 
   if (match && request.method === 'DELETE') {
-    return deleteProject(request, env, match[1]);
+    return deleteProject(request, env, decodePathSegment(match[1]));
   }
 
   return fail(404, 'NOT_FOUND', 'Projects endpoint not found');
@@ -186,4 +186,18 @@ async function getOwnerSession(request, env) {
 function cleanText(value) {
   const text = String(value || '').trim();
   return text || null;
+}
+
+function decodePathSegment(value) {
+  let decoded = String(value || '');
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch (error) {
+      break;
+    }
+  }
+  return decoded;
 }

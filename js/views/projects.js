@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626h';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626i';
 import {
   createFollowup,
   createProject,
@@ -12,9 +12,9 @@ import {
   getProjects,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626h';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626h';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626h';
+} from '../api.js?v=20260626i';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626i';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626i';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -59,14 +59,23 @@ export async function renderProjectsView(container, params = {}) {
 }
 
 async function renderProjectDetail(container, slug, authState) {
+  const normalizedSlug = normalizeRouteSlug(slug);
   container.innerHTML = `
     <div class="page">
       <div class="skeleton" style="height: 220px;"></div>
     </div>
   `;
 
-  const onlineProjectData = isApiEnabled() && authState.user
-    ? await getProject(slug).catch(() => null)
+  const [manifest, onlineProjectsData] = await Promise.all([
+    loadProjectsManifest().catch(() => null),
+    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
+  ]);
+  const staticProjectMeta = (manifest?.projects || []).find(project => project.slug === normalizedSlug);
+  const onlineProjectMeta = (onlineProjectsData?.projects || [])
+    .find(project => project.slug === normalizedSlug || project.id === normalizedSlug);
+
+  const onlineProjectData = isApiEnabled() && authState.user && (onlineProjectMeta || !staticProjectMeta)
+    ? await getProject(normalizedSlug).catch(() => null)
     : null;
 
   if (onlineProjectData?.project) {
@@ -79,7 +88,7 @@ async function renderProjectDetail(container, slug, authState) {
     return;
   }
 
-  const project = await loadProjectSummary(slug);
+  const project = staticProjectMeta ? await loadProjectSummary(staticProjectMeta.slug) : null;
   if (!project) {
     container.innerHTML = `
       <div class="page">
@@ -92,7 +101,14 @@ async function renderProjectDetail(container, slug, authState) {
     return;
   }
 
-  renderStaticProjectDetail(container, project);
+  const [onlineRecordsData, onlineFollowupsData] = await Promise.all([
+    isApiEnabled() && authState.user ? getRecords({ project: project.name, limit: 30 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getFollowups({ project: project.name, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null)
+  ]);
+  const onlineFollowups = (onlineFollowupsData?.followups || [])
+    .filter(item => item.status === 'open' || item.status === 'deferred');
+
+  renderStaticProjectDetail(container, project, onlineRecordsData?.records || [], onlineFollowups, authState);
 }
 
 function renderManagedProjectDetail(container, project, records, followups, authState) {
@@ -133,7 +149,7 @@ function renderManagedProjectDetail(container, project, records, followups, auth
   bindProjectFollowupForm(page, project);
 }
 
-function renderStaticProjectDetail(container, project) {
+function renderStaticProjectDetail(container, project, onlineRecords = [], onlineFollowups = [], authState = {}) {
   const page = document.createElement('div');
   page.className = 'page operations-page';
   page.innerHTML = `
@@ -149,9 +165,13 @@ function renderStaticProjectDetail(container, project) {
       </div>
     </section>
 
+    ${authState.user?.role === 'owner' ? buildStaticProjectNotice() : ''}
+    ${authState.user?.role === 'owner' ? buildProjectRecordPanel(project) : ''}
+    ${authState.user?.role === 'owner' ? buildProjectFollowupPanel(project, onlineFollowups) : ''}
+
     <section class="metric-grid">
-      ${buildMetric(project.timeline?.length || 0, '记录')}
-      ${buildMetric(project.openFollowUps?.length || 0, 'open')}
+      ${buildMetric((project.timeline?.length || 0) + onlineRecords.length, '记录')}
+      ${buildMetric((project.openFollowUps?.length || 0) + onlineFollowups.length, 'open')}
       ${buildMetric(project.decisions?.length || 0, '决策')}
       ${buildMetric(project.blockers?.length || 0, '卡点')}
     </section>
@@ -176,12 +196,26 @@ function renderStaticProjectDetail(container, project) {
         <h2 class="section-title">项目时间线</h2>
         <a href="#projects" class="text-link">Back</a>
       </div>
+      <div id="project-record-list">
+        ${buildOnlineRecordList(onlineRecords, '还没有在线项目记录。')}
+      </div>
       ${buildTimeline(project.timeline || [])}
     </section>
   `;
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindProjectRecordForm(page, project);
+  bindProjectFollowupForm(page, project);
+}
+
+function buildStaticProjectNotice() {
+  return `
+    <section class="access-note">
+      <strong>历史项目</strong>
+      <p>这个项目来自历史 JSON 汇总。新增的项目记录和待办会写入 D1，并用项目名关联到这里。</p>
+    </section>
+  `;
 }
 
 function buildProjectCreatePanel(authState) {
@@ -290,16 +324,18 @@ function buildProjectFollowupPanel(project, followups) {
       <div class="section-heading">
         <h2 class="section-title">项目待办</h2>
       </div>
-      <form class="quick-inline-form" id="project-followup-form">
-        <input name="text" placeholder="这个项目还有什么要闭环？">
-        <select name="domain" aria-label="场景">
-          <option value="side_business">副业</option>
-          <option value="work">主业</option>
-          <option value="content">内容产出</option>
-          <option value="life">生活和自我</option>
-        </select>
-        <input name="dueDate" type="date" aria-label="截止日期">
-        <button class="primary-action" type="submit">新增</button>
+      <form class="quick-inline-form followup-quick-form" id="project-followup-form">
+        <textarea name="text" rows="2" placeholder="这个项目还有什么要闭环？"></textarea>
+        <div class="followup-form-grid">
+          <select name="domain" aria-label="场景">
+            <option value="side_business">副业</option>
+            <option value="work">主业</option>
+            <option value="content">内容产出</option>
+            <option value="life">生活和自我</option>
+          </select>
+          <input name="dueDate" type="date" aria-label="截止日期">
+          <button class="primary-action" type="submit">新增</button>
+        </div>
       </form>
       <div class="form-status" id="project-followup-status"></div>
       <div class="compact-list manageable-list" id="project-followup-list">
@@ -512,7 +548,7 @@ function mergeProjects(onlineProjects, staticProjects) {
 
 function buildProjectCard(project) {
   return `
-    <a class="project-card" href="#projects/${escapeHtml(project.slug)}">
+    <a class="project-card" href="#projects/${escapeAttr(encodeURIComponent(project.slug))}">
       <div class="domain-card-topline">
         <span>${escapeHtml(project.status || 'active')}${project.source === 'd1' ? ' · online' : ''}</span>
         <span>${escapeHtml((project.updatedAt || project.lastUpdated || '').slice(0, 10))}</span>
@@ -525,6 +561,20 @@ function buildProjectCard(project) {
       </div>
     </a>
   `;
+}
+
+function normalizeRouteSlug(value) {
+  let normalized = String(value || '');
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const next = decodeURIComponent(normalized);
+      if (next === normalized) break;
+      normalized = next;
+    } catch (error) {
+      break;
+    }
+  }
+  return normalized;
 }
 
 function buildMetric(value, label) {

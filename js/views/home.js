@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626h';
+} from '../data.js?v=20260626i';
 import {
   createFollowup,
   createRecord,
@@ -16,10 +16,10 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626h';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626h';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626h';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626h';
+} from '../api.js?v=20260626i';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626i';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626i';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626i';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -45,7 +45,6 @@ export async function renderHomeView(container) {
   const domains = overview?.domains || [];
   const openFollowups = followups?.followups || [];
   const seeds = mergeContentSeeds(onlineContentData?.items || [], content?.seeds || []);
-  const onlineProjects = onlineProjectsData?.projects || [];
   const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
   const heroFocus = dashboard?.todayFocus
@@ -87,7 +86,7 @@ export async function renderHomeView(container) {
           <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6), onlineProjects)}
+        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6), activeProjects)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">

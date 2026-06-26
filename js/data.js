@@ -33,7 +33,9 @@ async function loadJson(path, cacheBucket, cacheKey) {
   try {
     const response = await fetch(path);
     if (!response.ok) return null;
-    const data = await response.json();
+    const text = await response.text();
+    if (!text.trim() || text.trim().startsWith('<')) return null;
+    const data = JSON.parse(text);
     if (cacheBucket) cacheBucket[cacheKey] = data;
     return data;
   } catch (e) {

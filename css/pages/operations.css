@@ -850,7 +850,8 @@
     align-items: center;
   }
 
-  #domain-followup-form .followup-form-grid {
+  #domain-followup-form .followup-form-grid,
+  #project-followup-form .followup-form-grid {
     grid-template-columns: minmax(180px, 1fr) minmax(132px, 0.7fr) auto;
   }
 }

@@ -11,9 +11,9 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626h';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626h';
-import { loadDomainSummary } from '../data.js?v=20260626h';
+} from '../api.js?v=20260626i';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626i';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626i';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -25,12 +25,13 @@ export async function renderDomainView(container, params = {}) {
   `;
 
   const authState = getAuthState();
-  const [domain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData] = await Promise.all([
+  const [domain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, projectsManifest] = await Promise.all([
     loadDomainSummary(domainId),
     isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 20 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getDomainSettings(domainId).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
+    loadProjectsManifest()
   ]);
   if (!domain) {
     renderEmpty(container);
@@ -40,7 +41,7 @@ export async function renderDomainView(container, params = {}) {
   const onlineRecords = onlineRecordsData?.records || [];
   const onlineSettings = onlineSettingsData?.settings || {};
   const onlineFollowups = (onlineFollowupsData?.followups || []).filter(item => item.status === 'open' || item.status === 'deferred');
-  const onlineProjects = onlineProjectsData?.projects || [];
+  const projectOptions = mergeProjects(onlineProjectsData?.projects || [], projectsManifest?.projects || []);
   const currentFocus = onlineSettings.currentFocus || domain.currentFocus || '这个场景还没有记录。';
   const nextAction = onlineSettings.nextAction || domain.nextAction || '等待下一条记录';
 
@@ -74,7 +75,7 @@ export async function renderDomainView(container, params = {}) {
         <div class="section-heading">
           <h2 class="section-title">未闭环事项</h2>
         </div>
-        ${buildDomainFollowupsPanel(authState, domainId, onlineFollowups, domain.openFollowUps || [], onlineProjects)}
+        ${buildDomainFollowupsPanel(authState, domainId, onlineFollowups, domain.openFollowUps || [], projectOptions)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -270,6 +271,24 @@ function buildProjectSelect(projects = []) {
       ${options || '<option value="" disabled>暂无可关联项目</option>'}
     </select>
   `;
+}
+
+function mergeProjects(onlineProjects, staticProjects) {
+  const seen = new Set();
+  const result = [];
+
+  onlineProjects.forEach(project => {
+    if (!project?.name) return;
+    seen.add(project.name);
+    result.push(project);
+  });
+
+  staticProjects.forEach(project => {
+    if (!project?.name || seen.has(project.name)) return;
+    result.push(project);
+  });
+
+  return result;
 }
 
 function buildOnlineFollowupRow(item) {
