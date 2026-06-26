@@ -1,7 +1,11 @@
 import { handleAuth } from './routes/auth.js';
+import { handleContentItems } from './routes/content-items.js';
 import { handleDailyReviews } from './routes/daily-reviews.js';
 import { handleDashboard } from './routes/dashboard.js';
 import { handleDashboardSettings } from './routes/dashboard-settings.js';
+import { handleDomainSettings } from './routes/domain-settings.js';
+import { handleFollowups } from './routes/followups.js';
+import { handlePeriodReviews } from './routes/period-reviews.js';
 import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
 import { fail, ok } from './lib/response.js';
@@ -48,6 +52,10 @@ async function handleApi(request, env, ctx) {
     if (path.startsWith('/api/auth/')) return handleAuth(request, env, ctx);
     if (path.startsWith('/api/records')) return handleRecords(request, env, ctx);
     if (path.startsWith('/api/projects')) return handleProjects(request, env, ctx);
+    if (path.startsWith('/api/content-items')) return handleContentItems(request, env, ctx);
+    if (path.startsWith('/api/followups')) return handleFollowups(request, env, ctx);
+    if (path.startsWith('/api/domain-settings/')) return handleDomainSettings(request, env, ctx);
+    if (path.startsWith('/api/period-reviews/')) return handlePeriodReviews(request, env, ctx);
     if (path === '/api/dashboard-settings') return handleDashboardSettings(request, env, ctx);
     if (path.startsWith('/api/daily-reviews/')) return handleDailyReviews(request, env, ctx);
     if (path === '/api/dashboard') return handleDashboard(request, env, ctx);

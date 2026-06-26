@@ -1,4 +1,4 @@
-import { mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
+import { mapFollowup, mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
 import { ok } from '../lib/response.js';
 import { getSession } from '../lib/session.js';
 import { loadDashboardSettings, mapSettings } from './dashboard-settings.js';
@@ -47,6 +47,16 @@ export async function handleDashboard(request, env) {
     .first();
   const settingsRow = await loadDashboardSettings(env, ownerId);
   const settings = mapSettings(settingsRow);
+  const followups = await env.DB.prepare(`
+    SELECT *
+    FROM followups
+    WHERE owner_id = ? AND deleted_at IS NULL AND status IN ('open', 'deferred')
+    ORDER BY
+      CASE status WHEN 'open' THEN 0 ELSE 1 END,
+      COALESCE(due_date, updated_at) ASC,
+      updated_at DESC
+    LIMIT 10
+  `).bind(ownerId).all();
 
   const weekStart = getShanghaiWeekStart();
   const weekCount = await env.DB.prepare(`
@@ -68,6 +78,7 @@ export async function handleDashboard(request, env) {
     hasRecordedToday: Number(todayRow?.count || 0) > 0,
     latestRecord: latest ? mapRecord(latest, latestSuggestion) : null,
     nextSmallStep,
+    followups: (followups.results || []).map(mapFollowup),
     dailyReview: dailyReview ? {
       id: dailyReview.id,
       date: dailyReview.date,

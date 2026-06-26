@@ -5,12 +5,12 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626b';
-import { getRecords } from '../api.js?v=20260626b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626b';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626b';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626b';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626c';
+import { getDailyReview, getRecords, updateDailyReview } from '../api.js?v=20260626c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626c';
+import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626c';
 
 const TIMELINE_DAYS = 14;
 
@@ -52,25 +52,34 @@ export async function renderDailyView(container, params = {}) {
 
   // Load data
   const authState = getAuthState();
-  const [availableDates, onlineRecordsData] = await Promise.all([
+  const [availableDates, onlineRecordsData, dailyReviewData] = await Promise.all([
     getAvailableDailyDates(),
-    isApiEnabled() && authState.user ? getRecords({ limit: 20 }).catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getRecords({ limit: 20 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getDailyReview('today').catch(() => null) : Promise.resolve(null)
   ]);
   summaries = await loadDailySummaries(availableDates);
   const onlineRecords = onlineRecordsData?.records || [];
+  const dailyReview = dailyReviewData?.review || null;
 
   if (summaries.length === 0 && onlineRecords.length === 0) {
-    page.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🌙</div>
-        <p class="empty-state-text">今日的记录还在整理中，明早见 🌙</p>
-      </div>
-    `;
+    skeleton.remove();
+    appendDailyReviewEditor(page, authState, dailyReview);
+    if (!page.querySelector('#daily-review-form')) {
+      page.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">□</div>
+          <p class="empty-state-text">今日的记录还在整理中。</p>
+        </div>
+      `;
+    }
+    bindDailyReviewForm(page);
     return;
   }
 
   // Remove skeleton now that real data is ready
   skeleton.remove();
+
+  appendDailyReviewEditor(page, authState, dailyReview);
 
   if (onlineRecords.length) {
     const wrapper = document.createElement('div');
@@ -108,6 +117,94 @@ export async function renderDailyView(container, params = {}) {
     setupKeyboardNav();
     _keyboardNavBound = true;
   }
+
+  bindDailyReviewForm(page);
+}
+
+function appendDailyReviewEditor(page, authState, review) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'operations-page';
+  wrapper.innerHTML = buildDailyReviewEditor(authState, review);
+  if (wrapper.innerHTML.trim()) page.appendChild(wrapper);
+}
+
+function buildDailyReviewEditor(authState, review) {
+  if (!authState.apiAvailable || authState.user?.role !== 'owner') return '';
+
+  return `
+    <section class="settings-panel">
+      <div class="section-heading">
+        <h2 class="section-title">每日综合记录</h2>
+        <span class="panel-date">${review?.updatedAt ? `上次更新 ${escapeHtml(formatShortTime(review.updatedAt))}` : ''}</span>
+      </div>
+      <form id="daily-review-form" class="dashboard-settings-form">
+        <label>
+          <span>今天最重要的事</span>
+          <input name="mostImportantThing" value="${escapeAttr(review?.mostImportantThing || '')}" placeholder="今天真正推进了什么？">
+        </label>
+        <div class="record-form-grid">
+          <label>
+            <span>心情</span>
+            <input name="mood" value="${escapeAttr(review?.mood || '')}" placeholder="例如：平静、焦虑、松了一口气">
+          </label>
+          <label>
+            <span>能量</span>
+            <input name="energy" type="number" min="1" max="5" value="${escapeAttr(review?.energy || '')}" placeholder="1-5">
+          </label>
+        </div>
+        <label>
+          <span>今日收获</span>
+          <textarea name="wins" rows="3" placeholder="一行一条">${escapeHtml(joinLines(review?.wins))}</textarea>
+        </label>
+        <label>
+          <span>卡点</span>
+          <textarea name="blockers" rows="3" placeholder="一行一条">${escapeHtml(joinLines(review?.blockers))}</textarea>
+        </label>
+        <label>
+          <span>复盘</span>
+          <textarea name="reflection" rows="4" placeholder="今天最值得看见的情绪、原因和提醒">${escapeHtml(review?.reflection || '')}</textarea>
+        </label>
+        <label>
+          <span>明天第一步</span>
+          <input name="tomorrowFirstStep" value="${escapeAttr(review?.tomorrowFirstStep || '')}" placeholder="小到能直接开始的一步">
+        </label>
+        <div class="record-form-footer">
+          <span class="form-status" id="daily-review-status"></span>
+          <button class="primary-action" type="submit">保存每日复盘</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
+function bindDailyReviewForm(page) {
+  const form = page.querySelector('#daily-review-form');
+  if (!form) return;
+
+  const status = page.querySelector('#daily-review-status');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    status.textContent = '保存中...';
+
+    try {
+      await updateDailyReview('today', {
+        mostImportantThing: form.elements.mostImportantThing.value,
+        wins: splitLines(form.elements.wins.value),
+        blockers: splitLines(form.elements.blockers.value),
+        reflection: form.elements.reflection.value,
+        tomorrowFirstStep: form.elements.tomorrowFirstStep.value,
+        mood: form.elements.mood.value,
+        energy: form.elements.energy.value
+      });
+      status.textContent = '已保存';
+    } catch (error) {
+      status.textContent = error.message || '保存失败';
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 /**
@@ -195,6 +292,32 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
+function splitLines(value) {
+  return String(value || '')
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function joinLines(items = []) {
+  return Array.isArray(items) ? items.join('\n') : '';
+}
+
+function formatShortTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 }
 
 /**

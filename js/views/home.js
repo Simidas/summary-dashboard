@@ -7,10 +7,19 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626b';
-import { createRecord, getDashboard, getProjects, getRecords, updateDashboardSettings } from '../api.js?v=20260626b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626b';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626b';
+} from '../data.js?v=20260626c';
+import {
+  createFollowup,
+  createRecord,
+  getContentItems,
+  getDashboard,
+  getProjects,
+  getRecords,
+  updateDashboardSettings,
+  updateFollowup
+} from '../api.js?v=20260626c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626c';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626c';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -22,19 +31,20 @@ export async function renderHomeView(container) {
   `;
 
   const authState = getAuthState();
-  const [overview, followups, content, projects, dashboard, onlineRecordsData, onlineProjectsData] = await Promise.all([
+  const [overview, followups, content, projects, dashboard, onlineRecordsData, onlineProjectsData, onlineContentData] = await Promise.all([
     loadDomainOverview(),
     loadOpenFollowups(),
     loadContentSeeds(),
     loadProjectsManifest(),
     isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getRecords({ limit: 8 }).catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getContentItems({ limit: 5 }).catch(() => null) : Promise.resolve(null)
   ]);
 
   const domains = overview?.domains || [];
   const openFollowups = followups?.followups || [];
-  const seeds = content?.seeds || [];
+  const seeds = mergeContentSeeds(onlineContentData?.items || [], content?.seeds || []);
   const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
   const heroFocus = dashboard?.settings?.todayFocus || overview?.todayFocus || '今天还没有记录最重要的事';
@@ -82,7 +92,7 @@ export async function renderHomeView(container) {
           <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupList(openFollowups.slice(0, 6))}
+        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6))}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -106,6 +116,7 @@ export async function renderHomeView(container) {
   container.appendChild(page);
   bindOnlineRecordForm(page, dashboard);
   bindDashboardSettingsForm(page);
+  bindFollowupPanel(page);
 }
 
 function buildDashboardSettingsPanel(dashboard, authState, heroFocus, heroNextStep) {
@@ -407,6 +418,124 @@ function buildFollowupList(followups) {
   `;
 }
 
+function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
+  if (authState.apiAvailable && authState.user?.role === 'owner') {
+    return `
+      <form class="quick-inline-form" id="home-followup-form">
+        <input name="text" placeholder="新增一个需要闭环的小事项">
+        <select name="domain" aria-label="场景">
+          <option value="">未分类</option>
+          <option value="work">主业</option>
+          <option value="side_business">副业</option>
+          <option value="life">生活和自我</option>
+          <option value="content">内容产出</option>
+        </select>
+        <input name="project" placeholder="项目，可选">
+        <input name="dueDate" type="date" aria-label="截止日期">
+        <button class="primary-action" type="submit">新增</button>
+      </form>
+      <div class="form-status" id="home-followup-status"></div>
+      <div class="compact-list manageable-list" id="home-followup-list">
+        ${onlineFollowups.length ? onlineFollowups.map(buildOnlineFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。新增一个，就能在这里闭环。</div>'}
+      </div>
+    `;
+  }
+
+  return buildFollowupList(staticFollowups);
+}
+
+function buildOnlineFollowupRow(item) {
+  const statusLabel = {
+    open: 'open',
+    deferred: 'deferred',
+    closed: 'closed',
+    dropped: 'dropped'
+  }[item.status] || item.status || 'open';
+
+  return `
+    <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
+      <div>
+        <strong>${escapeHtml(item.text)}</strong>
+        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}${item.project ? ` · ${escapeHtml(item.project)}` : ''}${item.dueDate ? ` · ${escapeHtml(item.dueDate)}` : ''}</span>
+      </div>
+      <div class="row-actions">
+        <em>${escapeHtml(statusLabel)}</em>
+        ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
+        <button type="button" data-followup-action="closed">完成</button>
+        <button type="button" data-followup-action="dropped">放弃</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindFollowupPanel(page) {
+  const form = page.querySelector('#home-followup-form');
+  const list = page.querySelector('#home-followup-list');
+  const status = page.querySelector('#home-followup-status');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const text = form.elements.text.value.trim();
+    if (!text) {
+      status.textContent = '先写一个具体事项。';
+      return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    status.textContent = '保存中...';
+
+    try {
+      const data = await createFollowup({
+        text,
+        domain: form.elements.domain.value,
+        project: form.elements.project.value,
+        dueDate: form.elements.dueDate.value
+      });
+      form.reset();
+      status.textContent = '已新增';
+      if (list) {
+        const empty = list.querySelector('.empty-inline');
+        if (empty) empty.remove();
+        list.insertAdjacentHTML('afterbegin', buildOnlineFollowupRow(data.followup));
+      }
+    } catch (error) {
+      status.textContent = error.message || '保存失败';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  list?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-followup-action]');
+    if (!button) return;
+
+    const row = button.closest('[data-followup-id]');
+    const id = row?.dataset.followupId;
+    if (!id) return;
+
+    const nextStatus = button.dataset.followupAction;
+    button.disabled = true;
+    if (status) status.textContent = '更新中...';
+
+    try {
+      const data = await updateFollowup(id, { status: nextStatus });
+      if (nextStatus === 'closed' || nextStatus === 'dropped') {
+        row.remove();
+        if (list && !list.querySelector('[data-followup-id]')) {
+          list.innerHTML = '<div class="empty-inline">暂无在线待办。新增一个，就能在这里闭环。</div>';
+        }
+      } else {
+        row.outerHTML = buildOnlineFollowupRow(data.followup);
+      }
+      if (status) status.textContent = '已更新';
+    } catch (error) {
+      if (status) status.textContent = error.message || '更新失败';
+      button.disabled = false;
+    }
+  });
+}
+
 function buildProjectList(projects) {
   if (!projects.length) {
     return '<div class="empty-inline">暂无项目记录。</div>';
@@ -462,6 +591,27 @@ function buildSeedList(seeds) {
       `).join('')}
     </div>
   `;
+}
+
+function mergeContentSeeds(onlineItems, staticSeeds) {
+  return [
+    ...onlineItems.map(item => ({
+      ...item,
+      sourceDomainLabel: getDomainLabel(item.sourceDomain),
+      sourceDate: item.createdAt ? item.createdAt.slice(0, 10) : ''
+    })),
+    ...staticSeeds
+  ];
+}
+
+function getDomainLabel(domain) {
+  const labels = {
+    work: '主业',
+    side_business: '副业',
+    life: '生活和自我',
+    content: '内容产出'
+  };
+  return labels[domain] || domain || '未分类';
 }
 
 function escapeHtml(value) {

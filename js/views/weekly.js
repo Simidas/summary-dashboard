@@ -2,9 +2,10 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626b';
-import { createWeekCard } from '../components/card.js?v=20260626b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626b';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626c';
+import { createWeekCard } from '../components/card.js?v=20260626c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -35,20 +36,22 @@ export async function renderWeeklyView(container, params = {}) {
   // Load data
   const availableWeeks = await getAvailableWeeks();
   const recentWeeks = availableWeeks.slice(-WEEK_DISPLAY_COUNT).reverse();
+  const reviewWeek = recentWeeks[0] || getCurrentWeekKey();
   
   if (recentWeeks.length === 0) {
+    const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
     page.innerHTML = `
-      <div class="page">
-        <div class="view-header animate-fade-in-up">
-          <h1 class="view-title">Weekly</h1>
-          <p class="view-subtitle">按周聚合的复盘数据</p>
-        </div>
-        <div class="empty-state">
-          <div class="empty-state-icon">📅</div>
-          <p class="empty-state-text">周数据正在整理中...</p>
-        </div>
+      <div class="view-header animate-fade-in-up">
+        <h1 class="view-title">Weekly</h1>
+        <p class="view-subtitle">按周聚合的复盘数据</p>
+      </div>
+      ${reviewPanel}
+      <div class="empty-state">
+        <div class="empty-state-icon">□</div>
+        <p class="empty-state-text">周数据正在整理中...</p>
       </div>
     `;
+    bindPeriodReviewForms(page);
     return;
   }
 
@@ -63,6 +66,9 @@ export async function renderWeeklyView(container, params = {}) {
   weekCards = [];
 
   const latestInsight = await loadWeeklyInsight(recentWeeks[0]);
+  const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
+  if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+
   if (latestInsight) {
     page.appendChild(createInsightPanel(latestInsight));
   }
@@ -88,6 +94,7 @@ export async function renderWeeklyView(container, params = {}) {
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindPeriodReviewForms(page);
 }
 
 /**
@@ -144,4 +151,14 @@ function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = value == null ? '' : String(value);
   return div.innerHTML;
+}
+
+function getCurrentWeekKey() {
+  const date = new Date();
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  return `${utcDate.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }

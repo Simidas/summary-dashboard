@@ -2,9 +2,10 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626b';
-import { createMonthCard } from '../components/card.js?v=20260626b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626b';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626c';
+import { createMonthCard } from '../components/card.js?v=20260626c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -40,20 +41,22 @@ export async function renderMonthlyView(container, params = {}) {
   // Load data
   const availableMonths = await getAvailableMonths();
   const recentMonths = availableMonths.slice(-MONTH_DISPLAY_COUNT).reverse();
+  const reviewMonth = recentMonths[0] || new Date().toISOString().slice(0, 7);
   
   if (recentMonths.length === 0) {
+    const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
     page.innerHTML = `
-      <div class="page">
-        <div class="view-header animate-fade-in-up">
-          <h1 class="view-title">Monthly</h1>
-          <p class="view-subtitle">按月聚合的复盘数据</p>
-        </div>
-        <div class="empty-state">
-          <div class="empty-state-icon">📆</div>
-          <p class="empty-state-text">月数据正在整理中...</p>
-        </div>
+      <div class="view-header animate-fade-in-up">
+        <h1 class="view-title">Monthly</h1>
+        <p class="view-subtitle">按月聚合的复盘数据</p>
+      </div>
+      ${reviewPanel}
+      <div class="empty-state">
+        <div class="empty-state-icon">□</div>
+        <p class="empty-state-text">月数据正在整理中...</p>
       </div>
     `;
+    bindPeriodReviewForms(page);
     return;
   }
 
@@ -109,6 +112,9 @@ export async function renderMonthlyView(container, params = {}) {
 
   monthCards = [];
 
+  const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
+  if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+
   for (let i = 0; i < recentMonths.length; i++) {
     const monthStr = recentMonths[i];
     const monthData = await loadMonthlySummary(monthStr);
@@ -134,6 +140,7 @@ export async function renderMonthlyView(container, params = {}) {
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindPeriodReviewForms(page);
 }
 
 /**

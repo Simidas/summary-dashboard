@@ -2,10 +2,19 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626b';
-import { createProject, createRecord, getProject, getProjects, updateProject } from '../api.js?v=20260626b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626b';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626b';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626c';
+import {
+  createFollowup,
+  createProject,
+  createRecord,
+  getFollowups,
+  getProject,
+  getProjects,
+  updateFollowup,
+  updateProject
+} from '../api.js?v=20260626c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626c';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626c';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -61,7 +70,12 @@ async function renderProjectDetail(container, slug, authState) {
     : null;
 
   if (onlineProjectData?.project) {
-    renderManagedProjectDetail(container, onlineProjectData.project, onlineProjectData.records || [], authState);
+    const onlineFollowupsData = isApiEnabled() && authState.user
+      ? await getFollowups({ project: onlineProjectData.project.name, status: 'all', limit: 30 }).catch(() => null)
+      : null;
+    const onlineFollowups = (onlineFollowupsData?.followups || [])
+      .filter(item => item.status === 'open' || item.status === 'deferred');
+    renderManagedProjectDetail(container, onlineProjectData.project, onlineProjectData.records || [], onlineFollowups, authState);
     return;
   }
 
@@ -81,7 +95,7 @@ async function renderProjectDetail(container, slug, authState) {
   renderStaticProjectDetail(container, project);
 }
 
-function renderManagedProjectDetail(container, project, records, authState) {
+function renderManagedProjectDetail(container, project, records, followups, authState) {
   const page = document.createElement('div');
   page.className = 'page operations-page';
   page.innerHTML = `
@@ -99,6 +113,7 @@ function renderManagedProjectDetail(container, project, records, authState) {
 
     ${authState.user?.role === 'owner' ? buildProjectEditPanel(project) : ''}
     ${authState.user?.role === 'owner' ? buildProjectRecordPanel(project) : ''}
+    ${authState.user?.role === 'owner' ? buildProjectFollowupPanel(project, followups) : ''}
 
     <section class="ops-panel">
       <div class="section-heading">
@@ -115,6 +130,7 @@ function renderManagedProjectDetail(container, project, records, authState) {
   container.appendChild(page);
   bindProjectEditForm(page, project);
   bindProjectRecordForm(page, project);
+  bindProjectFollowupForm(page, project);
 }
 
 function renderStaticProjectDetail(container, project) {
@@ -268,6 +284,48 @@ function buildProjectRecordPanel(project) {
   `;
 }
 
+function buildProjectFollowupPanel(project, followups) {
+  return `
+    <section class="ops-panel">
+      <div class="section-heading">
+        <h2 class="section-title">项目待办</h2>
+      </div>
+      <form class="quick-inline-form" id="project-followup-form">
+        <input name="text" placeholder="这个项目还有什么要闭环？">
+        <select name="domain" aria-label="场景">
+          <option value="side_business">副业</option>
+          <option value="work">主业</option>
+          <option value="content">内容产出</option>
+          <option value="life">生活和自我</option>
+        </select>
+        <input name="dueDate" type="date" aria-label="截止日期">
+        <button class="primary-action" type="submit">新增</button>
+      </form>
+      <div class="form-status" id="project-followup-status"></div>
+      <div class="compact-list manageable-list" id="project-followup-list">
+        ${followups.length ? followups.map(buildOnlineProjectFollowupRow).join('') : '<div class="empty-inline">暂无在线项目待办。</div>'}
+      </div>
+    </section>
+  `;
+}
+
+function buildOnlineProjectFollowupRow(item) {
+  return `
+    <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
+      <div>
+        <strong>${escapeHtml(item.text)}</strong>
+        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}${item.dueDate ? ` · ${escapeHtml(item.dueDate)}` : ''}</span>
+      </div>
+      <div class="row-actions">
+        <em>${escapeHtml(item.status || 'open')}</em>
+        ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
+        <button type="button" data-followup-action="closed">完成</button>
+        <button type="button" data-followup-action="dropped">放弃</button>
+      </div>
+    </div>
+  `;
+}
+
 function bindProjectCreateForm(page) {
   const form = page.querySelector('#project-create-form');
   if (!form) return;
@@ -364,6 +422,73 @@ function bindProjectRecordForm(page, project) {
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+function bindProjectFollowupForm(page, project) {
+  const form = page.querySelector('#project-followup-form');
+  const list = page.querySelector('#project-followup-list');
+  const status = page.querySelector('#project-followup-status');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const text = form.elements.text.value.trim();
+    if (!text) {
+      status.textContent = '先写一个具体事项。';
+      return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    status.textContent = '保存中...';
+
+    try {
+      const data = await createFollowup({
+        text,
+        domain: form.elements.domain.value,
+        project: project.name,
+        dueDate: form.elements.dueDate.value
+      });
+      form.reset();
+      status.textContent = '已新增';
+      const empty = list.querySelector('.empty-inline');
+      if (empty) empty.remove();
+      list.insertAdjacentHTML('afterbegin', buildOnlineProjectFollowupRow(data.followup));
+    } catch (error) {
+      status.textContent = error.message || '保存失败';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  list?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-followup-action]');
+    if (!button) return;
+
+    const row = button.closest('[data-followup-id]');
+    const id = row?.dataset.followupId;
+    if (!id) return;
+
+    const nextStatus = button.dataset.followupAction;
+    button.disabled = true;
+    status.textContent = '更新中...';
+
+    try {
+      const data = await updateFollowup(id, { status: nextStatus });
+      if (nextStatus === 'closed' || nextStatus === 'dropped') {
+        row.remove();
+        if (!list.querySelector('[data-followup-id]')) {
+          list.innerHTML = '<div class="empty-inline">暂无在线项目待办。</div>';
+        }
+      } else {
+        row.outerHTML = buildOnlineProjectFollowupRow(data.followup);
+      }
+      status.textContent = '已更新';
+    } catch (error) {
+      status.textContent = error.message || '更新失败';
       button.disabled = false;
     }
   });

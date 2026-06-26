@@ -2,9 +2,10 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626b';
-import { createYearHeroCard } from '../components/card.js?v=20260626b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626b';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626c';
+import { createYearHeroCard } from '../components/card.js?v=20260626c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
 
 let yearCards = [];
 
@@ -34,20 +35,22 @@ export async function renderYearlyView(container, params = {}) {
   // Load data
   const availableYears = await getAvailableYears();
   const sortedYears = [...availableYears].sort().reverse();
+  const reviewYear = sortedYears[0] || String(new Date().getFullYear());
   
   if (sortedYears.length === 0) {
+    const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
     page.innerHTML = `
-      <div class="page">
-        <div class="view-header animate-fade-in-up">
-          <h1 class="view-title">Yearly</h1>
-          <p class="view-subtitle">按年聚合的复盘数据</p>
-        </div>
-        <div class="empty-state">
-          <div class="empty-state-icon">🗓️</div>
-          <p class="empty-state-text">年数据正在整理中...</p>
-        </div>
+      <div class="view-header animate-fade-in-up">
+        <h1 class="view-title">Yearly</h1>
+        <p class="view-subtitle">按年聚合的复盘数据</p>
+      </div>
+      ${reviewPanel}
+      <div class="empty-state">
+        <div class="empty-state-icon">□</div>
+        <p class="empty-state-text">年数据正在整理中...</p>
       </div>
     `;
+    bindPeriodReviewForms(page);
     return;
   }
 
@@ -68,6 +71,8 @@ export async function renderYearlyView(container, params = {}) {
 
   // Build header
   const header = page.querySelector('.view-header');
+  const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
+  if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
 
   // Create year hero cards
   yearsData.forEach(({ year, data }, index) => {
@@ -82,6 +87,7 @@ export async function renderYearlyView(container, params = {}) {
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindPeriodReviewForms(page);
 }
 
 /**

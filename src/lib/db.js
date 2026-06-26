@@ -51,6 +51,26 @@ export function normalizeProjectStatus(status) {
   return allowed.has(status) ? status : 'active';
 }
 
+export function normalizeContentStatus(status) {
+  const allowed = new Set(['idea', 'outline', 'drafting', 'published', 'dropped']);
+  return allowed.has(status) ? status : 'idea';
+}
+
+export function normalizeFollowupStatus(status) {
+  const allowed = new Set(['open', 'deferred', 'closed', 'dropped']);
+  return allowed.has(status) ? status : 'open';
+}
+
+export function normalizePeriodType(type) {
+  const allowed = new Set(['weekly', 'monthly', 'yearly']);
+  return allowed.has(type) ? type : null;
+}
+
+export function normalizePeriodReviewStatus(status) {
+  const allowed = new Set(['draft', 'confirmed']);
+  return allowed.has(status) ? status : 'draft';
+}
+
 export function slugifyProjectName(name) {
   const normalized = String(name || '')
     .trim()
@@ -130,6 +150,71 @@ export function mapProject(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     source: 'd1'
+  };
+}
+
+export function mapContentItem(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    title: row.title,
+    sourceDomain: row.source_domain,
+    status: row.status,
+    angle: row.angle,
+    outline: parseJsonText(row.outline_json),
+    tags: parseJsonText(row.tags_json),
+    nextAction: row.next_action,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    source: 'd1'
+  };
+}
+
+export function mapFollowup(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    text: row.text,
+    domain: row.domain,
+    domainLabel: getDomainLabel(row.domain),
+    project: row.project,
+    status: row.status,
+    sourceRecordId: row.source_record_id,
+    dueDate: row.due_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    closedAt: row.closed_at,
+    overdue: row.due_date ? row.due_date < todayShanghai() && row.status === 'open' : false,
+    ageDays: daysBetween(row.created_at, nowIso())
+  };
+}
+
+export function mapDomainSettings(row, domain) {
+  return {
+    domain,
+    currentFocus: row?.current_focus || null,
+    nextAction: row?.next_action || null,
+    updatedAt: row?.updated_at || null
+  };
+}
+
+export function mapPeriodReview(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    periodType: row.period_type,
+    periodKey: row.period_key,
+    theme: row.theme,
+    summary: row.summary,
+    wins: parseJsonText(row.wins_json),
+    blockers: parseJsonText(row.blockers_json),
+    nextActions: parseJsonText(row.next_actions_json),
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 
@@ -247,4 +332,21 @@ function parseDate(dateStr) {
   if (!dateStr) return null;
   const date = new Date(`${dateStr}T00:00:00.000Z`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getDomainLabel(domain) {
+  const labels = {
+    work: '主业',
+    side_business: '副业',
+    life: '生活和自我',
+    content: '内容产出'
+  };
+  return labels[domain] || domain || '未分类';
+}
+
+function daysBetween(start, end) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 0;
+  return Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / 86400000));
 }

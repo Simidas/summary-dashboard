@@ -98,6 +98,85 @@ export function updateProject(slugOrId, input) {
   });
 }
 
+export function getContentItems(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/content-items${query ? `?${query}` : ''}`);
+}
+
+export function createContentItem(input) {
+  return apiRequest('/api/content-items', {
+    method: 'POST',
+    body: input
+  });
+}
+
+export function updateContentItem(id, input) {
+  return apiRequest(`/api/content-items/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: input
+  });
+}
+
+export function getFollowups(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/followups${query ? `?${query}` : ''}`);
+}
+
+export function createFollowup(input) {
+  return apiRequest('/api/followups', {
+    method: 'POST',
+    body: input
+  });
+}
+
+export function updateFollowup(id, input) {
+  return apiRequest(`/api/followups/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: input
+  });
+}
+
+export function getDomainSettings(domain) {
+  return apiRequest(`/api/domain-settings/${encodeURIComponent(domain)}`);
+}
+
+export function updateDomainSettings(domain, input) {
+  return apiRequest(`/api/domain-settings/${encodeURIComponent(domain)}`, {
+    method: 'PATCH',
+    body: input
+  });
+}
+
+export function getDailyReview(date = 'today') {
+  return apiRequest(`/api/daily-reviews/${encodeURIComponent(date)}`);
+}
+
+export function updateDailyReview(date = 'today', input) {
+  return apiRequest(`/api/daily-reviews/${encodeURIComponent(date)}`, {
+    method: 'PUT',
+    body: input
+  });
+}
+
+export function getPeriodReview(type, key) {
+  return apiRequest(`/api/period-reviews/${encodeURIComponent(type)}/${encodeURIComponent(key)}`);
+}
+
+export function updatePeriodReview(type, key, input) {
+  return apiRequest(`/api/period-reviews/${encodeURIComponent(type)}/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    body: input
+  });
+}
+
 export function updateDashboardSettings(input) {
   return apiRequest('/api/dashboard-settings', {
     method: 'PATCH',
