@@ -2,10 +2,10 @@
    Diary View
    ======================================== */
 
-import { loadDiaryEntries } from '../data.js?v=20260626d';
-import { createRecord, getRecords } from '../api.js?v=20260626d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626d';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626d';
+import { loadDiaryEntries } from '../data.js?v=20260626e';
+import { createRecord, getRecords } from '../api.js?v=20260626e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626e';
 
 const DRAFT_KEY = 'summary-dashboard:diary-drafts';
 

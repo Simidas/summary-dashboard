@@ -250,8 +250,17 @@ npm run deploy:worker
 
 ```bash
 npm run prepare:worker-assets
+wrangler d1 migrations apply summary-dashboard --remote
 wrangler deploy
 ```
+
+Cloudflare 自动部署的 Deploy command 应配置为：
+
+```bash
+npm run deploy:worker
+```
+
+不要直接配置成 `npx wrangler deploy`，否则 `public/` 不会生成，D1 migration 也不会执行，owner 登录后会出现新表查询 500。Build token 需要同时具备 Workers 部署权限和 D1 编辑/migration 权限。
 
 部署后先用 Workers 默认域名验证，再绑定生产域名。
 

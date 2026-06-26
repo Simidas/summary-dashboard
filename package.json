@@ -6,7 +6,8 @@
   "scripts": {
     "prepare:worker-assets": "node scripts/prepare-worker-assets.js",
     "dev:worker": "npm run prepare:worker-assets && wrangler dev",
-    "deploy:worker": "npm run prepare:worker-assets && wrangler deploy",
+    "deploy:worker": "npm run prepare:worker-assets && npm run d1:migrate:remote && wrangler deploy",
+    "deploy:worker:no-migrate": "npm run prepare:worker-assets && wrangler deploy",
     "d1:migrate:local": "wrangler d1 migrations apply summary-dashboard --local",
     "d1:migrate:remote": "wrangler d1 migrations apply summary-dashboard --remote",
     "check:js": "node --check src/worker.js && node --check scripts/prepare-worker-assets.js && node --check scripts/import-json-to-d1.js"

@@ -211,7 +211,7 @@ wrangler pages deploy . --project-name=summary-dashboard --commit-message="手�
 
 - 本项目为**纯静态单页应用**（HTML + CSS + JS），无需构建步骤
 - `wrangler pages deploy .` 直接上传根目录所有文件到 Cloudflare Pages CDN
-- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260626d` 进行缓存刷新
+- 静态资源（CSS/JS）通过 URL 查询参数 `?v=20260626e` 进行缓存刷新
 - 数据文件（`data/` 下的 JSON）由 `scripts/aggregate.js` 生成，部署时一并上传
 
 ### vNext：Cloudflare Workers 在线记录
@@ -243,9 +243,11 @@ wrangler d1 execute summary-dashboard --local --file .wrangler/import-daily-reco
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put SESSION_SECRET
 wrangler secret put MINIMAX_API_KEY
-wrangler d1 migrations apply summary-dashboard --remote
 npm run deploy:worker
 ```
+
+`npm run deploy:worker` 会依次执行静态资源准备、远端 D1 migration 和 Worker 部署。Cloudflare 自动部署的 Deploy command 也应使用这个命令，不要直接使用 `npx wrangler deploy`。
+自动部署所用的 Cloudflare API Token 需要同时具备 Workers 部署权限和 D1 编辑/migration 权限。
 
 Google OAuth 回调地址：
 

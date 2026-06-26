@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626d';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626e';
 import {
   createFollowup,
   createProject,
@@ -12,9 +12,9 @@ import {
   getProjects,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626d';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626d';
+} from '../api.js?v=20260626e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626e';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();

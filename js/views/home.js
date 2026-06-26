@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626d';
+} from '../data.js?v=20260626e';
 import {
   createFollowup,
   createRecord,
@@ -15,12 +15,11 @@ import {
   getDashboard,
   getProjects,
   getRecords,
-  updateDashboardSettings,
   updateFollowup
-} from '../api.js?v=20260626d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626d';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626d';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626d';
+} from '../api.js?v=20260626e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626e';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626e';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -48,9 +47,10 @@ export async function renderHomeView(container) {
   const seeds = mergeContentSeeds(onlineContentData?.items || [], content?.seeds || []);
   const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
-  const heroFocus = dashboard?.settings?.todayFocus || overview?.todayFocus || '今天还没有记录最重要的事';
-  const heroNextStep = dashboard?.settings?.tomorrowFirstStep
-    || dashboard?.nextSmallStep
+  const heroFocus = dashboard?.todayFocus
+    || overview?.todayFocus
+    || '今天还没有记录最重要的事';
+  const heroNextStep = dashboard?.nextSmallStep
     || overview?.tomorrowFirstStep
     || '先写下一个 25 分钟动作';
 
@@ -68,8 +68,6 @@ export async function renderHomeView(container) {
         <strong id="home-hero-next-step">${escapeHtml(heroNextStep)}</strong>
       </div>
     </section>
-
-    ${buildDashboardSettingsPanel(dashboard, authState, heroFocus, heroNextStep)}
 
     ${buildOnlineRecordPanel(dashboard, authState)}
 
@@ -118,61 +116,7 @@ export async function renderHomeView(container) {
   container.innerHTML = '';
   container.appendChild(page);
   bindOnlineRecordForm(page, dashboard, authState);
-  bindDashboardSettingsForm(page);
   bindFollowupPanel(page);
-}
-
-function buildDashboardSettingsPanel(dashboard, authState, heroFocus, heroNextStep) {
-  if (!authState.apiAvailable || authState.user?.role !== 'owner') return '';
-
-  return `
-    <section class="settings-panel">
-      <div class="section-heading">
-        <h2 class="section-title">面板头部设置</h2>
-      </div>
-      <form id="dashboard-settings-form" class="dashboard-settings-form">
-        <label>
-          <span>今日重点</span>
-          <input name="todayFocus" value="${escapeAttr(heroFocus)}" placeholder="今天最重要的一件事">
-        </label>
-        <label>
-          <span>下一步</span>
-          <input name="tomorrowFirstStep" value="${escapeAttr(heroNextStep)}" placeholder="一个小到能启动的动作">
-        </label>
-        <div class="record-form-footer">
-          <span class="form-status" id="dashboard-settings-status">${dashboard?.settings?.updatedAt ? `上次更新 ${escapeHtml(formatShortTime(dashboard.settings.updatedAt))}` : ''}</span>
-          <button class="primary-action" type="submit">保存头部</button>
-        </div>
-      </form>
-    </section>
-  `;
-}
-
-function bindDashboardSettingsForm(page) {
-  const form = page.querySelector('#dashboard-settings-form');
-  if (!form) return;
-
-  const status = page.querySelector('#dashboard-settings-status');
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const button = form.querySelector('button[type="submit"]');
-    const todayFocus = form.elements.todayFocus.value.trim();
-    const tomorrowFirstStep = form.elements.tomorrowFirstStep.value.trim();
-
-    button.disabled = true;
-    status.textContent = '保存中...';
-
-    try {
-      const data = await updateDashboardSettings({ todayFocus, tomorrowFirstStep });
-      page.querySelector('#home-hero-focus').textContent = data.settings.todayFocus || '今天还没有记录最重要的事';
-      page.querySelector('#home-hero-next-step').textContent = data.settings.tomorrowFirstStep || '先写下一个 25 分钟动作';
-      status.textContent = '已保存';
-    } catch (error) {
-      status.textContent = error.message || '保存失败';
-    } finally {
-      button.disabled = false;
-    }
-  });
 }
 
 function buildOnlineRecordPanel(dashboard, authState) {
@@ -330,6 +274,7 @@ function bindOnlineRecordForm(page, dashboard, authState) {
         hasRecordedToday: true,
         userState: data.userState || dashboard?.userState || {}
       }, authState);
+      refreshHeroPanel(page, data.record, data.aiSuggestion);
     } catch (error) {
       status.textContent = '';
       result.innerHTML = `
@@ -342,6 +287,15 @@ function bindOnlineRecordForm(page, dashboard, authState) {
       button.disabled = false;
     }
   });
+}
+
+function refreshHeroPanel(page, record, aiSuggestion) {
+  const focus = aiSuggestion?.summary || record?.summary || record?.content || '今天还没有记录最重要的事';
+  const nextStep = aiSuggestion?.nextSmallStep || record?.nextActions?.[0] || '先写下一个 25 分钟动作';
+  const focusEl = page.querySelector('#home-hero-focus');
+  const nextEl = page.querySelector('#home-hero-next-step');
+  if (focusEl) focusEl.textContent = focus;
+  if (nextEl) nextEl.textContent = nextStep;
 }
 
 function refreshPetPanel(page, dashboard, authState) {

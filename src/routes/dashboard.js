@@ -1,7 +1,6 @@
 import { mapFollowup, mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
 import { ok } from '../lib/response.js';
 import { getSession } from '../lib/session.js';
-import { loadDashboardSettings, mapSettings } from './dashboard-settings.js';
 
 export async function handleDashboard(request, env) {
   const session = await getSession(request, env);
@@ -45,8 +44,6 @@ export async function handleDashboard(request, env) {
   const state = await env.DB.prepare('SELECT * FROM user_state WHERE owner_id = ?')
     .bind(ownerId)
     .first();
-  const settingsRow = await loadDashboardSettings(env, ownerId);
-  const settings = mapSettings(settingsRow);
   const followups = await env.DB.prepare(`
     SELECT *
     FROM followups
@@ -66,19 +63,21 @@ export async function handleDashboard(request, env) {
   `).bind(ownerId, weekStart).first();
 
   const suggestion = latestSuggestion ? mapSuggestion(latestSuggestion) : null;
-  const nextSmallStep = settings.tomorrowFirstStep
-    || suggestion?.nextSmallStep
-    || dailyReview?.tomorrow_first_step
-    || '先写下一句真实状态，不需要完整复盘。';
+  const latestRecord = latest ? mapRecord(latest, latestSuggestion) : null;
+  const followupItems = (followups.results || []).map(mapFollowup);
+  const focus = deriveTodayFocus({ dailyReview, latestRecord, suggestion });
+  const nextStep = deriveNextSmallStep({ dailyReview, latestRecord, suggestion, followups: followupItems });
 
   return ok({
     mode: 'owner',
     today,
-    settings,
     hasRecordedToday: Number(todayRow?.count || 0) > 0,
-    latestRecord: latest ? mapRecord(latest, latestSuggestion) : null,
-    nextSmallStep,
-    followups: (followups.results || []).map(mapFollowup),
+    latestRecord,
+    todayFocus: focus.text,
+    todayFocusSource: focus.source,
+    nextSmallStep: nextStep.text,
+    nextSmallStepSource: nextStep.source,
+    followups: followupItems,
     dailyReview: dailyReview ? {
       id: dailyReview.id,
       date: dailyReview.date,
@@ -130,4 +129,52 @@ function getShanghaiWeekStart() {
   const day = shanghaiDate.getDay() || 7;
   shanghaiDate.setDate(shanghaiDate.getDate() - day + 1);
   return shanghaiDate.toISOString().slice(0, 10);
+}
+
+function deriveTodayFocus({ dailyReview, latestRecord, suggestion }) {
+  if (dailyReview?.most_important_thing) {
+    return { text: dailyReview.most_important_thing, source: 'daily_review' };
+  }
+
+  if (suggestion?.summary) {
+    return { text: suggestion.summary, source: 'latest_ai_summary' };
+  }
+
+  if (latestRecord?.summary) {
+    return { text: latestRecord.summary, source: 'latest_record_summary' };
+  }
+
+  if (latestRecord?.content) {
+    return { text: truncateText(latestRecord.content, 96), source: 'latest_record' };
+  }
+
+  return { text: '今天还没有记录最重要的事', source: 'empty' };
+}
+
+function deriveNextSmallStep({ dailyReview, latestRecord, suggestion, followups }) {
+  if (suggestion?.nextSmallStep) {
+    return { text: suggestion.nextSmallStep, source: 'latest_ai_suggestion' };
+  }
+
+  if (dailyReview?.tomorrow_first_step) {
+    return { text: dailyReview.tomorrow_first_step, source: 'daily_review' };
+  }
+
+  const nextAction = latestRecord?.nextActions?.[0];
+  if (nextAction) {
+    return { text: nextAction, source: 'latest_record_action' };
+  }
+
+  const followup = followups.find(item => item.status === 'open') || followups[0];
+  if (followup?.text) {
+    return { text: `闭环：${followup.text}`, source: 'followup' };
+  }
+
+  return { text: '先写下一句真实状态，不需要完整复盘。', source: 'empty' };
+}
+
+function truncateText(value, maxLength) {
+  const text = String(value || '').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}...`;
 }

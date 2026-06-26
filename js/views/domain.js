@@ -10,9 +10,9 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626d';
-import { loadDomainSummary } from '../data.js?v=20260626d';
+} from '../api.js?v=20260626e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626e';
+import { loadDomainSummary } from '../data.js?v=20260626e';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
