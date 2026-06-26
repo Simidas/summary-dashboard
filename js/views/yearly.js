@@ -2,10 +2,10 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626c';
-import { createYearHeroCard } from '../components/card.js?v=20260626c';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626d';
+import { createYearHeroCard } from '../components/card.js?v=20260626d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626d';
 
 let yearCards = [];
 

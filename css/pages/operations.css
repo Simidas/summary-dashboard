@@ -589,6 +589,142 @@
   line-height: 1.6;
 }
 
+.pet-panel {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid #A7F3D0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 58%, #EFF6FF 100%);
+}
+
+.pet-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+}
+
+.pet-aura {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: #DCFCE7;
+}
+
+.pet-body {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border: 2px solid #047857;
+  border-radius: 22px 22px 18px 18px;
+  background: #BBF7D0;
+  box-shadow: 0 8px 0 rgba(4, 120, 87, 0.12);
+}
+
+.pet-body.is-fed {
+  background: #86EFAC;
+}
+
+.pet-ear {
+  position: absolute;
+  top: -12px;
+  width: 20px;
+  height: 22px;
+  border: 2px solid #047857;
+  border-bottom: 0;
+  border-radius: 12px 12px 4px 4px;
+  background: inherit;
+}
+
+.pet-ear.left {
+  left: 6px;
+  transform: rotate(-14deg);
+}
+
+.pet-ear.right {
+  right: 6px;
+  transform: rotate(14deg);
+}
+
+.pet-eye {
+  position: absolute;
+  top: 22px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #064E3B;
+}
+
+.pet-eye.left {
+  left: 17px;
+}
+
+.pet-eye.right {
+  right: 17px;
+}
+
+.pet-mouth {
+  position: absolute;
+  left: 50%;
+  bottom: 15px;
+  width: 16px;
+  height: 7px;
+  border-bottom: 2px solid #064E3B;
+  border-radius: 0 0 12px 12px;
+  transform: translateX(-50%);
+}
+
+.pet-content h2 {
+  margin: 4px 0 var(--space-1);
+  font-size: 1.25rem;
+}
+
+.pet-content p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.pet-progress {
+  height: 8px;
+  margin: var(--space-2) 0;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: #D1FAE5;
+}
+
+.pet-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #059669;
+}
+
+.pet-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+
+.pet-stats span {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: #FFFFFF;
+  color: #047857;
+  font-size: 0.8125rem;
+}
+
+.pet-next {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
 .settings-panel {
   margin-bottom: var(--space-5);
   padding: var(--space-4);

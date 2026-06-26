@@ -18,9 +18,9 @@
 - 只有 `OWNER_EMAIL` 对应的 Google 账号拥有写入权限。
 - 在线记录写入 Cloudflare D1。
 - AI 陪伴建议走 MiniMax 订阅接口，模型 `MiniMax-M3`。
-- 首页显示在线记录入口、下一小步和轻量正反馈。
+- 首页显示在线记录入口、下一小步、轻量宠物激励和正反馈。
 
-本次不做多用户后台、宠物养成、指定人分享、Hermes 接入。
+本次不做多用户后台、复杂游戏化、指定人分享、Hermes 接入。
 
 ## 2. 部署前需要准备的信息
 
@@ -415,4 +415,3 @@ database_id = "<真实 database_id>"
 - 不要直接部署根目录到旧 Cloudflare Pages 来验证在线写入，在线写入必须走 Workers。
 - 不要把 `MINIMAX_API_BASE_URL` 改回 `.io` endpoint。
 - 不要导入 `data/records/diary/*.json`，除非 Weldon 明确确认。
-

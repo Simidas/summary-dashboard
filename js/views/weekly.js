@@ -2,10 +2,10 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626c';
-import { createWeekCard } from '../components/card.js?v=20260626c';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626d';
+import { createWeekCard } from '../components/card.js?v=20260626d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626d';
 
 const WEEK_DISPLAY_COUNT = 8;
 

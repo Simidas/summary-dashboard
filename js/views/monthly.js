@@ -2,10 +2,10 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626c';
-import { createMonthCard } from '../components/card.js?v=20260626c';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626c';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626c';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626d';
+import { createMonthCard } from '../components/card.js?v=20260626d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626d';
 
 const MONTH_DISPLAY_COUNT = 12;
 

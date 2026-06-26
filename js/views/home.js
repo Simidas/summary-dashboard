@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626c';
+} from '../data.js?v=20260626d';
 import {
   createFollowup,
   createRecord,
@@ -17,9 +17,10 @@ import {
   getRecords,
   updateDashboardSettings,
   updateFollowup
-} from '../api.js?v=20260626c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626c';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626c';
+} from '../api.js?v=20260626d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626d';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626d';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626d';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -72,6 +73,8 @@ export async function renderHomeView(container) {
 
     ${buildOnlineRecordPanel(dashboard, authState)}
 
+    ${buildPetCompanionPanel(dashboard, authState)}
+
     ${authState.apiAvailable && authState.user ? buildOnlineRecordsSection(onlineRecords, {
       title: authState.user.role === 'owner' ? '最近在线记录' : '公开在线记录',
       emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
@@ -114,7 +117,7 @@ export async function renderHomeView(container) {
 
   container.innerHTML = '';
   container.appendChild(page);
-  bindOnlineRecordForm(page, dashboard);
+  bindOnlineRecordForm(page, dashboard, authState);
   bindDashboardSettingsForm(page);
   bindFollowupPanel(page);
 }
@@ -273,7 +276,7 @@ function buildDashboardFeedback(dashboard) {
   `;
 }
 
-function bindOnlineRecordForm(page, dashboard) {
+function bindOnlineRecordForm(page, dashboard, authState) {
   const form = page.querySelector('#online-record-form');
   if (!form) return;
 
@@ -322,6 +325,11 @@ function bindOnlineRecordForm(page, dashboard) {
           })}
         `;
       }
+      refreshPetPanel(page, {
+        ...dashboard,
+        hasRecordedToday: true,
+        userState: data.userState || dashboard?.userState || {}
+      }, authState);
     } catch (error) {
       status.textContent = '';
       result.innerHTML = `
@@ -334,6 +342,12 @@ function bindOnlineRecordForm(page, dashboard) {
       button.disabled = false;
     }
   });
+}
+
+function refreshPetPanel(page, dashboard, authState) {
+  const panel = page.querySelector('#pet-companion-panel');
+  if (!panel) return;
+  panel.outerHTML = buildPetCompanionPanel(dashboard, authState || getAuthState());
 }
 
 function prependOnlineRecord(page, record, aiSuggestion) {

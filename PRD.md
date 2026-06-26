@@ -2,7 +2,7 @@
 
 > 当前待开发版本以 [docs/vnext-online-recording-prd.md](docs/vnext-online-recording-prd.md) 为准。
 >
-> vNext 已收敛为：Google 登录、在线记录、AI 陪伴行动建议、首页提醒与轻量正反馈。宠物养成、多用户、指定人分享、Hermes 接入等全部放入后续版本。
+> vNext 已收敛为：Google 登录、在线记录、AI 陪伴行动建议、首页提醒、轻量宠物激励与正反馈。复杂游戏化、多用户、指定人分享、Hermes 接入等全部放入后续版本。
 
 ## 1. 背景
 
