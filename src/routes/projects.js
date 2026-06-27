@@ -37,17 +37,33 @@ async function listProjects(request, env) {
   }
 
   const rows = await env.DB.prepare(`
-    SELECT *
-    FROM projects
-    WHERE owner_id = ? AND deleted_at IS NULL
+    SELECT
+      p.*,
+      (
+        SELECT COUNT(*)
+        FROM records r
+        WHERE r.owner_id = p.owner_id
+          AND r.deleted_at IS NULL
+          AND r.projects_json LIKE '%' || p.name || '%'
+      ) AS record_count,
+      (
+        SELECT COUNT(*)
+        FROM followups f
+        WHERE f.owner_id = p.owner_id
+          AND f.deleted_at IS NULL
+          AND f.project = p.name
+          AND f.status IN ('open', 'deferred')
+      ) AS open_followups
+    FROM projects p
+    WHERE p.owner_id = ? AND p.deleted_at IS NULL
     ORDER BY
-      CASE status
+      CASE p.status
         WHEN 'active' THEN 0
         WHEN 'paused' THEN 1
         WHEN 'shipped' THEN 2
         ELSE 3
       END,
-      updated_at DESC
+      p.updated_at DESC
   `).bind(session.user.id).all();
 
   return ok({ projects: (rows.results || []).map(mapProject) });

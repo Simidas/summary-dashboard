@@ -2,10 +2,13 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626k';
-import { createWeekCard } from '../components/card.js?v=20260626k';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626k';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626k';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626m';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260626m';
+import { createWeekCard } from '../components/card.js?v=20260626m';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626m';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626m';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -34,11 +37,39 @@ export async function renderWeeklyView(container, params = {}) {
   container.appendChild(page);
 
   // Load data
-  const availableWeeks = await getAvailableWeeks();
-  const recentWeeks = availableWeeks.slice(-WEEK_DISPLAY_COUNT).reverse();
-  const reviewWeek = recentWeeks[0] || getCurrentWeekKey();
+  const authState = getAuthState();
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  let recentWeekSummaries = [];
+  let latestInsight = null;
+
+  if (useOwnerApi) {
+    const [recordsData, reviewsData, followupsData, contentData] = await Promise.all([
+      getRecords({ limit: 500 }).catch(() => null),
+      getDailyReviews({ limit: 500 }).catch(() => null),
+      getFollowups({ status: 'all', limit: 200 }).catch(() => null),
+      getContentItems({ limit: 100 }).catch(() => null)
+    ]);
+    const records = recordsData?.records || [];
+    const dailyReviews = reviewsData?.reviews || [];
+    const followups = followupsData?.followups || [];
+    recentWeekSummaries = buildWeeklySummaries({
+      records,
+      dailyReviews,
+      followups,
+      contentItems: contentData?.items || []
+    }).slice(0, WEEK_DISPLAY_COUNT);
+    latestInsight = buildWeeklyInsight(recentWeekSummaries[0], records, dailyReviews, followups);
+  } else {
+    const availableWeeks = await getAvailableWeeks();
+    const recentWeeks = availableWeeks.slice(-WEEK_DISPLAY_COUNT).reverse();
+    recentWeekSummaries = (await Promise.all(recentWeeks.map(week => loadWeeklySummary(week))))
+      .filter(Boolean);
+    latestInsight = await loadWeeklyInsight(recentWeeks[0]);
+  }
+
+  const reviewWeek = recentWeekSummaries[0]?.key || getCurrentWeekKey();
   
-  if (recentWeeks.length === 0) {
+  if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
@@ -65,7 +96,6 @@ export async function renderWeeklyView(container, params = {}) {
 
   weekCards = [];
 
-  const latestInsight = await loadWeeklyInsight(recentWeeks[0]);
   const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
 
@@ -73,18 +103,14 @@ export async function renderWeeklyView(container, params = {}) {
     page.appendChild(createInsightPanel(latestInsight));
   }
 
-  for (let i = 0; i < recentWeeks.length; i++) {
-    const weekStr = recentWeeks[i];
-    const weekData = await loadWeeklySummary(weekStr);
-    
-    if (!weekData) continue;
-
+  for (let i = 0; i < recentWeekSummaries.length; i++) {
+    const weekData = recentWeekSummaries[i];
     const card = createWeekCard(weekData, i === 0);
     card.classList.add('animate-fade-in-up');
     card.style.animationDelay = `${i * 80}ms`;
     
     grid.appendChild(card);
-    weekCards.push({ card, weekData, weekStr });
+    weekCards.push({ card, weekData, weekStr: weekData.key });
   }
 
   page.appendChild(grid);

@@ -1,4 +1,4 @@
-import { mapFollowup, mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
+import { calculateUserActivityStats, mapFollowup, mapRecord, mapSuggestion, parseJsonText, todayShanghai } from '../lib/db.js';
 import { ok } from '../lib/response.js';
 import { getSession } from '../lib/session.js';
 
@@ -11,10 +11,10 @@ export async function handleDashboard(request, env) {
   const ownerId = session.user.id;
   const today = todayShanghai();
   const todayRow = await env.DB.prepare(`
-    SELECT COUNT(*) AS count
-    FROM records
-    WHERE owner_id = ? AND date = ? AND deleted_at IS NULL
-  `).bind(ownerId, today).first();
+    SELECT
+      (SELECT COUNT(*) FROM records WHERE owner_id = ? AND date = ? AND deleted_at IS NULL)
+      + (SELECT COUNT(*) FROM daily_reviews WHERE owner_id = ? AND date = ?) AS count
+  `).bind(ownerId, today, ownerId, today).first();
 
   const latest = await env.DB.prepare(`
     SELECT *
@@ -44,6 +44,7 @@ export async function handleDashboard(request, env) {
   const state = await env.DB.prepare('SELECT * FROM user_state WHERE owner_id = ?')
     .bind(ownerId)
     .first();
+  const computedState = await calculateUserActivityStats(env, ownerId, today);
   const followups = await env.DB.prepare(`
     SELECT *
     FROM followups
@@ -57,10 +58,13 @@ export async function handleDashboard(request, env) {
 
   const weekStart = getShanghaiWeekStart();
   const weekCount = await env.DB.prepare(`
-    SELECT COUNT(DISTINCT date) AS count
-    FROM records
-    WHERE owner_id = ? AND date >= ? AND deleted_at IS NULL
-  `).bind(ownerId, weekStart).first();
+    SELECT COUNT(*) AS count
+    FROM (
+      SELECT date FROM records WHERE owner_id = ? AND date >= ? AND deleted_at IS NULL
+      UNION
+      SELECT date FROM daily_reviews WHERE owner_id = ? AND date >= ?
+    )
+  `).bind(ownerId, weekStart, ownerId, weekStart).first();
 
   const suggestion = latestSuggestion ? mapSuggestion(latestSuggestion) : null;
   const latestRecord = latest ? mapRecord(latest, latestSuggestion) : null;
@@ -90,11 +94,11 @@ export async function handleDashboard(request, env) {
       energy: dailyReview.energy
     } : null,
     userState: {
-      totalRecords: Number(state?.total_records || 0),
-      currentStreakDays: Number(state?.current_streak_days || 0),
-      longestStreakDays: Number(state?.longest_streak_days || 0),
-      level: Number(state?.level || 1),
-      xp: Number(state?.xp || 0),
+      totalRecords: computedState.totalRecords,
+      currentStreakDays: computedState.currentStreakDays,
+      longestStreakDays: Math.max(Number(state?.longest_streak_days || 0), computedState.longestStreakDays),
+      level: computedState.level,
+      xp: computedState.xp,
       thisWeekRecordDays: Number(weekCount?.count || 0)
     }
   });

@@ -1,9 +1,22 @@
-import { normalizeEnergy, nowIso, parseJsonText, toJsonText, todayShanghai } from '../lib/db.js';
+import {
+  normalizeEnergy,
+  nowIso,
+  parseJsonText,
+  toJsonText,
+  todayShanghai,
+  updateUserStateAfterActivity
+} from '../lib/db.js';
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handleDailyReviews(request, env) {
   const url = new URL(request.url);
+
+  if (url.pathname === '/api/daily-reviews') {
+    if (request.method === 'GET') return listDailyReviews(request, env);
+    return fail(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
+  }
+
   const match = url.pathname.match(/^\/api\/daily-reviews\/(\d{4}-\d{2}-\d{2}|today)$/);
   if (!match) return fail(404, 'NOT_FOUND', 'Daily review endpoint not found');
 
@@ -11,6 +24,23 @@ export async function handleDailyReviews(request, env) {
   if (request.method === 'GET') return getDailyReview(request, env, date);
   if (request.method === 'PUT') return putDailyReview(request, env, date);
   return fail(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
+}
+
+async function listDailyReviews(request, env) {
+  const session = await getSession(request, env);
+  if (!session || session.user.role !== 'owner') return fail(401, 'UNAUTHORIZED', '请先登录');
+
+  const url = new URL(request.url);
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 30), 1), 500);
+  const rows = await env.DB.prepare(`
+    SELECT *
+    FROM daily_reviews
+    WHERE owner_id = ?
+    ORDER BY date DESC
+    LIMIT ?
+  `).bind(session.user.id, limit).all();
+
+  return ok({ reviews: (rows.results || []).map(mapDailyReview) });
 }
 
 async function getDailyReview(request, env, date) {
@@ -62,7 +92,15 @@ async function putDailyReview(request, env, date) {
     now
   ).run();
 
-  return getDailyReview(request, env, date);
+  const row = await env.DB.prepare('SELECT * FROM daily_reviews WHERE owner_id = ? AND date = ?')
+    .bind(session.user.id, date)
+    .first();
+  const userState = await updateUserStateAfterActivity(env, session.user.id, date);
+
+  return ok({
+    review: mapDailyReview(row),
+    userState
+  });
 }
 
 function mapDailyReview(row) {

@@ -2,9 +2,9 @@
    Content View
    ======================================== */
 
-import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260626k';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
-import { loadContentSeeds } from '../data.js?v=20260626k';
+import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { loadContentSeeds } from '../data.js?v=20260626m';
 
 const STATUSES = ['all', 'idea', 'outline', 'drafting', 'published', 'dropped'];
 
@@ -16,11 +16,14 @@ export async function renderContentView(container) {
   `;
 
   const authState = getAuthState();
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   const [data, onlineData] = await Promise.all([
-    loadContentSeeds(),
+    useOwnerApi ? Promise.resolve(null) : loadContentSeeds(),
     isApiEnabled() && authState.user ? getContentItems({ limit: 100 }).catch(() => null) : Promise.resolve(null)
   ]);
-  const seeds = mergeContentSeeds(onlineData?.items || [], data?.seeds || []);
+  const seeds = useOwnerApi
+    ? mergeContentSeeds(onlineData?.items || [], [])
+    : mergeContentSeeds(onlineData?.items || [], data?.seeds || []);
   const stats = countByStatus(seeds);
 
   const page = document.createElement('div');

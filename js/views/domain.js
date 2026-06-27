@@ -3,6 +3,7 @@
    ======================================== */
 
 import {
+  getContentItems,
   createFollowup,
   createRecord,
   getDomainSettings,
@@ -11,9 +12,10 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626k';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626k';
+} from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626m';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626m';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -25,23 +27,36 @@ export async function renderDomainView(container, params = {}) {
   `;
 
   const authState = getAuthState();
-  const [domain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, projectsManifest] = await Promise.all([
-    loadDomainSummary(domainId),
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  const [staticDomain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, onlineContentData, projectsManifest] = await Promise.all([
+    useOwnerApi ? Promise.resolve(null) : loadDomainSummary(domainId),
     isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 20 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getDomainSettings(domainId).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
-    loadProjectsManifest()
+    useOwnerApi ? getContentItems({ domain: domainId, limit: 100 }).catch(() => null) : Promise.resolve(null),
+    useOwnerApi ? Promise.resolve(null) : loadProjectsManifest()
   ]);
+  const onlineRecords = onlineRecordsData?.records || [];
+  const onlineSettings = onlineSettingsData?.settings || {};
+  const onlineFollowups = (onlineFollowupsData?.followups || []).filter(item => item.status === 'open' || item.status === 'deferred');
+  const projectOptions = useOwnerApi
+    ? onlineProjectsData?.projects || []
+    : mergeProjects(onlineProjectsData?.projects || [], projectsManifest?.projects || []);
+  const domain = useOwnerApi
+    ? buildDomainSummaries({
+      records: onlineRecords,
+      followups: onlineFollowupsData?.followups || [],
+      contentItems: onlineContentData?.items || [],
+      settingsByDomain: { [domainId]: onlineSettings }
+    }).find(item => item.id === domainId) || getDomainMeta(domainId)
+    : staticDomain;
+
   if (!domain) {
     renderEmpty(container);
     return;
   }
 
-  const onlineRecords = onlineRecordsData?.records || [];
-  const onlineSettings = onlineSettingsData?.settings || {};
-  const onlineFollowups = (onlineFollowupsData?.followups || []).filter(item => item.status === 'open' || item.status === 'deferred');
-  const projectOptions = mergeProjects(onlineProjectsData?.projects || [], projectsManifest?.projects || []);
   const currentFocus = onlineSettings.currentFocus || domain.currentFocus || '这个场景还没有记录。';
   const nextAction = onlineSettings.nextAction || domain.nextAction || '等待下一条记录';
 
@@ -64,7 +79,7 @@ export async function renderDomainView(container, params = {}) {
     ${buildDomainRecordPanel(authState, domainId)}
 
     <section class="metric-grid">
-      ${buildMetric((domain.recordCount || 0) + onlineRecords.length, '记录')}
+      ${buildMetric(domain.recordCount || onlineRecords.length || 0, '记录')}
       ${buildMetric(domain.progressCount || 0, '进展')}
       ${buildMetric(onlineFollowups.length || domain.openFollowUps?.length || 0, 'open')}
       ${buildMetric(domain.contentSeeds?.length || 0, '素材')}
@@ -91,7 +106,7 @@ export async function renderDomainView(container, params = {}) {
         <a href="#daily" class="text-link">Daily</a>
       </div>
       ${buildOnlineRecordTimeline(onlineRecords)}
-      ${buildRecordTimeline(domain.recentRecords || [])}
+      ${useOwnerApi ? '' : buildRecordTimeline(domain.recentRecords || [])}
     </section>
 
     <section class="ops-panel">

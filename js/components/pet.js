@@ -40,12 +40,12 @@ export function buildPetCompanionPanel(dashboard, authState) {
           <span>${xp} XP</span>
           <span>连续 ${streak} 天</span>
           <span>最长 ${longest} 天</span>
-          <span>累计 ${totalRecords} 条</span>
+          <span>累计 ${totalRecords} 次</span>
         </div>
         <div class="pet-next">
           ${hasRecordedToday
-            ? `今天已喂养。再写约 ${recordsToNext} 条记录升级。`
-            : `今天写一条记录，伙伴获得经验并点亮连续天数。`}
+            ? `今天已喂养。再完成约 ${recordsToNext} 次记录或复盘升级。`
+            : `今天写一条记录或每日复盘，伙伴获得经验并点亮连续天数。`}
         </div>
       </div>
     </section>

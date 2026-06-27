@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626k';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626m';
 import {
   createFollowup,
   createProject,
@@ -14,9 +14,9 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626k';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626k';
+} from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626m';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -35,12 +35,14 @@ export async function renderProjectsView(container, params = {}) {
   `;
 
   const [manifest, onlineProjectsData] = await Promise.all([
-    loadProjectsManifest(),
+    isApiEnabled() && authState.user?.role === 'owner' ? Promise.resolve(null) : loadProjectsManifest(),
     isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
   ]);
   const staticProjects = manifest?.projects || [];
   const onlineProjects = onlineProjectsData?.projects || [];
-  const projects = mergeProjects(onlineProjects, staticProjects);
+  const projects = isApiEnabled() && authState.user?.role === 'owner'
+    ? onlineProjects
+    : mergeProjects(onlineProjects, staticProjects);
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
@@ -67,6 +69,27 @@ async function renderProjectDetail(container, slug, authState) {
       <div class="skeleton" style="height: 220px;"></div>
     </div>
   `;
+
+  if (isApiEnabled() && authState.user?.role === 'owner') {
+    const onlineProjectData = await getProject(normalizedSlug).catch(() => null);
+    if (onlineProjectData?.project) {
+      const onlineFollowupsData = await getFollowups({ project: onlineProjectData.project.name, status: 'all', limit: 30 }).catch(() => null);
+      const onlineFollowups = (onlineFollowupsData?.followups || [])
+        .filter(item => item.status === 'open' || item.status === 'deferred');
+      renderManagedProjectDetail(container, onlineProjectData.project, onlineProjectData.records || [], onlineFollowups, authState);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="page">
+        <div class="empty-state">
+          <div class="empty-state-icon">□</div>
+          <p class="empty-state-text">这个项目暂时没有数据。</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
   const [manifest, onlineProjectsData] = await Promise.all([
     loadProjectsManifest().catch(() => null),

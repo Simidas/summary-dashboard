@@ -166,14 +166,25 @@ function buildCompositeDailyBodyHTML(data) {
   let html = '';
   const review = data.dailyReview || {};
 
-  if (review.mostImportantThing || review.reflection || review.tomorrowFirstStep) {
+  if (
+    review.mostImportantThing ||
+    review.reflection ||
+    review.tomorrowFirstStep ||
+    review.mood ||
+    review.energy ||
+    review.wins?.length ||
+    review.blockers?.length
+  ) {
     html += `
       <div class="card-section">
         <div class="card-section-title">🧭 今日复盘</div>
         <div class="card-section-content">
           ${review.mostImportantThing ? `<p><strong>最重要的事：</strong>${escapeHtml(review.mostImportantThing)}</p>` : ''}
+          ${buildInlineListHTML('今日收获', review.wins || [])}
+          ${buildInlineListHTML('卡点', review.blockers || [])}
           ${review.reflection ? `<p><strong>反思：</strong>${escapeHtml(review.reflection)}</p>` : ''}
           ${review.tomorrowFirstStep ? `<p><strong>明天第一步：</strong>${escapeHtml(review.tomorrowFirstStep)}</p>` : ''}
+          ${review.mood || review.energy ? `<p><strong>状态：</strong>${escapeHtml([review.mood, review.energy ? `能量 ${review.energy}/5` : ''].filter(Boolean).join(' · '))}</p>` : ''}
         </div>
       </div>
     `;
@@ -203,6 +214,7 @@ function buildRecordHTML(record) {
   const blockers = record.blockers || [];
   const contentSeeds = record.contentSeeds || [];
   const suggestions = record.aiAnalysis?.suggestions || record.ai?.suggestions || [];
+  const aiSuggestion = record.aiSuggestion;
 
   return `
     <article class="record-item">
@@ -215,6 +227,8 @@ function buildRecordHTML(record) {
       ${buildInlineListHTML('下一步', nextActions)}
       ${buildInlineListHTML('内容素材', contentSeeds)}
       ${buildInlineListHTML('AI 建议', suggestions)}
+      ${aiSuggestion?.nextSmallStep ? buildInlineListHTML('AI 下一步', [aiSuggestion.nextSmallStep]) : ''}
+      ${aiSuggestion?.encouragement ? buildInlineListHTML('AI 鼓励', [aiSuggestion.encouragement]) : ''}
     </article>
   `;
 }
@@ -247,6 +261,7 @@ function getDailyPreview(data) {
 function getDailyTags(data) {
   if (Array.isArray(data.records)) {
     const tags = new Set();
+    if (data.dailyReview) tags.add('每日综合记录');
     data.records.forEach(record => {
       if (record.domain) tags.add(getDomainLabel(record.domain));
       (record.tags || []).forEach(tag => tags.add(tag));

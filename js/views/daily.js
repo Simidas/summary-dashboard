@@ -5,12 +5,11 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626k';
-import { getDailyReview, getRecords, updateDailyReview } from '../api.js?v=20260626k';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
-import { createSummaryCard, createSkeletonCard } from '../components/card.js?v=20260626k';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626k';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626k';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626m';
+import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { createSummaryCard } from '../components/card.js?v=20260626m';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626m';
 
 const TIMELINE_DAYS = 14;
 
@@ -52,16 +51,22 @@ export async function renderDailyView(container, params = {}) {
 
   // Load data
   const authState = getAuthState();
-  const [availableDates, onlineRecordsData, dailyReviewData] = await Promise.all([
+  const canUseOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  const [availableDates, onlineRecordsData, dailyReviewsData, dailyReviewData] = await Promise.all([
     getAvailableDailyDates(),
-    isApiEnabled() && authState.user ? getRecords({ limit: 20 }).catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getDailyReview('today').catch(() => null) : Promise.resolve(null)
+    canUseOwnerApi ? getRecords({ limit: 100 }).catch(() => null) : Promise.resolve(null),
+    canUseOwnerApi ? getDailyReviews({ limit: 45 }).catch(() => null) : Promise.resolve(null),
+    canUseOwnerApi ? getDailyReview('today').catch(() => null) : Promise.resolve(null)
   ]);
-  summaries = await loadDailySummaries(availableDates);
+  const legacySummaries = await loadDailySummaries(availableDates);
   const onlineRecords = onlineRecordsData?.records || [];
+  const dailyReviews = dailyReviewsData?.reviews || [];
   const dailyReview = dailyReviewData?.review || null;
+  const onlineSummaries = buildOnlineDailySummaries(dailyReviews, onlineRecords);
+  const usingOnlineSummaries = onlineSummaries.length > 0;
+  summaries = usingOnlineSummaries ? onlineSummaries : legacySummaries;
 
-  if (summaries.length === 0 && onlineRecords.length === 0) {
+  if (summaries.length === 0) {
     skeleton.remove();
     appendDailyReviewEditor(page, authState, dailyReview);
     if (!page.querySelector('#daily-review-form')) {
@@ -81,23 +86,13 @@ export async function renderDailyView(container, params = {}) {
 
   appendDailyReviewEditor(page, authState, dailyReview);
 
-  if (onlineRecords.length) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'operations-page';
-    wrapper.innerHTML = buildOnlineRecordsSection(onlineRecords, {
-      title: '最近在线记录',
-      emptyText: '还没有线上记录。'
-    });
-    page.appendChild(wrapper);
-  }
-
   if (summaries.length === 0) return;
 
   // Build main content
   renderHero(page, summaries[0]);
 
   // Timeline section
-  renderTimeline(page, summaries);
+  renderTimeline(page, summaries, usingOnlineSummaries ? '最近每日综合记录' : '历史归档记录');
 
   // Giscus section
   const giscusSection = document.createElement('div');
@@ -119,6 +114,53 @@ export async function renderDailyView(container, params = {}) {
   }
 
   bindDailyReviewForm(page);
+}
+
+function buildOnlineDailySummaries(reviews = [], records = []) {
+  const byDate = new Map();
+
+  reviews.forEach(review => {
+    if (!review?.date) return;
+    const entry = getOrCreateDailyEntry(byDate, review.date);
+    entry.dailyReview = review;
+    entry.mood = review.mood || entry.mood;
+    entry.energy = review.energy || entry.energy;
+    entry.updatedAt = review.updatedAt || entry.updatedAt;
+  });
+
+  records.forEach(record => {
+    const date = record.date || String(record.createdAt || '').slice(0, 10);
+    if (!date) return;
+    const entry = getOrCreateDailyEntry(byDate, date);
+    entry.records.push(record);
+    entry.mood = entry.mood || record.mood;
+    entry.energy = entry.energy || record.energy;
+    entry.updatedAt = maxIso(entry.updatedAt, record.updatedAt || record.createdAt);
+  });
+
+  return Array.from(byDate.values())
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, TIMELINE_DAYS);
+}
+
+function getOrCreateDailyEntry(map, date) {
+  if (!map.has(date)) {
+    map.set(date, {
+      date,
+      source: 'd1',
+      records: [],
+      dailyReview: null,
+      tags: ['每日综合记录']
+    });
+  }
+
+  return map.get(date);
+}
+
+function maxIso(left, right) {
+  if (!left) return right || '';
+  if (!right) return left;
+  return left > right ? left : right;
 }
 
 function appendDailyReviewEditor(page, authState, review) {
@@ -198,7 +240,9 @@ function bindDailyReviewForm(page) {
         mood: form.elements.mood.value,
         energy: form.elements.energy.value
       });
-      status.textContent = '已保存';
+      status.textContent = '已保存，正在更新列表...';
+      const main = document.getElementById('main-content');
+      if (main) await renderDailyView(main);
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -267,6 +311,7 @@ function getHeroSummary(data) {
 function getHeroTags(data) {
   if (Array.isArray(data.records)) {
     const tags = new Set();
+    if (data.dailyReview) tags.add('每日综合记录');
     data.records.forEach(record => {
       if (record.domain) tags.add(getDomainLabel(record.domain));
       (record.tags || []).forEach(tag => tags.add(tag));
@@ -325,7 +370,7 @@ function formatShortTime(value) {
  * @param {HTMLElement} page
  * @param {Object[]} summaries
  */
-function renderTimeline(page, summaries) {
+function renderTimeline(page, summaries, titleText = '最近记录') {
   // Remove old timeline if exists
   const oldTimeline = page.querySelector('.timeline-section');
   if (oldTimeline) oldTimeline.remove();
@@ -335,7 +380,7 @@ function renderTimeline(page, summaries) {
 
   const title = document.createElement('h2');
   title.className = 'section-title';
-  title.textContent = '📜 最近记录';
+  title.textContent = `📜 ${titleText}`;
   section.appendChild(title);
 
   const timeline = document.createElement('div');

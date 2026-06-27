@@ -147,6 +147,8 @@ export function mapProject(row) {
     status: row.status,
     currentFocus: row.current_focus,
     nextAction: row.next_action,
+    recordCount: Number(row.record_count || 0),
+    openFollowUps: Number(row.open_followups || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     source: 'd1'
@@ -265,28 +267,48 @@ export async function upsertUser(env, profile) {
   return { id, ...profile, role };
 }
 
-export async function updateUserStateAfterRecord(env, ownerId, recordDate) {
-  const now = nowIso();
-  const totalRow = await env.DB.prepare('SELECT COUNT(*) AS total FROM records WHERE owner_id = ? AND deleted_at IS NULL')
-    .bind(ownerId)
-    .first();
-  const distinctRows = await env.DB.prepare(`
-    SELECT DISTINCT date
-    FROM records
-    WHERE owner_id = ? AND deleted_at IS NULL
-    ORDER BY date DESC
-    LIMIT 90
-  `).bind(ownerId).all();
+export async function calculateUserActivityStats(env, ownerId, fallbackDate = todayShanghai()) {
+  const totalRow = await env.DB.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM records WHERE owner_id = ? AND deleted_at IS NULL)
+      + (SELECT COUNT(*) FROM daily_reviews WHERE owner_id = ?) AS total
+  `).bind(ownerId, ownerId).first();
 
-  const dates = (distinctRows.results || []).map(row => row.date);
-  const currentStreak = calculateCurrentStreak(dates, recordDate);
+  const distinctRows = await env.DB.prepare(`
+    SELECT date
+    FROM (
+      SELECT date FROM records WHERE owner_id = ? AND deleted_at IS NULL
+      UNION
+      SELECT date FROM daily_reviews WHERE owner_id = ?
+    )
+    ORDER BY date DESC
+    LIMIT 365
+  `).bind(ownerId, ownerId).all();
+
+  const dates = (distinctRows.results || []).map(row => row.date).filter(Boolean);
+  const totalRecords = Number(totalRow?.total || 0);
+  const currentStreak = calculateCurrentStreak(dates, fallbackDate);
+  const longestStreak = calculateLongestStreak(dates);
+  const xp = totalRecords * 10 + currentStreak * 5;
+  const level = Math.max(1, Math.floor(xp / 100) + 1);
+
+  return {
+    totalRecords,
+    currentStreakDays: currentStreak,
+    longestStreakDays: longestStreak,
+    lastRecordDate: dates[0] || null,
+    level,
+    xp
+  };
+}
+
+export async function updateUserStateAfterActivity(env, ownerId, activityDate) {
+  const now = nowIso();
+  const stats = await calculateUserActivityStats(env, ownerId, activityDate);
   const existing = await env.DB.prepare('SELECT * FROM user_state WHERE owner_id = ?')
     .bind(ownerId)
     .first();
-  const totalRecords = Number(totalRow?.total || 0);
-  const longest = Math.max(Number(existing?.longest_streak_days || 0), currentStreak);
-  const xp = totalRecords * 10 + currentStreak * 5;
-  const level = Math.max(1, Math.floor(xp / 100) + 1);
+  const longest = Math.max(Number(existing?.longest_streak_days || 0), stats.longestStreakDays);
 
   await env.DB.prepare(`
     INSERT INTO user_state (
@@ -301,16 +323,29 @@ export async function updateUserStateAfterRecord(env, ownerId, recordDate) {
       level = excluded.level,
       xp = excluded.xp,
       updated_at = excluded.updated_at
-  `).bind(ownerId, totalRecords, currentStreak, longest, dates[0] || recordDate, level, xp, now).run();
+  `).bind(
+    ownerId,
+    stats.totalRecords,
+    stats.currentStreakDays,
+    longest,
+    stats.lastRecordDate || activityDate,
+    stats.level,
+    stats.xp,
+    now
+  ).run();
 
   return {
-    totalRecords,
-    currentStreakDays: currentStreak,
+    totalRecords: stats.totalRecords,
+    currentStreakDays: stats.currentStreakDays,
     longestStreakDays: longest,
-    lastRecordDate: dates[0] || recordDate,
-    level,
-    xp
+    lastRecordDate: stats.lastRecordDate || activityDate,
+    level: stats.level,
+    xp: stats.xp
   };
+}
+
+export async function updateUserStateAfterRecord(env, ownerId, recordDate) {
+  return updateUserStateAfterActivity(env, ownerId, recordDate);
 }
 
 function calculateCurrentStreak(dates, fallbackDate) {
@@ -326,6 +361,30 @@ function calculateCurrentStreak(dates, fallbackDate) {
   }
 
   return streak;
+}
+
+function calculateLongestStreak(dates) {
+  const ordered = Array.from(new Set(dates)).sort();
+  let longest = 0;
+  let current = 0;
+  let previous = null;
+
+  ordered.forEach(dateStr => {
+    const date = parseDate(dateStr);
+    if (!date) return;
+
+    if (!previous) {
+      current = 1;
+    } else {
+      const diffDays = Math.round((date.getTime() - previous.getTime()) / 86400000);
+      current = diffDays === 1 ? current + 1 : 1;
+    }
+
+    longest = Math.max(longest, current);
+    previous = date;
+  });
+
+  return longest;
 }
 
 function parseDate(dateStr) {

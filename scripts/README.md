@@ -1,22 +1,20 @@
 # 脚本说明
 
-这个目录用于维护复盘站的数据流：手动创建每日综合记录和 Diary，迁移旧 Hermes 数据，从每日记录生成周/月/年、场景、项目、follow-up 和内容素材聚合数据。
+这个目录用于维护复盘站的数据流：手动创建每日综合记录和 Diary，迁移旧 Hermes 数据，把历史静态 JSON 导入 D1。
 
 ## 数据流
 
 ```text
-data/records/daily/YYYY-MM-DD.json
+data/records/daily/*.json
+data/summaries/**/*.json
         ↓
-scripts/aggregate.js
+scripts/import-json-to-d1.js
         ↓
-data/summaries/weekly/YYYY-WXX.json
-data/summaries/monthly/YYYY-MM.json
-data/summaries/yearly/YYYY.json
-data/summaries/domains/*.json
-data/summaries/projects/*.json
-data/summaries/followups/*.json
-data/summaries/content/seeds.json
-data/summaries/insights/weekly/*.json
+Cloudflare D1
+        ↓
+Workers API
+        ↓
+前端实时聚合 Daily / Weekly / Monthly / Yearly / Domain / Project / Content
 ```
 
 旧 Hermes Daily JSON 已迁移到统一结构，原始文件归档在：
@@ -126,7 +124,9 @@ data/records/diary/manifest.json
 
 ## aggregate.js
 
-从 `data/records/daily/` 扫描每日综合记录，生成页面使用的静态聚合 JSON 和 manifest。
+从 `data/records/daily/` 扫描每日综合记录，生成历史静态聚合 JSON 和 manifest。
+
+线上主数据源已切换为 D1，`aggregate.js` 只保留作历史归档和无 API 静态预览使用。
 
 ```bash
 node scripts/aggregate.js
@@ -156,6 +156,39 @@ data/summaries/insights/weekly/YYYY-WXX.json
 ```bash
 node scripts/generate-manifest.js
 ```
+
+## import-json-to-d1.js
+
+把当前仓库里的历史静态 JSON 导入 D1。脚本会生成 SQL，不会直接连接 Cloudflare。
+
+覆盖范围：
+
+```text
+data/records/daily/*.json              -> records, daily_reviews
+data/summaries/projects/*.json         -> projects
+data/summaries/followups/*.json        -> followups
+data/summaries/content/seeds.json      -> content_items
+data/summaries/domains/*.json          -> domain_settings
+data/summaries/insights/weekly/*.json  -> period_reviews
+data/summaries/monthly/*.json          -> period_reviews
+data/summaries/yearly/*.json           -> period_reviews
+```
+
+推荐线上按 owner 邮箱导入。前提是你已经在网站上完成过一次 Google 登录，`users` 表里已有这个邮箱：
+
+```bash
+node scripts/import-json-to-d1.js --owner-email you@example.com > .wrangler/import-static-json.sql
+wrangler d1 execute summary-dashboard --remote --file .wrangler/import-static-json.sql
+```
+
+如果只是本地验证，也可以指定临时 owner id：
+
+```bash
+node scripts/import-json-to-d1.js --owner-id owner-import > .wrangler/import-static-json.sql
+wrangler d1 execute summary-dashboard --local --file .wrangler/import-static-json.sql
+```
+
+脚本使用 `INSERT OR IGNORE`，重复执行不会覆盖线上已经存在的数据。
 
 ## 本地检查
 

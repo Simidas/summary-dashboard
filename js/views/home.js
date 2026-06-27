@@ -7,19 +7,22 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626k';
+} from '../data.js?v=20260626m';
 import {
   createFollowup,
   createRecord,
   getContentItems,
   getDashboard,
+  getDomainSettings,
+  getFollowups,
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626k';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626k';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626k';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626k';
+} from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626m';
+import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626m';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626m';
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -31,22 +34,47 @@ export async function renderHomeView(container) {
   `;
 
   const authState = getAuthState();
-  const [overview, followups, content, projects, dashboard, onlineRecordsData, onlineProjectsData, onlineContentData] = await Promise.all([
-    loadDomainOverview(),
-    loadOpenFollowups(),
-    loadContentSeeds(),
-    loadProjectsManifest(),
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  const [overview, followups, content, projects, dashboard, onlineRecordsData, onlineProjectsData, onlineContentData, onlineFollowupsData, domainSettingsList] = await Promise.all([
+    useOwnerApi ? Promise.resolve(null) : loadDomainOverview(),
+    useOwnerApi ? Promise.resolve(null) : loadOpenFollowups(),
+    useOwnerApi ? Promise.resolve(null) : loadContentSeeds(),
+    useOwnerApi ? Promise.resolve(null) : loadProjectsManifest(),
     isApiEnabled() ? getDashboard().catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getRecords({ limit: 8 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getRecords({ limit: useOwnerApi ? 500 : 8 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getContentItems({ limit: 5 }).catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getContentItems({ limit: useOwnerApi ? 100 : 5 }).catch(() => null) : Promise.resolve(null),
+    useOwnerApi ? getFollowups({ status: 'all', limit: 200 }).catch(() => null) : Promise.resolve(null),
+    useOwnerApi
+      ? Promise.all(DOMAIN_META.map(domain => getDomainSettings(domain.id).catch(() => null)))
+      : Promise.resolve([])
   ]);
 
-  const domains = overview?.domains || [];
-  const openFollowups = followups?.followups || [];
-  const seeds = mergeContentSeeds(onlineContentData?.items || [], content?.seeds || []);
-  const activeProjects = mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const onlineRecords = onlineRecordsData?.records || [];
+  const onlineContentItems = onlineContentData?.items || [];
+  const onlineFollowups = onlineFollowupsData?.followups || [];
+  const domainSettings = Object.fromEntries(DOMAIN_META.map((domain, index) => [
+    domain.id,
+    domainSettingsList?.[index]?.settings || {}
+  ]));
+  const domains = useOwnerApi
+    ? buildDomainSummaries({
+      records: onlineRecords,
+      followups: onlineFollowups,
+      contentItems: onlineContentItems,
+      settingsByDomain: domainSettings
+    })
+    : overview?.domains || [];
+  const openFollowups = followups?.followups || [];
+  const seeds = useOwnerApi
+    ? mergeContentSeeds(onlineContentItems, [])
+    : mergeContentSeeds(onlineContentItems, content?.seeds || []);
+  const activeProjects = useOwnerApi
+    ? onlineProjectsData?.projects || []
+    : mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
+  const displayFollowups = useOwnerApi
+    ? onlineFollowups.filter(item => item.status === 'open' || item.status === 'deferred').slice(0, 10)
+    : dashboard?.followups || [];
   const heroFocus = dashboard?.todayFocus
     || overview?.todayFocus
     || '今天还没有记录最重要的事';
@@ -83,10 +111,10 @@ export async function renderHomeView(container) {
     <section class="ops-two-column">
       <div class="ops-panel">
         <div class="section-heading">
-          <h2 class="section-title">未闭环事项</h2>
+        <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupPanel(authState, dashboard?.followups || [], openFollowups.slice(0, 6), activeProjects)}
+        ${buildFollowupPanel(authState, displayFollowups, openFollowups.slice(0, 6), activeProjects)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">

@@ -230,11 +230,11 @@ npm run d1:migrate:local
 npm run dev:worker
 ```
 
-生成历史 JSON 导入 SQL：
+生成历史静态 JSON 导入 SQL：
 
 ```bash
-node scripts/import-json-to-d1.js --owner-id owner-import > .wrangler/import-daily-records.sql
-wrangler d1 execute summary-dashboard --local --file .wrangler/import-daily-records.sql
+node scripts/import-json-to-d1.js --owner-id owner-import > .wrangler/import-static-json.sql
+wrangler d1 execute summary-dashboard --local --file .wrangler/import-static-json.sql
 ```
 
 远端部署前需要配置：

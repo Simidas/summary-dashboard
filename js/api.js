@@ -161,6 +161,15 @@ export function updateDomainSettings(domain, input) {
   });
 }
 
+export function getDailyReviews(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/daily-reviews${query ? `?${query}` : ''}`);
+}
+
 export function getDailyReview(date = 'today') {
   return apiRequest(`/api/daily-reviews/${encodeURIComponent(date)}`);
 }

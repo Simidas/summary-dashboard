@@ -347,16 +347,16 @@ curl -X POST https://你的生产域名/api/records \
 wrangler d1 execute summary-dashboard --remote --command "select id,email,role from users;"
 ```
 
-生成导入 SQL：
+生成历史静态 JSON 导入 SQL：
 
 ```bash
-node scripts/import-json-to-d1.js --owner-id <上一步查到的 owner id> > .wrangler/import-daily-records.sql
+node scripts/import-json-to-d1.js --owner-id <上一步查到的 owner id> > .wrangler/import-static-json.sql
 ```
 
 执行导入：
 
 ```bash
-wrangler d1 execute summary-dashboard --remote --file .wrangler/import-daily-records.sql
+wrangler d1 execute summary-dashboard --remote --file .wrangler/import-static-json.sql
 ```
 
 检查：

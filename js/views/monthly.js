@@ -2,10 +2,13 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626k';
-import { createMonthCard } from '../components/card.js?v=20260626k';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626k';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626k';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626m';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260626m';
+import { createMonthCard } from '../components/card.js?v=20260626m';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626m';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626m';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -39,11 +42,33 @@ export async function renderMonthlyView(container, params = {}) {
   container.appendChild(page);
 
   // Load data
-  const availableMonths = await getAvailableMonths();
-  const recentMonths = availableMonths.slice(-MONTH_DISPLAY_COUNT).reverse();
-  const reviewMonth = recentMonths[0] || new Date().toISOString().slice(0, 7);
+  const authState = getAuthState();
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  let monthlyDataList = [];
+
+  if (useOwnerApi) {
+    const [recordsData, reviewsData, followupsData, contentData] = await Promise.all([
+      getRecords({ limit: 500 }).catch(() => null),
+      getDailyReviews({ limit: 500 }).catch(() => null),
+      getFollowups({ status: 'all', limit: 200 }).catch(() => null),
+      getContentItems({ limit: 100 }).catch(() => null)
+    ]);
+    monthlyDataList = buildMonthlySummaries({
+      records: recordsData?.records || [],
+      dailyReviews: reviewsData?.reviews || [],
+      followups: followupsData?.followups || [],
+      contentItems: contentData?.items || []
+    }).slice(0, MONTH_DISPLAY_COUNT);
+  } else {
+    const availableMonths = await getAvailableMonths();
+    const recentMonths = availableMonths.slice(-MONTH_DISPLAY_COUNT).reverse();
+    monthlyDataList = (await Promise.all(recentMonths.map(month => loadMonthlySummary(month))))
+      .filter(Boolean);
+  }
+
+  const reviewMonth = monthlyDataList[0]?.key || new Date().toISOString().slice(0, 7);
   
-  if (recentMonths.length === 0) {
+  if (monthlyDataList.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
@@ -61,19 +86,11 @@ export async function renderMonthlyView(container, params = {}) {
   }
 
   // Collect data for chart
-  const chartData = [];
-  const monthlyDataList = [];
-  for (const monthStr of recentMonths) {
-    const data = await loadMonthlySummary(monthStr);
-    if (data) {
-      monthlyDataList.push(data);
-      chartData.push({
-        month: monthStr,
-        monthName: data.monthName,
-        totalAchievements: data.totalAchievements || 0
-      });
-    }
-  }
+  const chartData = monthlyDataList.map(data => ({
+    month: data.key || `${data.year}-${data.month}`,
+    monthName: data.monthName,
+    totalAchievements: data.totalAchievements || 0
+  }));
 
   // Find max for scaling
   const maxAchievements = Math.max(...chartData.map(d => d.totalAchievements), 1);
@@ -115,18 +132,14 @@ export async function renderMonthlyView(container, params = {}) {
   const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
 
-  for (let i = 0; i < recentMonths.length; i++) {
-    const monthStr = recentMonths[i];
-    const monthData = await loadMonthlySummary(monthStr);
-    
-    if (!monthData) continue;
-
+  for (let i = 0; i < monthlyDataList.length; i++) {
+    const monthData = monthlyDataList[i];
     const card = createMonthCard(monthData, i === 0);
     card.classList.add('animate-fade-in-up');
     card.style.animationDelay = `${i * 60}ms`;
     
     grid.appendChild(card);
-    monthCards.push({ card, monthData, monthStr });
+    monthCards.push({ card, monthData, monthStr: monthData.key || `${monthData.year}-${monthData.month}` });
   }
 
   if (monthlyDataList[0]) {

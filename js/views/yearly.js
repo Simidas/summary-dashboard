@@ -2,10 +2,13 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626k';
-import { createYearHeroCard } from '../components/card.js?v=20260626k';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626k';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626k';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626m';
+import { getContentItems, getDailyReviews, getProjects, getRecords } from '../api.js?v=20260626m';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
+import { buildYearlySummaries } from '../aggregations.js?v=20260626m';
+import { createYearHeroCard } from '../components/card.js?v=20260626m';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626m';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626m';
 
 let yearCards = [];
 
@@ -33,11 +36,35 @@ export async function renderYearlyView(container, params = {}) {
   container.appendChild(page);
 
   // Load data
-  const availableYears = await getAvailableYears();
-  const sortedYears = [...availableYears].sort().reverse();
-  const reviewYear = sortedYears[0] || String(new Date().getFullYear());
+  const authState = getAuthState();
+  const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
+  let yearsData = [];
+
+  if (useOwnerApi) {
+    const [recordsData, reviewsData, projectsData, contentData] = await Promise.all([
+      getRecords({ limit: 500 }).catch(() => null),
+      getDailyReviews({ limit: 500 }).catch(() => null),
+      getProjects().catch(() => null),
+      getContentItems({ limit: 100 }).catch(() => null)
+    ]);
+    yearsData = buildYearlySummaries({
+      records: recordsData?.records || [],
+      dailyReviews: reviewsData?.reviews || [],
+      projects: projectsData?.projects || [],
+      contentItems: contentData?.items || []
+    }).map(data => ({ year: String(data.year), data }));
+  } else {
+    const availableYears = await getAvailableYears();
+    const sortedYears = [...availableYears].sort().reverse();
+    yearsData = (await Promise.all(sortedYears.map(async year => {
+      const data = await loadYearlySummary(year);
+      return data ? { year, data } : null;
+    }))).filter(Boolean);
+  }
+
+  const reviewYear = yearsData[0]?.year || String(new Date().getFullYear());
   
-  if (sortedYears.length === 0) {
+  if (yearsData.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
@@ -52,15 +79,6 @@ export async function renderYearlyView(container, params = {}) {
     `;
     bindPeriodReviewForms(page);
     return;
-  }
-
-  // Collect all year data
-  const yearsData = [];
-  for (const yearStr of sortedYears) {
-    const data = await loadYearlySummary(yearStr);
-    if (data) {
-      yearsData.push({ year: yearStr, data });
-    }
   }
 
   // Remove skeleton
