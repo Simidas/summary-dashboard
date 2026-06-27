@@ -2,13 +2,13 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626m';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626m';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260626m';
-import { createWeekCard } from '../components/card.js?v=20260626m';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626m';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626m';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260626n';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626n';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260626n';
+import { createWeekCard } from '../components/card.js?v=20260626n';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626n';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626n';
 
 const WEEK_DISPLAY_COUNT = 8;
 

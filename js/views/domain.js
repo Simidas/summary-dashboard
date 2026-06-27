@@ -12,10 +12,10 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626m';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626m';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626m';
+} from '../api.js?v=20260626n';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626n';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626n';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

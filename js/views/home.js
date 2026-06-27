@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626m';
+} from '../data.js?v=20260626n';
 import {
   createFollowup,
   createRecord,
@@ -18,11 +18,13 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626m';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626m';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626m';
-import { buildOnlineRecordsSection } from '../components/online-records.js?v=20260626m';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626m';
+} from '../api.js?v=20260626n';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626n';
+import { buildOnlineRecordList, buildOnlineRecordsSection } from '../components/online-records.js?v=20260626n';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626n';
+
+const HOME_RECORDS_PAGE_SIZE = 10;
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -81,6 +83,10 @@ export async function renderHomeView(container) {
   const heroNextStep = dashboard?.nextSmallStep
     || overview?.tomorrowFirstStep
     || '先写下一个 25 分钟动作';
+  const onlineRecordOptions = {
+    title: authState.user?.role === 'owner' ? '最近在线记录' : '公开在线记录',
+    emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
+  };
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
@@ -125,10 +131,7 @@ export async function renderHomeView(container) {
       </div>
     </section>
 
-    ${authState.apiAvailable && authState.user ? buildOnlineRecordsSection(onlineRecords, {
-      title: authState.user.role === 'owner' ? '最近在线记录' : '公开在线记录',
-      emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
-    }) : ''}
+    ${authState.apiAvailable && authState.user ? buildHomeOnlineRecordsSection(onlineRecords, onlineRecordOptions) : ''}
 
     <section class="ops-panel">
       <div class="section-heading">
@@ -143,8 +146,68 @@ export async function renderHomeView(container) {
 
   container.innerHTML = '';
   container.appendChild(page);
-  bindOnlineRecordForm(page, dashboard, authState);
+  bindOnlineRecordForm(page, dashboard, authState, onlineRecords, onlineRecordOptions);
+  bindHomeRecordPagination(page, onlineRecords, onlineRecordOptions);
   bindFollowupPanel(page);
+}
+
+function buildHomeOnlineRecordsSection(records, options = {}, pageNumber = 1) {
+  return `
+    <section class="ops-panel online-records-section" data-home-online-records data-current-page="${pageNumber}">
+      ${buildHomeOnlineRecordsInner(records, options, pageNumber)}
+    </section>
+  `;
+}
+
+function buildHomeOnlineRecordsInner(records = [], options = {}, pageNumber = 1) {
+  const total = records.length;
+  const totalPages = Math.max(1, Math.ceil(total / HOME_RECORDS_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * HOME_RECORDS_PAGE_SIZE;
+  const pageRecords = records.slice(start, start + HOME_RECORDS_PAGE_SIZE);
+  const title = options.title || '最近在线记录';
+  const emptyText = options.emptyText || '还没有线上记录。';
+
+  return `
+    <div class="section-heading">
+      <h2 class="section-title">${escapeHtml(title)}</h2>
+      ${total ? `<span class="panel-date">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</span>` : ''}
+    </div>
+    <div data-home-record-page>
+      ${buildOnlineRecordList(pageRecords, emptyText)}
+    </div>
+    ${total > HOME_RECORDS_PAGE_SIZE ? buildHomeRecordPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildHomeRecordPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="最近在线记录分页">
+      <button type="button" data-home-record-page-action="prev" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-home-record-page-action="next" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function bindHomeRecordPagination(page, records, options) {
+  const section = page.querySelector('[data-home-online-records]');
+  if (!section) return;
+
+  section.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-home-record-page-action]');
+    if (!button) return;
+
+    const currentPage = Number(section.dataset.currentPage || 1);
+    const totalPages = Math.max(1, Math.ceil(records.length / HOME_RECORDS_PAGE_SIZE));
+    const nextPage = button.dataset.homeRecordPageAction === 'next'
+      ? Math.min(totalPages, currentPage + 1)
+      : Math.max(1, currentPage - 1);
+    if (nextPage === currentPage) return;
+
+    section.dataset.currentPage = String(nextPage);
+    section.innerHTML = buildHomeOnlineRecordsInner(records, options, nextPage);
+  });
 }
 
 function buildOnlineRecordPanel(dashboard, authState) {
@@ -248,7 +311,7 @@ function buildDashboardFeedback(dashboard) {
   `;
 }
 
-function bindOnlineRecordForm(page, dashboard, authState) {
+function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], onlineRecordOptions = {}) {
   const form = page.querySelector('#online-record-form');
   if (!form) return;
 
@@ -284,7 +347,7 @@ function bindOnlineRecordForm(page, dashboard, authState) {
       input.value = '';
       status.textContent = '已保存';
       result.innerHTML = buildAiResult(data.aiSuggestion);
-      prependOnlineRecord(page, data.record, data.aiSuggestion);
+      prependOnlineRecord(page, data.record, data.aiSuggestion, onlineRecords, onlineRecordOptions);
       if (intro) {
         intro.innerHTML = `
           <div class="ops-kicker">今天的入口</div>
@@ -332,12 +395,20 @@ function refreshPetPanel(page, dashboard, authState) {
   panel.outerHTML = buildPetCompanionPanel(dashboard, authState || getAuthState());
 }
 
-function prependOnlineRecord(page, record, aiSuggestion) {
+function prependOnlineRecord(page, record, aiSuggestion, onlineRecords = null, onlineRecordOptions = {}) {
+  const recordWithSuggestion = { ...record, aiSuggestion };
+  const paginatedSection = page.querySelector('[data-home-online-records]');
+  if (paginatedSection && Array.isArray(onlineRecords)) {
+    onlineRecords.unshift(recordWithSuggestion);
+    paginatedSection.dataset.currentPage = '1';
+    paginatedSection.innerHTML = buildHomeOnlineRecordsInner(onlineRecords, onlineRecordOptions, 1);
+    return;
+  }
+
   const list = page.querySelector('.online-record-list');
   const section = page.querySelector('.online-records-section');
   if (!section) return;
 
-  const recordWithSuggestion = { ...record, aiSuggestion };
   const html = buildOnlineRecordsSection([recordWithSuggestion], { title: '最近在线记录' });
   const temp = document.createElement('div');
   temp.innerHTML = html;
