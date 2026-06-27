@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626n';
+} from '../data.js?v=20260626o';
 import {
   createFollowup,
   createRecord,
@@ -18,11 +18,11 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626n';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626n';
-import { buildOnlineRecordList, buildOnlineRecordsSection } from '../components/online-records.js?v=20260626n';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626n';
+} from '../api.js?v=20260626o';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626o';
+import { buildOnlineRecordList, buildOnlineRecordsSection } from '../components/online-records.js?v=20260626o';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260626o';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -476,7 +476,8 @@ function buildFollowupList(followups) {
         <div class="compact-row ${item.overdue ? 'is-overdue' : ''}">
           <div>
             <strong>${escapeHtml(item.text)}</strong>
-            <span>${escapeHtml(item.domainLabel)}${item.project ? ` · ${escapeHtml(item.project)}` : ''}</span>
+            <span>${escapeHtml(buildFollowupContextMeta(item))}</span>
+            <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
           <em>${item.ageDays || 0}d</em>
         </div>
@@ -539,7 +540,8 @@ function buildOnlineFollowupRow(item) {
     <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
       <div>
         <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}${item.project ? ` · ${escapeHtml(item.project)}` : ''}${item.dueDate ? ` · ${escapeHtml(item.dueDate)}` : ''}</span>
+        <span>${escapeHtml(buildFollowupContextMeta(item))}</span>
+        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
       </div>
       <div class="row-actions">
         <em>${escapeHtml(statusLabel)}</em>
@@ -549,6 +551,22 @@ function buildOnlineFollowupRow(item) {
       </div>
     </div>
   `;
+}
+
+function buildFollowupContextMeta(item) {
+  return [
+    item.domainLabel || getDomainLabel(item.domain),
+    item.project
+  ].filter(Boolean).join(' · ') || '未分类';
+}
+
+function buildFollowupTimeMeta(item) {
+  const created = formatDateOnly(item.createdAt || item.sourceDate);
+  const due = formatDateOnly(item.dueDate);
+  return [
+    created ? `创建 ${created}` : '',
+    due ? `计划 ${due}` : '计划未定'
+  ].filter(Boolean).join(' · ');
 }
 
 function bindFollowupPanel(page) {
@@ -716,4 +734,15 @@ function formatShortTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
+}
+
+function formatDateOnly(value) {
+  if (!value) return '';
+  const text = String(value);
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  if (match) return match[0];
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
 }

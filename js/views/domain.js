@@ -12,10 +12,10 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626n';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626n';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626n';
+} from '../api.js?v=20260626o';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626o';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626o';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -244,7 +244,8 @@ function buildFollowups(items) {
         <div class="compact-row ${item.overdue ? 'is-overdue' : ''}">
           <div>
             <strong>${escapeHtml(item.text)}</strong>
-            <span>${escapeHtml(item.project || item.sourceDate)}</span>
+            <span>${escapeHtml(item.project || item.domainLabel || '未分类')}</span>
+            <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
           <em>${item.overdue ? 'overdue' : `${item.ageDays || 0}d`}</em>
         </div>
@@ -311,7 +312,8 @@ function buildOnlineFollowupRow(item) {
     <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
       <div>
         <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(item.project || item.domainLabel || '未分类')}${item.dueDate ? ` · ${escapeHtml(item.dueDate)}` : ''}</span>
+        <span>${escapeHtml(item.project || item.domainLabel || '未分类')}</span>
+        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
       </div>
       <div class="row-actions">
         <em>${escapeHtml(item.status || 'open')}</em>
@@ -321,6 +323,15 @@ function buildOnlineFollowupRow(item) {
       </div>
     </div>
   `;
+}
+
+function buildFollowupTimeMeta(item) {
+  const created = formatDateOnly(item.createdAt || item.sourceDate);
+  const due = formatDateOnly(item.dueDate);
+  return [
+    created ? `创建 ${created}` : '',
+    due ? `计划 ${due}` : '计划未定'
+  ].filter(Boolean).join(' · ');
 }
 
 function buildPillList(items, emptyText) {
@@ -549,6 +560,17 @@ function formatShortTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
+}
+
+function formatDateOnly(value) {
+  if (!value) return '';
+  const text = String(value);
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  if (match) return match[0];
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
 }
 
 function escapeHtml(value) {

@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626n';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626o';
 import {
   createFollowup,
   createProject,
@@ -14,9 +14,9 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626n';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626n';
+} from '../api.js?v=20260626o';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260626o';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -384,7 +384,8 @@ function buildOnlineProjectFollowupRow(item) {
     <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
       <div>
         <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}${item.dueDate ? ` · ${escapeHtml(item.dueDate)}` : ''}</span>
+        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}</span>
+        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
       </div>
       <div class="row-actions">
         <em>${escapeHtml(item.status || 'open')}</em>
@@ -628,6 +629,17 @@ function normalizeRouteSlug(value) {
   return normalized;
 }
 
+function formatDateOnly(value) {
+  if (!value) return '';
+  const text = String(value);
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  if (match) return match[0];
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+}
+
 function buildMetric(value, label) {
   return `
     <article class="metric-card">
@@ -646,13 +658,23 @@ function buildFollowups(items) {
         <div class="compact-row ${item.overdue ? 'is-overdue' : ''}">
           <div>
             <strong>${escapeHtml(item.text)}</strong>
-            <span>${escapeHtml(item.domainLabel)} · ${escapeHtml(item.sourceDate)}</span>
+            <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}</span>
+            <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
           <em>${item.overdue ? 'overdue' : `${item.ageDays || 0}d`}</em>
         </div>
       `).join('')}
     </div>
   `;
+}
+
+function buildFollowupTimeMeta(item) {
+  const created = formatDateOnly(item.createdAt || item.sourceDate);
+  const due = formatDateOnly(item.dueDate);
+  return [
+    created ? `创建 ${created}` : '',
+    due ? `计划 ${due}` : '计划未定'
+  ].filter(Boolean).join(' · ');
 }
 
 function buildList(items, emptyText) {

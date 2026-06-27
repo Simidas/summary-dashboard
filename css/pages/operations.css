@@ -231,6 +231,11 @@
   font-style: normal;
 }
 
+.compact-row .followup-time-meta {
+  margin-top: 3px;
+  color: #64748B;
+}
+
 .plain-list {
   display: grid;
   gap: 6px;

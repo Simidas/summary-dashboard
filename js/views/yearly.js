@@ -2,13 +2,13 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626n';
-import { getContentItems, getDailyReviews, getProjects, getRecords } from '../api.js?v=20260626n';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626n';
-import { buildYearlySummaries } from '../aggregations.js?v=20260626n';
-import { createYearHeroCard } from '../components/card.js?v=20260626n';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626n';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626n';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260626o';
+import { getContentItems, getDailyReviews, getProjects, getRecords } from '../api.js?v=20260626o';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
+import { buildYearlySummaries } from '../aggregations.js?v=20260626o';
+import { createYearHeroCard } from '../components/card.js?v=20260626o';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626o';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626o';
 
 let yearCards = [];
 
