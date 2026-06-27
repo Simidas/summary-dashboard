@@ -190,6 +190,12 @@ wrangler d1 execute summary-dashboard --local --file .wrangler/import-static-jso
 
 脚本使用 `INSERT OR IGNORE`，重复执行不会覆盖线上已经存在的数据。
 
+默认输出不包含 `BEGIN TRANSACTION` / `COMMIT`，以兼容 `wrangler d1 execute --remote --file`。如果只是本地 SQLite 验证并且需要事务包裹，可以加：
+
+```bash
+node scripts/import-json-to-d1.js --owner-id owner-import --with-transaction
+```
+
 ## 本地检查
 
 ```bash
