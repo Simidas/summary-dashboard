@@ -5,11 +5,11 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626o';
-import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260626o';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
-import { createSummaryCard } from '../components/card.js?v=20260626o';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626o';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626p';
+import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260626p';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
+import { createSummaryCard } from '../components/card.js?v=20260626p';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626p';
 
 const TIMELINE_DAYS = 14;
 
@@ -62,6 +62,7 @@ export async function renderDailyView(container, params = {}) {
   const onlineRecords = onlineRecordsData?.records || [];
   const dailyReviews = dailyReviewsData?.reviews || [];
   const dailyReview = dailyReviewData?.review || null;
+  const heroReview = selectHeroDailyReview(dailyReview, dailyReviews);
   const onlineSummaries = buildOnlineDailySummaries(dailyReviews, onlineRecords);
   const usingOnlineSummaries = onlineSummaries.length > 0;
   summaries = usingOnlineSummaries ? onlineSummaries : legacySummaries;
@@ -89,7 +90,7 @@ export async function renderDailyView(container, params = {}) {
   if (summaries.length === 0) return;
 
   // Build main content
-  renderHero(page, summaries[0]);
+  renderHero(page, heroReview);
 
   // Timeline section
   renderTimeline(page, summaries, usingOnlineSummaries ? '最近每日综合记录' : '历史归档记录');
@@ -114,6 +115,31 @@ export async function renderDailyView(container, params = {}) {
   }
 
   bindDailyReviewForm(page);
+}
+
+function selectHeroDailyReview(todayReview, reviews = []) {
+  const today = getShanghaiDate();
+  const yesterday = getShanghaiDate(-1);
+  const candidates = [
+    todayReview,
+    ...reviews
+  ].filter(Boolean);
+
+  return candidates.find(review => review.date === today && hasDailyReviewContent(review))
+    || candidates.find(review => review.date === yesterday && hasDailyReviewContent(review))
+    || null;
+}
+
+function hasDailyReviewContent(review) {
+  return Boolean(
+    review?.mostImportantThing
+    || review?.reflection
+    || review?.tomorrowFirstStep
+    || review?.mood
+    || review?.energy
+    || review?.wins?.length
+    || review?.blockers?.length
+  );
 }
 
 function buildOnlineDailySummaries(reviews = [], records = []) {
@@ -252,35 +278,38 @@ function bindDailyReviewForm(page) {
 }
 
 /**
- * Render hero section with latest summary
+ * Render hero section with today's or yesterday's saved daily review
  * @param {HTMLElement} page
- * @param {Object} latest
+ * @param {Object|null} review
  */
-function renderHero(page, latest) {
+function renderHero(page, review) {
   const hero = document.createElement('section');
   hero.className = 'hero animate-fade-in-up';
   hero.style.animationDelay = '0ms';
 
-  const today = new Date().toISOString().split('T')[0];
-  const isToday = latest.date === today;
-  const summaryText = getHeroSummary(latest);
-  const tags = getHeroTags(latest);
-  const moodHtml = latest.mood
-    ? `<span class="mood" style="margin-left: 8px;">${escapeHtml(latest.mood)}</span>`
+  const today = getShanghaiDate();
+  const isToday = review?.date === today;
+  const dateText = review?.date || today;
+  const summaryText = review
+    ? getDailyReviewHeroSummary(review)
+    : '今天还没有保存每日复盘。写下今天最重要的事，头部就会展示这里。';
+  const tags = review ? getDailyReviewHeroTags(review, isToday) : ['每日综合记录'];
+  const moodHtml = review?.mood
+    ? `<span class="mood" style="margin-left: 8px;">${escapeHtml(review.mood)}</span>`
     : '';
 
   hero.innerHTML = `
     <div class="hero-date">
       <span>📅</span>
-      <span>${escapeHtml(latest.date)}</span>
-      <span>${isToday ? '· 今天' : ''}</span>
+      <span>${escapeHtml(dateText)}</span>
+      <span>${review ? (isToday ? '· 今天' : '· 昨天') : '· 未保存'}</span>
       ${moodHtml}
     </div>
     <h1 class="hero-title">
-      ${isToday ? '今日复盘' : '昨日复盘'}
+      ${review ? (isToday ? '今日复盘' : '昨日复盘') : '等待每日复盘'}
     </h1>
     <p class="hero-summary">
-      ${escapeHtml(summaryText)}...
+      ${escapeHtml(summaryText)}
     </p>
     <div class="hero-meta">
       ${tags.slice(0, 4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
@@ -296,40 +325,22 @@ function renderHero(page, latest) {
   }
 }
 
-function getHeroSummary(data) {
-  if (data.dailyReview?.mostImportantThing) return data.dailyReview.mostImportantThing;
-  if (data.dailyReview?.reflection) return data.dailyReview.reflection;
-
-  const firstRecord = Array.isArray(data.records) ? data.records[0] : null;
-  if (firstRecord) {
-    return firstRecord.summary || firstRecord.raw || firstRecord.content || '';
-  }
-
-  return (data.achievements || []).slice(0, 2).join('；');
+function getDailyReviewHeroSummary(review) {
+  if (review.mostImportantThing) return review.mostImportantThing;
+  if (review.reflection) return review.reflection;
+  if (review.wins?.length) return `今日收获：${review.wins.slice(0, 2).join('；')}`;
+  if (review.blockers?.length) return `卡点：${review.blockers.slice(0, 2).join('；')}`;
+  if (review.tomorrowFirstStep) return `下一步：${review.tomorrowFirstStep}`;
+  return '这天已经保存每日复盘。';
 }
 
-function getHeroTags(data) {
-  if (Array.isArray(data.records)) {
-    const tags = new Set();
-    if (data.dailyReview) tags.add('每日综合记录');
-    data.records.forEach(record => {
-      if (record.domain) tags.add(getDomainLabel(record.domain));
-      (record.tags || []).forEach(tag => tags.add(tag));
-    });
-    return Array.from(tags);
-  }
-
-  return data.tags || [];
-}
-
-function getDomainLabel(domain) {
-  const labels = {
-    work: '主业',
-    side_business: '副业',
-    life: '生活',
-    content: '内容'
-  };
-  return labels[domain] || domain || '未分类';
+function getDailyReviewHeroTags(review, isToday) {
+  return [
+    '每日综合记录',
+    isToday ? '今天' : '昨天',
+    review.energy ? `能量 ${review.energy}/5` : '',
+    review.tomorrowFirstStep ? '有下一步' : ''
+  ].filter(Boolean);
 }
 
 function escapeHtml(str) {
@@ -363,6 +374,22 @@ function formatShortTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
+}
+
+function getShanghaiDate(offsetDays = 0) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const date = new Date(Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day) + offsetDays
+  ));
+  return date.toISOString().slice(0, 10);
 }
 
 /**

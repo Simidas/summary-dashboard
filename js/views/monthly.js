@@ -2,13 +2,13 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626o';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626o';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626o';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260626o';
-import { createMonthCard } from '../components/card.js?v=20260626o';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626o';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626o';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260626p';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260626p';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260626p';
+import { createMonthCard } from '../components/card.js?v=20260626p';
+import { createGiscusToggle } from '../components/giscus.js?v=20260626p';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260626p';
 
 const MONTH_DISPLAY_COUNT = 12;
 
