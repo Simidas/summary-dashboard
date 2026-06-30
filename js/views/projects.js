@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260626p';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260630a';
 import {
   createFollowup,
   createProject,
@@ -14,9 +14,10 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626p';
+} from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630a';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630a';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -388,7 +389,7 @@ function buildOnlineProjectFollowupRow(item) {
         <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
       </div>
       <div class="row-actions">
-        <em>${escapeHtml(item.status || 'open')}</em>
+        <em>${escapeHtml(item.overdue ? '超时' : item.status || 'open')}</em>
         ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
         <button type="button" data-followup-action="closed">完成</button>
         <button type="button" data-followup-action="dropped">放弃</button>
@@ -504,9 +505,22 @@ function bindProjectRecordForm(page, project) {
         visibility: 'private'
       });
       input.value = '';
-      status.textContent = '已保存';
+      status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
       list.innerHTML = buildOnlineRecordList([{ ...data.record, aiSuggestion: data.aiSuggestion }], '还没有项目记录。')
         + list.innerHTML.replace('<div class="empty-inline">还没有项目记录。</div>', '');
+      if (data.aiPending) {
+        list.insertAdjacentHTML('afterbegin', buildAiPendingCard('项目记录已保存，AI 正在提炼下一步。'));
+        waitForRecordAiSuggestion(data.record.id, {
+          onReady: (aiSuggestion, record) => {
+            status.textContent = 'AI 建议已生成';
+            replaceOnlineRecordCard(list, { ...record, aiSuggestion });
+            list.querySelector('.ai-result-card-pending')?.remove();
+          },
+          onTimeout: () => {
+            status.textContent = '已保存，AI 建议稍后会出现在记录里';
+          }
+        });
+      }
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -661,7 +675,7 @@ function buildFollowups(items) {
             <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}</span>
             <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
-          <em>${item.overdue ? 'overdue' : `${item.ageDays || 0}d`}</em>
+          <em>${item.overdue ? '超时' : `${item.ageDays || 0}d`}</em>
         </div>
       `).join('')}
     </div>

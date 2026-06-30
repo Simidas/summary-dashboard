@@ -5,11 +5,11 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260626p';
-import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
-import { createSummaryCard } from '../components/card.js?v=20260626p';
-import { createGiscusToggle } from '../components/giscus.js?v=20260626p';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260630a';
+import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { createSummaryCard } from '../components/card.js?v=20260630a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630a';
 
 const TIMELINE_DAYS = 14;
 
@@ -199,16 +199,22 @@ function appendDailyReviewEditor(page, authState, review) {
 function buildDailyReviewEditor(authState, review) {
   if (!authState.apiAvailable || authState.user?.role !== 'owner') return '';
 
+  const reviewDate = review?.date || getShanghaiDate();
+
   return `
     <section class="settings-panel">
       <div class="section-heading">
         <h2 class="section-title">每日综合记录</h2>
-        <span class="panel-date">${review?.updatedAt ? `上次更新 ${escapeHtml(formatShortTime(review.updatedAt))}` : ''}</span>
+        <span class="panel-date" data-daily-review-updated-at>${review?.updatedAt ? `上次更新 ${escapeHtml(formatShortTime(review.updatedAt))}` : ''}</span>
       </div>
       <form id="daily-review-form" class="dashboard-settings-form">
         <label>
-          <span>今天最重要的事</span>
-          <input name="mostImportantThing" value="${escapeAttr(review?.mostImportantThing || '')}" placeholder="今天真正推进了什么？">
+          <span>复盘日期</span>
+          <input name="date" type="date" max="${escapeAttr(getShanghaiDate())}" value="${escapeAttr(reviewDate)}">
+        </label>
+        <label>
+          <span>这天最重要的事</span>
+          <input name="mostImportantThing" value="${escapeAttr(review?.mostImportantThing || '')}" placeholder="这天真正推进了什么？">
         </label>
         <div class="record-form-grid">
           <label>
@@ -221,7 +227,7 @@ function buildDailyReviewEditor(authState, review) {
           </label>
         </div>
         <label>
-          <span>今日收获</span>
+          <span>这天的收获</span>
           <textarea name="wins" rows="3" placeholder="一行一条">${escapeHtml(joinLines(review?.wins))}</textarea>
         </label>
         <label>
@@ -250,14 +256,41 @@ function bindDailyReviewForm(page) {
   if (!form) return;
 
   const status = page.querySelector('#daily-review-status');
+  const updatedAt = page.querySelector('[data-daily-review-updated-at]');
+  form.elements.date?.addEventListener('change', async () => {
+    const date = normalizeDailyReviewDate(form.elements.date.value);
+    if (!date) {
+      status.textContent = '请选择有效日期。';
+      return;
+    }
+
+    status.textContent = '读取中...';
+    try {
+      const data = await getDailyReview(date);
+      fillDailyReviewForm(form, data.review || { date });
+      if (updatedAt) {
+        updatedAt.textContent = data.review?.updatedAt ? `上次更新 ${formatShortTime(data.review.updatedAt)}` : '这天还没有保存复盘';
+      }
+      status.textContent = data.review ? '已载入这天的复盘' : '可以补写这天的复盘';
+    } catch (error) {
+      status.textContent = error.message || '读取失败';
+    }
+  });
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const date = normalizeDailyReviewDate(form.elements.date.value);
+    if (!date) {
+      status.textContent = '请选择有效日期。';
+      return;
+    }
+
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     status.textContent = '保存中...';
 
     try {
-      await updateDailyReview('today', {
+      await updateDailyReview(date, {
         mostImportantThing: form.elements.mostImportantThing.value,
         wins: splitLines(form.elements.wins.value),
         blockers: splitLines(form.elements.blockers.value),
@@ -275,6 +308,23 @@ function bindDailyReviewForm(page) {
       button.disabled = false;
     }
   });
+}
+
+function fillDailyReviewForm(form, review = {}) {
+  form.elements.date.value = review.date || form.elements.date.value || getShanghaiDate();
+  form.elements.mostImportantThing.value = review.mostImportantThing || '';
+  form.elements.wins.value = joinLines(review.wins);
+  form.elements.blockers.value = joinLines(review.blockers);
+  form.elements.reflection.value = review.reflection || '';
+  form.elements.tomorrowFirstStep.value = review.tomorrowFirstStep || '';
+  form.elements.mood.value = review.mood || '';
+  form.elements.energy.value = review.energy || '';
+}
+
+function normalizeDailyReviewDate(value) {
+  const date = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+  return date <= getShanghaiDate() ? date : '';
 }
 
 /**

@@ -9,6 +9,7 @@ import { handlePeriodReviews } from './routes/period-reviews.js';
 import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
 import { fail, ok } from './lib/response.js';
+import { getSession, makeSessionRefreshCookie } from './lib/session.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -49,11 +50,33 @@ async function handleApi(request, env, ctx) {
       return fail(500, 'DB_NOT_CONFIGURED', 'D1 database binding is not configured');
     }
 
-    return dispatchApiRoute(request, env, ctx, path);
+    const response = await dispatchApiRoute(request, env, ctx, path);
+    return refreshSessionCookieIfNeeded(request, env, response);
   } catch (error) {
     console.error('API error', error);
     return fail(500, 'INTERNAL_ERROR', '服务暂时不可用');
   }
+}
+
+async function refreshSessionCookieIfNeeded(request, env, response) {
+  if (!parseHasSessionCookie(request)) return response;
+  const session = await getSession(request, env);
+  if (!session) return response;
+
+  const cookie = makeSessionRefreshCookie(request);
+  if (!cookie) return response;
+
+  const headers = new Headers(response.headers);
+  headers.append('set-cookie', cookie);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+function parseHasSessionCookie(request) {
+  return /(?:^|;\s*)sd_session=/.test(request.headers.get('cookie') || '');
 }
 
 function dispatchApiRoute(request, env, ctx, path) {

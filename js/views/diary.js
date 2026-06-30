@@ -2,10 +2,11 @@
    Diary View
    ======================================== */
 
-import { loadDiaryEntries } from '../data.js?v=20260626p';
-import { createRecord, getRecords } from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260626p';
+import { loadDiaryEntries } from '../data.js?v=20260630a';
+import { createRecord, getRecords } from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630a';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630a';
 
 const DRAFT_KEY = 'summary-dashboard:diary-drafts';
 
@@ -164,11 +165,23 @@ function bindOnlineDiaryForm(page) {
         visibility: visibilitySelect.value
       });
       input.value = '';
-      status.textContent = '已保存';
-      result.innerHTML = buildOnlineAnalysis(data.aiSuggestion);
+      status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
+      result.innerHTML = data.aiPending ? buildAiPendingCard('Diary 已保存，AI 正在温柔地读一遍。') : buildOnlineAnalysis(data.aiSuggestion);
       if (list) {
         list.innerHTML = buildOnlineRecordList([{ ...data.record, aiSuggestion: data.aiSuggestion }], '还没有线上 Diary。')
           + list.innerHTML.replace('<div class="empty-inline">还没有线上 Diary。</div>', '');
+      }
+      if (data.aiPending) {
+        waitForRecordAiSuggestion(data.record.id, {
+          onReady: (aiSuggestion, record) => {
+            status.textContent = 'AI 建议已生成';
+            result.innerHTML = buildOnlineAnalysis(aiSuggestion);
+            replaceOnlineRecordCard(list, { ...record, aiSuggestion });
+          },
+          onTimeout: () => {
+            status.textContent = '已保存，AI 建议稍后会出现在列表里';
+          }
+        });
       }
     } catch (error) {
       status.textContent = '';

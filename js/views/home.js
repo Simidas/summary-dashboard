@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260626p';
+} from '../data.js?v=20260630a';
 import {
   createFollowup,
   createRecord,
@@ -18,11 +18,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260626p';
-import { buildOnlineRecordList, buildOnlineRecordsSection } from '../components/online-records.js?v=20260626p';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260626p';
+} from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260630a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630a';
+import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630a';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260630a';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -345,8 +346,8 @@ function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], on
       });
       localStorage.setItem('summary-dashboard:last-domain', form.elements.domain.value);
       input.value = '';
-      status.textContent = '已保存';
-      result.innerHTML = buildAiResult(data.aiSuggestion);
+      status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
+      result.innerHTML = data.aiPending ? buildAiPendingCard('记录已保存，AI 正在给你收束成更小的下一步。') : buildAiResult(data.aiSuggestion);
       prependOnlineRecord(page, data.record, data.aiSuggestion, onlineRecords, onlineRecordOptions);
       if (intro) {
         intro.innerHTML = `
@@ -366,6 +367,19 @@ function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], on
         userState: data.userState || dashboard?.userState || {}
       }, authState);
       refreshHeroPanel(page, data.record, data.aiSuggestion);
+      if (data.aiPending) {
+        waitForRecordAiSuggestion(data.record.id, {
+          onReady: (aiSuggestion, record) => {
+            status.textContent = 'AI 建议已生成';
+            result.innerHTML = buildAiResult(aiSuggestion);
+            applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords, onlineRecordOptions);
+            refreshHeroPanel(page, record, aiSuggestion);
+          },
+          onTimeout: () => {
+            status.textContent = '已保存，AI 建议稍后会出现在最近记录里';
+          }
+        });
+      }
     } catch (error) {
       status.textContent = '';
       result.innerHTML = `
@@ -378,6 +392,25 @@ function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], on
       button.disabled = false;
     }
   });
+}
+
+function applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords = [], onlineRecordOptions = {}) {
+  const recordWithSuggestion = { ...record, aiSuggestion };
+  if (Array.isArray(onlineRecords)) {
+    const cached = onlineRecords.find(item => item.id === record.id);
+    if (cached) cached.aiSuggestion = aiSuggestion;
+  }
+
+  if (replaceOnlineRecordCard(page, recordWithSuggestion)) return;
+
+  const paginatedSection = page.querySelector('[data-home-online-records]');
+  if (paginatedSection && Array.isArray(onlineRecords)) {
+    paginatedSection.innerHTML = buildHomeOnlineRecordsInner(
+      onlineRecords,
+      onlineRecordOptions,
+      Number(paginatedSection.dataset.currentPage || 1)
+    );
+  }
 }
 
 function refreshHeroPanel(page, record, aiSuggestion) {
@@ -479,7 +512,7 @@ function buildFollowupList(followups) {
             <span>${escapeHtml(buildFollowupContextMeta(item))}</span>
             <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
-          <em>${item.ageDays || 0}d</em>
+          <em>${item.overdue ? '超时' : `${item.ageDays || 0}d`}</em>
         </div>
       `).join('')}
     </div>
@@ -529,12 +562,12 @@ function buildProjectSelect(projects = []) {
 }
 
 function buildOnlineFollowupRow(item) {
-  const statusLabel = {
+  const statusLabel = item.overdue ? '超时' : ({
     open: 'open',
     deferred: 'deferred',
     closed: 'closed',
     dropped: 'dropped'
-  }[item.status] || item.status || 'open';
+  }[item.status] || item.status || 'open');
 
   return `
     <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">

@@ -1,5 +1,5 @@
-import { getPeriodReview, updatePeriodReview } from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
+import { getPeriodReview, updatePeriodReview } from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
 
 export async function buildPeriodReviewPanel(type, periodKey, label) {
   const authState = getAuthState();

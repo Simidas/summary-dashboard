@@ -69,6 +69,10 @@ export function getRecords(params = {}) {
   return apiRequest(`/api/records${query ? `?${query}` : ''}`);
 }
 
+export function getRecord(id) {
+  return apiRequest(`/api/records/${encodeURIComponent(id)}`);
+}
+
 export function createRecord(input) {
   return apiRequest('/api/records', {
     method: 'POST',

@@ -14,7 +14,7 @@ import {
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
-export async function handleRecords(request, env) {
+export async function handleRecords(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -23,7 +23,7 @@ export async function handleRecords(request, env) {
   }
 
   if (path === '/api/records' && request.method === 'POST') {
-    return createRecord(request, env);
+    return createRecord(request, env, ctx);
   }
 
   const regenerateMatch = path.match(/^\/api\/records\/([^/]+)\/ai\/regenerate$/);
@@ -32,6 +32,9 @@ export async function handleRecords(request, env) {
   }
 
   const recordMatch = path.match(/^\/api\/records\/([^/]+)$/);
+  if (recordMatch && request.method === 'GET') {
+    return getRecord(request, env, recordMatch[1]);
+  }
   if (recordMatch && request.method === 'PATCH') {
     return updateRecord(request, env, recordMatch[1]);
   }
@@ -96,7 +99,32 @@ async function listRecords(request, env) {
   });
 }
 
-async function createRecord(request, env) {
+async function getRecord(request, env, id) {
+  const session = await getSession(request, env);
+  const clauses = ['id = ?', 'deleted_at IS NULL'];
+  const params = [id];
+
+  if (session?.user?.role === 'owner') {
+    clauses.push('owner_id = ?');
+    params.push(session.user.id);
+  } else {
+    clauses.push('visibility = ?');
+    params.push('public');
+  }
+
+  const row = await env.DB.prepare(`
+    SELECT *
+    FROM records
+    WHERE ${clauses.join(' AND ')}
+    LIMIT 1
+  `).bind(...params).first();
+  if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
+
+  const suggestion = await loadLatestSuggestionForRecord(env, row.id);
+  return ok({ record: mapRecord(row, suggestion) });
+}
+
+async function createRecord(request, env, ctx) {
   const session = await getSession(request, env);
   if (!session) return fail(401, 'UNAUTHORIZED', '请先登录');
   if (session.user.role !== 'owner') return fail(403, 'FORBIDDEN', '当前账号没有写入权限');
@@ -150,17 +178,7 @@ async function createRecord(request, env) {
     toJsonText(record.nextActions)
   ).run();
 
-  const recentRows = await env.DB.prepare(`
-    SELECT date, raw_content, summary
-    FROM records
-    WHERE owner_id = ? AND deleted_at IS NULL AND id != ?
-      AND (? IS NULL OR domain = ?)
-    ORDER BY created_at DESC
-    LIMIT 5
-  `).bind(record.ownerId, record.id, record.domain, record.domain).all();
-
-  const aiSuggestion = await generateCompanionSuggestion(env, record, recentRows.results || []);
-  await insertSuggestion(env, record, aiSuggestion);
+  scheduleSuggestionGeneration(ctx, env, record);
   const userState = await updateUserStateAfterRecord(env, record.ownerId, record.date);
 
   return ok({
@@ -175,11 +193,36 @@ async function createRecord(request, env) {
       mood: record.mood,
       energy: record.energy,
       projects: record.projects,
-      tags: record.tags
+      tags: record.tags,
+      aiSuggestion: null
     },
-    aiSuggestion,
+    aiSuggestion: null,
+    aiPending: true,
     userState
   }, { status: 201 });
+}
+
+function scheduleSuggestionGeneration(ctx, env, record) {
+  const task = generateAndInsertSuggestion(env, record)
+    .catch(error => console.error('Async AI suggestion failed', error));
+
+  if (ctx?.waitUntil) {
+    ctx.waitUntil(task);
+  }
+}
+
+async function generateAndInsertSuggestion(env, record) {
+  const recentRows = await env.DB.prepare(`
+    SELECT date, raw_content, summary
+    FROM records
+    WHERE owner_id = ? AND deleted_at IS NULL AND id != ?
+      AND (? IS NULL OR domain = ?)
+    ORDER BY created_at DESC
+    LIMIT 5
+  `).bind(record.ownerId, record.id, record.domain, record.domain).all();
+
+  const aiSuggestion = await generateCompanionSuggestion(env, record, recentRows.results || []);
+  await insertSuggestion(env, record, aiSuggestion);
 }
 
 async function updateRecord(request, env, id) {
@@ -316,6 +359,16 @@ async function loadLatestSuggestionsForRecords(env, recordIds) {
   `).bind(...recordIds).all();
 
   return new Map((rows.results || []).map(row => [row.record_id, row]));
+}
+
+async function loadLatestSuggestionForRecord(env, recordId) {
+  return env.DB.prepare(`
+    SELECT *
+    FROM ai_suggestions
+    WHERE record_id = ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).bind(recordId).first();
 }
 
 async function getOwnerSession(request, env) {

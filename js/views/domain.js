@@ -12,10 +12,11 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260626p';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260626p';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260626p';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260626p';
+} from '../api.js?v=20260630a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260630a';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260630a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630a';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -247,7 +248,7 @@ function buildFollowups(items) {
             <span>${escapeHtml(item.project || item.domainLabel || '未分类')}</span>
             <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
           </div>
-          <em>${item.overdue ? 'overdue' : `${item.ageDays || 0}d`}</em>
+          <em>${item.overdue ? '超时' : `${item.ageDays || 0}d`}</em>
         </div>
       `).join('')}
     </div>
@@ -316,7 +317,7 @@ function buildOnlineFollowupRow(item) {
         <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
       </div>
       <div class="row-actions">
-        <em>${escapeHtml(item.status || 'open')}</em>
+        <em>${escapeHtml(item.overdue ? '超时' : item.status || 'open')}</em>
         ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
         <button type="button" data-followup-action="closed">完成</button>
         <button type="button" data-followup-action="dropped">放弃</button>
@@ -375,12 +376,13 @@ function buildOnlineRecordTimeline(records) {
 
 function buildOnlineRecordLine(record) {
   return `
-    <article class="record-line">
+    <article class="record-line" data-online-record-id="${escapeAttr(record.id || '')}">
       <time>${escapeHtml(record.date || record.createdAt?.slice(0, 10) || '')}</time>
       <div>
         <div class="record-line-meta">在线 · ${escapeHtml(record.type || 'thought')}</div>
         <p>${escapeHtml(record.summary || record.content || '')}</p>
         ${record.aiSuggestion?.nextSmallStep ? `<div class="record-line-action">AI 下一步：${escapeHtml(record.aiSuggestion.nextSmallStep)}</div>` : ''}
+        ${record.aiPending ? '<div class="record-line-action">AI 建议生成中...</div>' : ''}
       </div>
     </article>
   `;
@@ -456,11 +458,27 @@ function bindDomainRecordForm(page, domainId) {
         visibility: form.elements.visibility.value
       });
       form.elements.content.value = '';
-      status.textContent = '已保存';
-      result.innerHTML = data.aiSuggestion?.nextSmallStep
+      status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
+      result.innerHTML = data.aiPending
+        ? buildAiPendingCard('记录已保存，AI 正在整理下一步。')
+        : data.aiSuggestion?.nextSmallStep
         ? `<div class="next-small-step"><span>现在只做这一步</span><strong>${escapeHtml(data.aiSuggestion.nextSmallStep)}</strong></div>`
         : '<div class="empty-inline">记录已保存。</div>';
-      prependDomainRecord(page, { ...data.record, aiSuggestion: data.aiSuggestion });
+      prependDomainRecord(page, { ...data.record, aiSuggestion: data.aiSuggestion, aiPending: data.aiPending });
+      if (data.aiPending) {
+        waitForRecordAiSuggestion(data.record.id, {
+          onReady: (aiSuggestion, record) => {
+            status.textContent = 'AI 建议已生成';
+            result.innerHTML = aiSuggestion?.nextSmallStep
+              ? `<div class="next-small-step"><span>现在只做这一步</span><strong>${escapeHtml(aiSuggestion.nextSmallStep)}</strong></div>`
+              : '<div class="empty-inline">AI 建议已生成。</div>';
+            replaceDomainRecordLine(page, { ...record, aiSuggestion });
+          },
+          onTimeout: () => {
+            status.textContent = '已保存，AI 建议稍后会出现在记录里';
+          }
+        });
+      }
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -549,6 +567,13 @@ function prependDomainRecord(page, record) {
   }
 
   list?.insertAdjacentHTML('afterbegin', buildOnlineRecordLine(record));
+}
+
+function replaceDomainRecordLine(page, record) {
+  const line = Array.from(page.querySelectorAll('[data-online-record-id]'))
+    .find(item => item.dataset.onlineRecordId === record.id);
+  if (!line) return;
+  line.outerHTML = buildOnlineRecordLine(record);
 }
 
 function formatShortTime(value) {

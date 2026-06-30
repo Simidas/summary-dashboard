@@ -97,6 +97,7 @@ export async function handleDashboard(request, env) {
       totalRecords: computedState.totalRecords,
       currentStreakDays: computedState.currentStreakDays,
       longestStreakDays: Math.max(Number(state?.longest_streak_days || 0), computedState.longestStreakDays),
+      streakBreakPenalty: computedState.streakBreakPenalty,
       level: computedState.level,
       xp: computedState.xp,
       thisWeekRecordDays: Number(weekCount?.count || 0)

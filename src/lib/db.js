@@ -188,7 +188,7 @@ export function mapFollowup(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     closedAt: row.closed_at,
-    overdue: row.due_date ? row.due_date < todayShanghai() && row.status === 'open' : false,
+    overdue: row.due_date ? row.due_date <= todayShanghai() && ['open', 'deferred'].includes(row.status) : false,
     ageDays: daysBetween(row.created_at, nowIso())
   };
 }
@@ -289,7 +289,8 @@ export async function calculateUserActivityStats(env, ownerId, fallbackDate = to
   const totalRecords = Number(totalRow?.total || 0);
   const currentStreak = calculateCurrentStreak(dates, fallbackDate);
   const longestStreak = calculateLongestStreak(dates);
-  const xp = totalRecords * 10 + currentStreak * 5;
+  const streakBreakPenalty = calculateStreakBreakPenalty(dates, fallbackDate);
+  const xp = Math.max(0, totalRecords * 10 + currentStreak * 5 - streakBreakPenalty);
   const level = Math.max(1, Math.floor(xp / 100) + 1);
 
   return {
@@ -297,6 +298,7 @@ export async function calculateUserActivityStats(env, ownerId, fallbackDate = to
     currentStreakDays: currentStreak,
     longestStreakDays: longestStreak,
     lastRecordDate: dates[0] || null,
+    streakBreakPenalty,
     level,
     xp
   };
@@ -339,6 +341,7 @@ export async function updateUserStateAfterActivity(env, ownerId, activityDate) {
     currentStreakDays: stats.currentStreakDays,
     longestStreakDays: longest,
     lastRecordDate: stats.lastRecordDate || activityDate,
+    streakBreakPenalty: stats.streakBreakPenalty,
     level: stats.level,
     xp: stats.xp
   };
@@ -350,7 +353,14 @@ export async function updateUserStateAfterRecord(env, ownerId, recordDate) {
 
 function calculateCurrentStreak(dates, fallbackDate) {
   const unique = new Set(dates);
-  let cursor = parseDate(unique.has(todayShanghai()) ? todayShanghai() : dates[0] || fallbackDate);
+  const today = todayShanghai();
+  let cursor = parseDate(today);
+  if (!cursor) return 0;
+
+  if (!unique.has(today)) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
   let streak = 0;
 
   while (cursor) {
@@ -361,6 +371,17 @@ function calculateCurrentStreak(dates, fallbackDate) {
   }
 
   return streak;
+}
+
+function calculateStreakBreakPenalty(dates, fallbackDate) {
+  const latestDate = dates[0] || fallbackDate;
+  const latest = parseDate(latestDate);
+  const today = parseDate(todayShanghai());
+  if (!latest || !today) return 0;
+
+  const gapDays = Math.floor((today.getTime() - latest.getTime()) / 86400000);
+  const missedDaysAfterGrace = Math.max(0, gapDays - 1);
+  return Math.min(200, missedDaysAfterGrace * 20);
 }
 
 function calculateLongestStreak(dates) {

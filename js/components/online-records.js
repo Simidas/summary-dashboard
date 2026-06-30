@@ -23,19 +23,32 @@ export function buildOnlineRecordList(records, emptyText = '还没有线上记�
 
   return `
     <div class="online-record-list">
-      ${records.map(record => `
-        <article class="online-record-card">
-          <div class="domain-card-topline">
-            <span>${escapeHtml(getDomainLabel(record.domain))} · ${escapeHtml(getTypeLabel(record.type))}</span>
-            <time>${escapeHtml(formatDateTime(record.createdAt || record.date))}</time>
-          </div>
-          <p>${escapeHtml(record.content || record.summary || '')}</p>
-          ${buildRecordTags(record)}
-          ${buildSuggestion(record.aiSuggestion)}
-        </article>
-      `).join('')}
+      ${records.map(buildOnlineRecordCard).join('')}
     </div>
   `;
+}
+
+export function buildOnlineRecordCard(record) {
+  return `
+    <article class="online-record-card" data-online-record-id="${escapeAttr(record.id || '')}">
+      <div class="domain-card-topline">
+        <span>${escapeHtml(getDomainLabel(record.domain))} · ${escapeHtml(getTypeLabel(record.type))}</span>
+        <time>${escapeHtml(formatDateTime(record.createdAt || record.date))}</time>
+      </div>
+      <p>${escapeHtml(record.content || record.summary || '')}</p>
+      ${buildRecordTags(record)}
+      ${buildSuggestion(record.aiSuggestion)}
+    </article>
+  `;
+}
+
+export function replaceOnlineRecordCard(root, record) {
+  if (!root || !record?.id) return false;
+  const card = Array.from(root.querySelectorAll('[data-online-record-id]'))
+    .find(item => item.dataset.onlineRecordId === record.id);
+  if (!card) return false;
+  card.outerHTML = buildOnlineRecordCard(record);
+  return true;
 }
 
 function buildRecordTags(record) {
@@ -104,4 +117,8 @@ function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = value == null ? '' : String(value);
   return div.innerHTML;
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
 }

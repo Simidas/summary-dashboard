@@ -171,6 +171,11 @@
   color: #B91C1C;
 }
 
+.compact-row.is-overdue {
+  border-color: #FECACA;
+  background: #FEF2F2;
+}
+
 .metric-card strong {
   display: block;
   font-size: 1.5rem;
@@ -531,6 +536,11 @@
   margin-top: var(--space-2);
   margin-bottom: 0;
   color: var(--text-primary);
+}
+
+.ai-result-card-pending {
+  border-color: #BFDBFE;
+  background: #EFF6FF;
 }
 
 .next-small-step {
