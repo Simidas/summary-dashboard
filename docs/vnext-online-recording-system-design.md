@@ -1,12 +1,15 @@
-# vNext System Design: Cloudflare Workers + D1 + Google OAuth
+# System Design: Cloudflare Workers + D1 + Google OAuth
 
-状态：已确认，待开发  
-日期：2026-06-25  
+状态：已实现并上线
+日期：2026-06-25
+实现更新：2026-06-30
 对应 PRD：[vNext PRD: 在线记录与 AI 陪伴行动系统](./vnext-online-recording-prd.md)
+
+当前实现总览见：[current-implementation.md](./current-implementation.md)
 
 ## 1. 架构目标
 
-把当前 Cloudflare Pages 静态站升级为 Cloudflare Workers 全栈应用，支持：
+当前系统已经是 Cloudflare Workers 全栈应用，支持：
 
 - 静态资源托管。
 - Google OAuth 登录。
@@ -14,6 +17,8 @@
 - 在线记录写入。
 - AI 陪伴建议生成。
 - 首页提醒与轻量正反馈。
+- 项目、Follow-up、内容素材、场景设置、周期复盘。
+- 周/月/年复盘与趋势实时聚合。
 
 核心原则：
 
@@ -23,17 +28,17 @@
 - 记录写入失败和 AI 生成失败要解耦，先保证原文保存。
 - 本版只做 owner 单人写入，但数据结构预留未来多用户。
 
-## 2. 推荐目录结构
+## 2. 当前目录结构
 
-建议迁移为 Workers 静态资源项目：
+当前项目结构：
 
 ```text
 summary-dashboard/
-├── public/
-│   ├── index.html
-│   ├── css/
-│   ├── js/
-│   └── data/                  # 可选：历史静态 fallback 数据
+├── index.html                 # 源静态入口
+├── css/
+├── js/
+├── data/                      # 历史 JSON / 静态 fallback
+├── public/                    # prepare:worker-assets 生成，不提交
 ├── src/
 │   ├── worker.js              # Worker 入口
 │   ├── routes/
@@ -41,25 +46,33 @@ summary-dashboard/
 │   │   ├── records.js
 │   │   ├── daily-reviews.js
 │   │   ├── dashboard.js
-│   │   └── ai.js
+│   │   ├── dashboard-settings.js
+│   │   ├── projects.js
+│   │   ├── followups.js
+│   │   ├── content-items.js
+│   │   ├── domain-settings.js
+│   │   └── period-reviews.js
 │   ├── lib/
 │   │   ├── db.js
 │   │   ├── session.js
 │   │   ├── google-oauth.js
 │   │   ├── ai-client.js
-│   │   ├── authz.js
 │   │   └── response.js
 │   └── prompts/
-│       └── companion.js
+│       ├── companion.js
+│       └── period-review.js
 ├── migrations/
-│   └── 0001_initial.sql
+│   ├── 0001_initial.sql
+│   ├── 0002_projects_and_dashboard_settings.sql
+│   └── 0003_remaining_write_closures.sql
 ├── scripts/
+│   ├── prepare-worker-assets.js
 │   └── import-json-to-d1.js
 ├── wrangler.toml
 └── docs/
 ```
 
-如果开发成本需要更低，也可以先不移动前端目录，但最终建议用 `public/` 承载静态资源，避免 Worker 源码和公开资源混在一起。
+`public/` 由 `npm run prepare:worker-assets` 生成，用于 Workers Static Assets。
 
 ## 3. Cloudflare 配置
 
@@ -68,7 +81,7 @@ summary-dashboard/
 ```toml
 name = "summary-dashboard"
 main = "src/worker.js"
-compatibility_date = "2026-06-25"
+compatibility_date = "2026-05-27"
 
 [assets]
 directory = "./public"
@@ -106,6 +119,12 @@ MINIMAX_API_KEY
 本地开发可提供 `.dev.vars.example`，但真实 `.dev.vars` 不提交。
 
 ## 4. 数据库设计
+
+当前 migration 已拆为三份：
+
+- `0001_initial.sql`：用户、会话、记录、AI 建议、每日复盘、用户状态。
+- `0002_projects_and_dashboard_settings.sql`：项目和首页设置。
+- `0003_remaining_write_closures.sql`：内容素材、follow-up、场景设置、周期复盘。
 
 ### 4.1 users
 
@@ -255,6 +274,32 @@ CREATE TABLE user_state (
 
 这里的 `level/xp` 用于首页轻量宠物激励。记录会更新经验、等级和连续天数；复杂装扮、任务树、商店等游戏化能力不在本版实现。
 
+### 4.7 projects
+
+项目主线数据，支持创建、编辑、删除、详情页时间线。
+
+### 4.8 dashboard_settings
+
+首页手动设置项，保留今日重点和明天第一步。
+
+### 4.9 followups
+
+未闭环事项，包含 `domain`、`project`、`status`、`due_date`、`closed_at`。前端会对计划时间小于等于当前日期且未闭环的事项显示超时。
+
+### 4.10 content_items
+
+内容素材池，包含标题、来源场景、状态、角度、提纲、标签和下一步。
+
+### 4.11 domain_settings
+
+四场景的当前重点和下一步。
+
+### 4.12 period_reviews
+
+周/月/年周期复盘，字段包含 `period_type`、`period_key`、主题、总结、胜利、卡点、下一步和状态。
+
+周期复盘历史已经融合进周/月/年趋势卡片，不再作为独立大列表展示。
+
 ## 5. API 设计
 
 所有返回 JSON 的接口统一结构：
@@ -374,8 +419,9 @@ Query：
 1. 校验登录和 CSRF。
 2. 写入 `records`。
 3. 更新 `user_state`。
-4. 同步尝试生成 AI suggestion。
-5. AI 失败则返回 `status = failed`，但记录仍成功。
+4. 通过 `ctx.waitUntil` 异步生成 AI suggestion。
+5. 立即返回 `aiPending = true`，前端轮询记录详情回填 AI 建议。
+6. AI 失败只写入失败状态，不回滚原始记录。
 
 #### PATCH /api/records/:id
 
@@ -432,6 +478,42 @@ visitor 返回：
 - public records summary。
 - 不包含 private 原文、AI 建议和 user_state 私密数据。
 
+### 5.6 Projects
+
+- `GET /api/projects`
+- `POST /api/projects`
+- `GET /api/projects/:slugOrId`
+- `PATCH /api/projects/:slugOrId`
+- `DELETE /api/projects/:slugOrId`
+
+### 5.7 Follow-ups
+
+- `GET /api/followups`
+- `POST /api/followups`
+- `PATCH /api/followups/:id`
+- `DELETE /api/followups/:id`
+
+### 5.8 Content Items
+
+- `GET /api/content-items`
+- `POST /api/content-items`
+- `PATCH /api/content-items/:id`
+- `DELETE /api/content-items/:id`
+
+### 5.9 Domain Settings
+
+- `GET /api/domain-settings/:domain`
+- `PATCH /api/domain-settings/:domain`
+
+### 5.10 Period Reviews
+
+- `GET /api/period-reviews?type=weekly|monthly|yearly`
+- `GET /api/period-reviews/:type/:key`
+- `PUT /api/period-reviews/:type/:key`
+- `POST /api/period-reviews/:type/:key/generate`
+
+`/generate` 会读取对应周期内的 records、daily reviews、followups 和 content items，生成可编辑草稿并保存为 `draft`。
+
 ## 6. Google OAuth 设计
 
 ### 6.1 OAuth Flow
@@ -463,16 +545,17 @@ visitor 返回：
 
 ### 6.3 Session Cookie
 
-Cookie 建议：
+当前 Cookie：
 
 ```text
-sid=<opaque-random-token>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000
+sd_session=<opaque-random-token>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=172800
 ```
 
-Session 过期建议：
+Session 过期策略：
 
-- 默认 30 天。
-- 每次访问 `/api/auth/me` 或写入接口可更新 `last_seen_at`。
+- 默认 48 小时。
+- 每次 API 请求命中 session 时刷新 `last_seen_at` 和 `expires_at`。
+- Cookie 也随 API 响应刷新。
 - logout 删除数据库 session。
 
 ### 6.4 CSRF
@@ -490,6 +573,18 @@ Mutation 包括：
 - `DELETE /api/records/:id`
 - `PUT /api/daily-reviews/:date`
 - `POST /api/records/:id/ai/regenerate`
+- `POST /api/projects`
+- `PATCH /api/projects/:slugOrId`
+- `DELETE /api/projects/:slugOrId`
+- `POST /api/followups`
+- `PATCH /api/followups/:id`
+- `DELETE /api/followups/:id`
+- `POST /api/content-items`
+- `PATCH /api/content-items/:id`
+- `DELETE /api/content-items/:id`
+- `PATCH /api/domain-settings/:domain`
+- `PUT /api/period-reviews/:type/:key`
+- `POST /api/period-reviews/:type/:key/generate`
 - `POST /api/auth/logout`
 
 ## 7. AI 设计
@@ -706,52 +801,54 @@ wrangler secret put MINIMAX_API_KEY
 - Cookie 为 HttpOnly/Secure/SameSite=Lax。
 - Secrets 不出现在前端 bundle。
 
-## 12. 开发拆分建议
+## 12. 开发里程碑状态
 
 ### Milestone 1: Workers 基础架构
 
-- 新建 `wrangler.toml`。
-- 整理 `public/` 静态资源。
-- Worker 能正确返回静态页面。
-- `/api/health` 可用。
+- [x] 新建 `wrangler.toml`。
+- [x] 整理 `public/` 静态资源。
+- [x] Worker 能正确返回静态页面。
+- [x] `/api/health` 可用。
 
 ### Milestone 2: D1 Schema
 
-- 创建 migrations。
-- 实现 DB helper。
-- 本地和远端 D1 可迁移。
+- [x] 创建 migrations。
+- [x] 实现 DB helper。
+- [x] 本地和远端 D1 可迁移。
 
 ### Milestone 3: Google OAuth
 
-- start/callback/logout/me 接口。
-- session 和 csrf。
-- owner-only authz。
+- [x] start/callback/logout/me 接口。
+- [x] session 和 csrf。
+- [x] owner-only authz。
 
 ### Milestone 4: Records API
 
-- records CRUD。
-- dashboard 聚合。
-- user_state 更新。
+- [x] records CRUD。
+- [x] dashboard 聚合。
+- [x] user_state 更新。
 
 ### Milestone 5: AI Suggestion
 
-- AI client。
-- prompt。
-- JSON parse 和失败兜底。
-- regenerate。
+- [x] AI client。
+- [x] prompt。
+- [x] JSON parse 和失败兜底。
+- [x] regenerate。
+- [x] 新记录 AI 异步生成。
 
 ### Milestone 6: Frontend
 
-- auth.js/api.js。
-- 首页快速记录。
-- AI 建议展示。
-- 下一小步和正反馈卡片。
+- [x] auth.js/api.js。
+- [x] 首页快速记录。
+- [x] AI 建议展示。
+- [x] 下一小步和正反馈卡片。
+- [x] Daily / Weekly / Monthly / Yearly / Domain / Projects / Diary / Content 写入闭环。
 
 ### Milestone 7: Migration & Docs
 
-- JSON 导入脚本。
-- README 部署说明。
-- 验收测试。
+- [x] JSON 导入脚本。
+- [x] README 部署说明。
+- [x] 基础检查命令。
 
 ## 13. 官方参考
 

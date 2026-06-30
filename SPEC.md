@@ -1,20 +1,20 @@
-# 个人 AI 复盘展示站 — SPEC.md
+# 个人经营复盘系统 — SPEC.md
 
 > 本文件是项目的设计规范文档，所有实现必须严格遵循。如需调整，必须先更新此文档再改代码。
 >
-> 当前待开发版本的系统设计以 [docs/vnext-online-recording-system-design.md](docs/vnext-online-recording-system-design.md) 为准。该版本会从 Cloudflare Pages 静态站升级为 Cloudflare Workers + D1 + Google OAuth 的在线记录系统。
+> 当前已上线实现以 [docs/current-implementation.md](docs/current-implementation.md) 为准。系统已经从 Cloudflare Pages 静态站升级为 Cloudflare Workers + D1 + Google OAuth 的在线记录系统。
 
 ---
 
 ## 1. Concept & Vision
 
-**是什么：** 一个展示 AI 自动化工作复盘的公开博客/仪表盘。
+**是什么：** 一个帮助作者持续记录、接住情绪、推进事情、定期复盘的个人经营系统。
 
 **核心理念：** 「数字农夫的水稻田」——每天种下一行记录，到了年底回头看，是一片金色的收成。数据翔实但不过度装修，有手工感但不粗糙。读起来像翻一本认真写的笔记本，而不是刷社交媒体。
 
-**目标读者：** 对 AI 提效感兴趣的技术人、潜在读者/粉丝
+**目标用户：** 当前首先服务作者本人，围绕主业、副业、生活和自我、内容产出四个场景驱动行动。未来可探索对外开放，但多用户复杂后台不属于当前版本。
 
-**内容基调：** 真实、不端着、有过程（踩坑+突破都有）
+**内容基调：** 真实、不端着、有过程。AI 反馈先接住状态，再给鼓励和下一小步。
 
 ---
 
@@ -86,27 +86,37 @@
 └─────────────────────────────────────────────┘
 ```
 
-### 3.2 四个视图
+### 3.2 主要视图
 
-**Daily View（首页默认）**
-- Hero：今日复盘预览（如果当日未结束则显示昨日）
-- 时间线列表：最近14天，每条以「日期 + 标签 + 简述」展示
-- 点击卡片 → 展开当日完整内容
+**Home**
+- 首页第一屏展示产品定位语：帮你持续记录、接住情绪、推进事情、定期复盘的个人经营系统。
+- Owner 登录后展示快速记录入口、今日重点、下一小步、未闭环事项、四场景面板、项目主线、最近在线记录、内容素材和宠物成长。
+- 最近在线记录分页，每页 10 条，避免遮挡后续板块。
 
-**Weekly View**
-- 过去8周，以「周」为单位聚合
-- 每周卡片：周日期范围 + 成就数 + 讨论数 + 标签云
-- 点击 → 展开本周所有条目
+**Daily**
+- 展示每日综合复盘和当天/历史在线记录。
+- 头部复盘优先展示当天保存的每日复盘；当天没有时展示最近一天的已保存复盘。
+- 支持选择日期，默认今天，也可以补写昨天或历史日期。
 
-**Monthly View**
-- 过去12个月，以「月」为单位聚合
-- 月度卡片：月份 + 本月成就数 + 热点标签 + 进展项目
-- 简单的柱状图展示每月成就数趋势
+**Weekly**
+- 过去若干周，以周为单位聚合 D1 中的记录、每日复盘、follow-up 和内容素材。
+- 页面包含本周经营洞察、周复盘草稿和“周度复盘与趋势”。
+- 周度趋势卡片融合系统统计与周期复盘：复盘天数、闭环率、超时、能量、内容发布、复盘状态、主题、摘要和查看/编辑入口。
+- 顶部标签为高频内容标签，来源为 `record.tags` + `aiSuggestion.suggestedTags`；底部标签为项目，来源为 `record.projects`；不展示日期标签。
 
-**Yearly View**
-- 所有年份概览（2026起）
-- 年份大卡片：年 + 成就总数 + 项目总数 + 内容产出数
-- 点击年份 → 展开该年所有月份
+**Monthly**
+- 按月聚合每日复盘和事项闭环，展示月度经营洞察、月复盘草稿、月度成就趋势图和“月度复盘与趋势”。
+- 月度卡片同样融合统计数据与周期复盘状态。
+
+**Yearly**
+- 按年聚合复盘天数、成果、项目、闭环率和内容产出。
+- 年度卡片融合年度洞察、年度复盘状态、主题摘要和编辑入口。
+
+**Domain / Projects / Diary / Content**
+- 四场景详情页支持写入场景记录、设置当前重点和下一步、管理未闭环事项。
+- Projects 支持项目创建、编辑、删除和详情页时间线。
+- Diary 用作情绪和思绪出口。
+- Content 用作内容素材池。
 
 ### 3.3 响应式策略
 - Desktop（>1024px）：双栏（侧边导航 + 主内容）
@@ -120,15 +130,14 @@
 ### 4.1 核心功能
 
 **F1: 数据加载**
-- 静态 HTML/JS 从 `/data/summaries/YYYY-MM-DD.json` 加载每日数据
-- 构建期：GitHub Actions 定时（每日 00:05）从 workspace/memory/summaries/ 拉取并构建
-- 离线友好：数据内嵌在构建产物里，无需运行时 API
+- Owner 登录后优先从 Workers API 读取 D1 数据。
+- 游客只能读取公开记录和公开 dashboard 数据。
+- `data/records` 和 `data/summaries` 保留为历史导入来源、静态 fallback 和备份格式。
 
 **F2: 每日视图**
-- 默认展示最新一条记录
-- 14天时间线可滚动
-- 点击「展开」：卡片展开显示完整字段（achievements/discussions/followUps/learnings）
-- 键盘导航：← → 切换相邻日期
+- 支持在线编辑每日综合复盘。
+- 支持展示当天记录、复盘字段、心情和能量。
+- 支持日期选择，默认今天，可补写历史日期。
 
 **F3: 评论功能（Giscus）**
 - 每篇日/周/月/年记录下方集成 Giscus
@@ -137,20 +146,21 @@
 - 评论区顶部显示评论数
 
 **F4: 标签系统**
-- 每条记录有标签（项目名/话题类型）
-- 标签可点击，筛选显示所有相关记录
-- 标签云展示所有历史标签（按频率排序）
+- 内容标签来源为记录手动标签和 AI 建议标签。
+- 项目标签来源为记录关联项目。
+- 周度复盘与趋势中，顶部展示内容标签，底部展示项目标签。
 
-**F5: 搜索**
-- 键盘快捷键 `Ctrl+K` 或 `/` 打开搜索
-- 搜索标题 + achievements + discussions
-- 实时过滤，不需要跳转页面
+**F5: 在线写入**
+- 首页、场景、Diary、Projects、Content、Follow-up、Daily Review、Period Review 均支持在线写入。
+- 记录保存先成功返回，AI 建议异步生成并回填。
 
-**F6: 数据 API（供自己调用）**
-- `GET /api/summary?type=daily&date=2026-03-30`
-- `GET /api/summary?type=weekly&week=2026-W13`
-- `GET /api/summary?type=monthly&month=2026-03`
-- Cloudflare Workers 实现，读取 D1 数据库（summary-dashboard 的专属库）
+**F6: 周期复盘**
+- `period_reviews` 保存周/月/年复盘草稿和确认状态。
+- 支持 AI 生成周期复盘草稿。
+- 周期复盘历史已经融合进周/月/年趋势卡片。
+
+**F7: 数据 API**
+- Cloudflare Workers 提供 `/api/records`、`/api/daily-reviews`、`/api/period-reviews`、`/api/projects`、`/api/followups`、`/api/content-items`、`/api/dashboard` 等接口。
 
 ### 4.2 交互细节
 
@@ -220,14 +230,18 @@
 ## 6. Technical Approach
 
 ### 6.1 技术栈
-- **前端：** 纯 HTML + CSS + Vanilla JS（零框架依赖，CDN 加载）
+- **前端：** 纯 HTML + CSS + Vanilla JS（零框架依赖，ES Modules）
 - **样式：** CSS Custom Properties + Grid/Flexbox，无 CSS 框架
 - **评论：** Giscus（GitHub Discussions + giscus.app）
-- **数据源：** GitHub 仓库 `/data/summaries/*.json`（构建时拉取）
-- **构建：** GitHub Actions（每日定时）+ Cloudflare Pages 自动部署
-- **可选增强 API：** Cloudflare Workers 读取 D1 做服务端搜索（后续迭代）
+- **运行环境：** Cloudflare Workers + Static Assets
+- **数据库：** Cloudflare D1
+- **鉴权：** Google OAuth + HttpOnly session cookie + CSRF token
+- **AI：** MiniMax M3，Worker 服务端调用
+- **静态 fallback：** 仓库 JSON 和聚合脚本保留作历史归档/导入/无 API 预览
 
 ### 6.2 数据模型
+
+当前线上主数据模型为 D1，详见 [docs/current-implementation.md](docs/current-implementation.md)。下面的静态 JSON 结构保留为历史导入、静态 fallback 和本地归档格式，不再是线上主写入路径。
 
 **每日摘要 `data/summaries/daily/YYYY-MM-DD.json`**
 ```json
@@ -259,9 +273,11 @@
   "totalFollowUps": 5,
   "topProjects": ["背景去除项目", "安居乐寓"],
   "topTags": ["AI自动化", "踩坑"],
-  "dailyRecords": ["2026-03-24", "2026-03-25", ...]
+  "dailyRecords": ["2026-03-24", "2026-03-25", "..."]
 }
 ```
+
+`dailyRecords` 仅作为内部统计字段保留，不在周度趋势卡片中以标签形式展示。
 
 **每月摘要 `data/summaries/monthly/YYYY-MM.json`**（自动聚合）
 ```json
@@ -323,34 +339,40 @@ summary-dashboard/
 │   └── utils/
 │       ├── date.js
 │       └── format.js
-├── data/                   ← 构建时由 GitHub Actions 填充
-│   └── summaries/
-│       ├── daily/YYYY-MM-DD.json
-│       ├── weekly/YYYY-WXX.json
-│       ├── monthly/YYYY-MM.json
-│       └── yearly/YYYY.json
+├── src/                    ← Worker API
+│   ├── worker.js
+│   ├── routes/
+│   ├── lib/
+│   └── prompts/
+├── migrations/             ← D1 schema
+├── scripts/                ← 静态资产准备和历史导入
+├── data/                   ← 历史 JSON / 静态 fallback
+├── public/                 ← prepare:worker-assets 生成，不提交
+├── wrangler.toml
+├── package.json
 ├── SPEC.md                 ← 本文档
 └── README.md
 ```
 
-### 6.4 构建流程
+### 6.4 构建与部署流程
 
 ```
-GitHub Actions (每日 00:05 UTC = 北京 08:05)
-  1. git clone ~/projects/summary-dashboard (workspace repo)
-  2. cp memory/summaries/*.json → data/summaries/daily/
-  3. node scripts/aggregate.js → 生成 weekly/monthly/yearly JSON
-  4. git add + commit + push
-  5. Cloudflare Pages 自动触发构建部署
+npm run prepare:worker-assets
+  1. 清理并重建 public/
+  2. 拷贝 index.html、css、js、data 等静态资源
+  3. wrangler deploy 发布 Worker + Static Assets
 ```
 
-### 6.5 GitHub Actions 定时配置
+Cloudflare 自动部署的 Deploy command 应使用：
 
-```yaml
-on:
-  schedule:
-    - cron: '5 0 * * *'  # 每日 00:05 UTC
-  workflow_dispatch:       # 也可手动触发
+```bash
+npm run deploy:worker
+```
+
+首次部署或 schema 变化时执行：
+
+```bash
+npm run d1:migrate:remote
 ```
 
 ### 6.6 评论配置（Giscus）
@@ -364,28 +386,15 @@ on:
 
 ### 6.7 域名规划
 
-可选：`summary.zhuwd.com` 或 `review.zhuwd.com`
-（域名已在 Cloudflare，可用 Workers 处理）
+当前生产域名：`blog.zhuwd.com`，由 Cloudflare Workers 处理。
 
 ---
 
 ## 7. Implementation Phases
 
-**Phase 1（MVP）：** 基础框架 + Daily 视图 + Giscus 评论
-- 纯静态，数据写死 3-5 条 demo JSON
-- 验证 UI + 评论流程
+**已完成：** 静态展示、统一每日综合记录、Workers + D1、Google 登录、在线记录、AI 建议、四场景面板、项目、Follow-up、内容素材、Daily Review、Period Review、宠物激励、周/月/年趋势和复盘融合。
 
-**Phase 2：** 接入真实数据 + Weekly/Monthly 聚合
-- GitHub Actions 自动拉取 memory/summaries/
-- 聚合脚本生成 weekly/monthly JSON
-
-**Phase 3：** 搜索 + 标签筛选
-- 键盘快捷键搜索
-- 标签云和筛选
-
-**Phase 4（可选）：** Cloudflare Workers API + 私有备注
-- D1 存储全文检索
-- 支持私有笔记（只有登录可见）
+**后续可选：** 多用户开放、指定人分享、D1 定期备份/导出、外部提醒、内容自动发布、更完整的宠物养成。
 
 ---
 
@@ -393,14 +402,14 @@ on:
 
 - [x] 仓库名：`summary-dashboard`
 - [x] Giscus 评论：**开启匿名评论**（在 GitHub repo 设置中允许陌生人创建 Discussion）
-- [x] RSS 订阅：要做，`/rss.xml` 端点，订阅地址 `summary.zhuwd.com/rss.xml`
-- [ ] 评论区的头像显示是否需要 Giscus 官方样式微调？
+- [ ] D1 定期备份和导出策略
+- [ ] shared 可见性的指定人分享模型
+- [ ] 多用户开放时的权限和计费边界
 
 ---
 
 - **GitHub 仓库：** https://github.com/Simidas/summary-dashboard
 - **初始化完成：** 2026-03-30，SPEC.md 已 push
-- **Cloudflare Pages：** https://22f1d0b3.summary-dashboard.pages.dev（自动分配子域名）
-- **自定义域名：** 待绑定 `summary.zhuwd.com`
+- **Cloudflare Workers 域名：** https://blog.zhuwd.com
 
-_本文档由小乐于 2026-03-30 起草_
+_本文档最初由小乐于 2026-03-30 起草，2026-06-30 按当前 Workers + D1 实现状态更新。_

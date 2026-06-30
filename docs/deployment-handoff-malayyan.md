@@ -1,17 +1,20 @@
 # 部署交接：在线记录 vNext
 
-交接对象：马来研  
-项目：`summary-dashboard`  
-目标分支：`main`  
-当前关键提交：
+交接对象：马来研
+项目：`summary-dashboard`
+目标分支：`main`
+当前关键提交示例：
 
-- `d24e95e fix: use minimax subscription endpoint`
-- `f8f1693 feat: switch ai provider to minimax m3`
-- `3c6650a feat: add online recording worker stack`
+- `0bdc32a 调整周度趋势标签展示逻辑`
+- `5e733ad 融合周期复盘历史与趋势列表`
+- `550c789 升级周期经营洞察和AI复盘草稿`
+- `2fa5d79 优化记录闭环和异步 AI 体验`
+
+当前实现状态见：[current-implementation.md](./current-implementation.md)
 
 ## 1. 本次部署目标
 
-把当前静态复盘站升级为 Cloudflare Workers + D1 的在线记录版本：
+当前项目已经升级为 Cloudflare Workers + D1 的在线记录版本。本交接文档用于后续部署、排障和环境复建：
 
 - 静态资源由 Workers Static Assets 托管。
 - Google OAuth 登录。
@@ -19,6 +22,8 @@
 - 在线记录写入 Cloudflare D1。
 - AI 陪伴建议走 MiniMax 订阅接口，模型 `MiniMax-M3`。
 - 首页显示在线记录入口、下一小步、轻量宠物激励和正反馈。
+- Daily / Weekly / Monthly / Yearly / Domain / Projects / Diary / Content 写入闭环。
+- 周/月/年趋势卡片已融合周期复盘状态、摘要和查看/编辑入口。
 
 本次不做多用户后台、复杂游戏化、指定人分享、Hermes 接入。
 
@@ -58,7 +63,7 @@ npm install
 git log --oneline -3
 ```
 
-预期能看到 `d24e95e` 或更新提交。
+预期能看到 `0bdc32a` 或更新提交。
 
 ## 4. Cloudflare D1
 
@@ -98,6 +103,12 @@ records
 ai_suggestions
 daily_reviews
 user_state
+projects
+dashboard_settings
+content_items
+followups
+domain_settings
+period_reviews
 ```
 
 ## 5. Google OAuth

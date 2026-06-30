@@ -206,14 +206,24 @@ node --check scripts/aggregate.js
 node scripts/aggregate.js
 ```
 
-## GitHub Actions
+## 自动部署说明
 
-工作流会在以下情况下运行：
+当前线上部署以 Cloudflare Workers 为准。Cloudflare 自动部署的 Deploy command 应使用：
 
-```text
-定时触发
-手动触发
-main 分支中 index/css/js/data/records/data/summaries/scripts/templates 等路径变化
+```bash
+npm run deploy:worker
 ```
 
-部署前会运行 `scripts/aggregate.js`，并提交生成的 manifest 与聚合数据。
+不要直接使用 `npx wrangler deploy`，否则可能漏掉 `public/` 静态资源准备。
+
+D1 schema 不在 Worker 运行期兜底创建。首次部署、schema 变化，或线上出现缺表/缺字段导致的 500 时，手动执行：
+
+```bash
+npm run d1:migrate:remote
+```
+
+如果希望部署前显式跑 migration：
+
+```bash
+npm run deploy:worker:migrate
+```
