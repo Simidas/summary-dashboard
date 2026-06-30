@@ -1,4 +1,4 @@
-import { getRecord } from '../api.js?v=20260630a';
+import { getRecord } from '../api.js?v=20260630d';
 
 const DEFAULT_ATTEMPTS = 24;
 const DEFAULT_INTERVAL_MS = 2500;

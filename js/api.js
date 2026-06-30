@@ -196,6 +196,12 @@ export function updatePeriodReview(type, key, input) {
   });
 }
 
+export function generatePeriodReview(type, key) {
+  return apiRequest(`/api/period-reviews/${encodeURIComponent(type)}/${encodeURIComponent(key)}/generate`, {
+    method: 'POST'
+  });
+}
+
 export function updateDashboardSettings(input) {
   return apiRequest('/api/dashboard-settings', {
     method: 'PATCH',

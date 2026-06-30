@@ -2,13 +2,14 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630a';
-import { getContentItems, getDailyReviews, getProjects, getRecords } from '../api.js?v=20260630a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
-import { buildYearlySummaries } from '../aggregations.js?v=20260630a';
-import { createYearHeroCard } from '../components/card.js?v=20260630a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630a';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630a';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630d';
+import { getContentItems, getDailyReviews, getFollowups, getProjects, getRecords } from '../api.js?v=20260630d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
+import { buildYearlySummaries } from '../aggregations.js?v=20260630d';
+import { createYearHeroCard } from '../components/card.js?v=20260630d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
 
 let yearCards = [];
 
@@ -41,15 +42,17 @@ export async function renderYearlyView(container, params = {}) {
   let yearsData = [];
 
   if (useOwnerApi) {
-    const [recordsData, reviewsData, projectsData, contentData] = await Promise.all([
+    const [recordsData, reviewsData, followupsData, projectsData, contentData] = await Promise.all([
       getRecords({ limit: 500 }).catch(() => null),
       getDailyReviews({ limit: 500 }).catch(() => null),
+      getFollowups({ status: 'all', limit: 200 }).catch(() => null),
       getProjects().catch(() => null),
       getContentItems({ limit: 100 }).catch(() => null)
     ]);
     yearsData = buildYearlySummaries({
       records: recordsData?.records || [],
       dailyReviews: reviewsData?.reviews || [],
+      followups: followupsData?.followups || [],
       projects: projectsData?.projects || [],
       contentItems: contentData?.items || []
     }).map(data => ({ year: String(data.year), data }));
@@ -89,8 +92,20 @@ export async function renderYearlyView(container, params = {}) {
 
   // Build header
   const header = page.querySelector('.view-header');
+  if (yearsData[0]?.data?.insight) {
+    page.appendChild(createPeriodInsightPanel(yearsData[0].data.insight, '年度经营洞察'));
+  }
+
   const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+
+  const historyHeading = document.createElement('div');
+  historyHeading.className = 'section-heading period-history-heading';
+  historyHeading.innerHTML = `
+    <h2 class="section-title">年度趋势</h2>
+    <span class="panel-date">共 ${yearsData.length} 年</span>
+  `;
+  page.appendChild(historyHeading);
 
   // Create year hero cards
   yearsData.forEach(({ year, data }, index) => {

@@ -84,7 +84,7 @@ export function buildDomainSummaries({ records = [], followups = [], contentItem
 
 export function buildWeeklySummaries({ records = [], dailyReviews = [], followups = [], contentItems = [] } = {}) {
   const groups = groupActivitiesBy(records, dailyReviews, date => getWeekKey(date));
-  return Array.from(groups.entries())
+  const summaries = Array.from(groups.entries())
     .sort(([left], [right]) => right.localeCompare(left))
     .map(([key, group]) => {
       const { year, week } = parseWeekKey(key);
@@ -93,6 +93,10 @@ export function buildWeeklySummaries({ records = [], dailyReviews = [], followup
       const weekContent = contentItems.filter(item => getWeekKey(item.createdAt) === key);
       const topProjects = topValues(group.records.flatMap(record => record.projects || []), 5);
       const topTags = topValues(group.records.flatMap(record => record.tags || []), 6);
+      const activity = buildPeriodActivity(group, weekFollowups, weekContent, {
+        expectedReviewDays: 7,
+        contentLabel: '篇内容发布'
+      });
 
       return {
         key,
@@ -107,13 +111,18 @@ export function buildWeeklySummaries({ records = [], dailyReviews = [], followup
         topTags,
         contentPublished: weekContent.filter(item => item.status === 'published').length,
         contentSeeds: weekContent.length,
-        dailyRecords: groupDates
+        dailyRecords: groupDates,
+        ...activity
       };
     });
+
+  return attachPeriodInsights(summaries, 'weekly');
 }
 
 export function buildWeeklyInsight(summary, records = [], dailyReviews = [], followups = []) {
   if (!summary) return null;
+  if (summary.insight) return summary.insight;
+
   const weekRecords = records.filter(record => getWeekKey(record.date || record.createdAt) === summary.key);
   const weekReviews = dailyReviews.filter(review => getWeekKey(review.date) === summary.key);
   const wins = [
@@ -142,7 +151,7 @@ export function buildWeeklyInsight(summary, records = [], dailyReviews = [], fol
 
 export function buildMonthlySummaries({ records = [], dailyReviews = [], followups = [], contentItems = [] } = {}) {
   const groups = groupActivitiesBy(records, dailyReviews, date => safeDate(date).slice(0, 7));
-  return Array.from(groups.entries())
+  const summaries = Array.from(groups.entries())
     .sort(([left], [right]) => right.localeCompare(left))
     .map(([key, group]) => {
       const [year, month] = key.split('-');
@@ -153,6 +162,10 @@ export function buildMonthlySummaries({ records = [], dailyReviews = [], followu
         label: meta.label,
         count: group.records.filter(record => record.domain === meta.id).length
       }));
+      const activity = buildPeriodActivity(group, monthFollowups, monthContent, {
+        expectedReviewDays: getMonthDays(Number(year), Number(month)),
+        contentLabel: '篇内容发布'
+      });
 
       return {
         key,
@@ -176,24 +189,279 @@ export function buildMonthlySummaries({ records = [], dailyReviews = [], followu
           .filter(item => item.status === 'open' || item.status === 'deferred')
           .map(item => item.text)
           .slice(0, 5),
-        modeSummary: `${MONTH_NAMES[Number(month) - 1] || key}共沉淀 ${group.records.length} 条记录，覆盖 ${domainDistribution.filter(item => item.count > 0).length} 个场景。`
+        modeSummary: `${MONTH_NAMES[Number(month) - 1] || key}共沉淀 ${group.records.length} 条记录，覆盖 ${domainDistribution.filter(item => item.count > 0).length} 个场景。`,
+        ...activity
       };
     });
+
+  return attachPeriodInsights(summaries, 'monthly');
 }
 
-export function buildYearlySummaries({ records = [], dailyReviews = [], projects = [], contentItems = [] } = {}) {
+export function buildYearlySummaries({ records = [], dailyReviews = [], followups = [], projects = [], contentItems = [] } = {}) {
   const groups = groupActivitiesBy(records, dailyReviews, date => safeDate(date).slice(0, 4));
-  return Array.from(groups.entries())
+  const summaries = Array.from(groups.entries())
     .sort(([left], [right]) => right.localeCompare(left))
-    .map(([year, group]) => ({
-      year: Number(year),
-      totalAchievements: countAchievements(group.records, group.reviews),
-      totalProjects: projects.filter(project => !project.deletedAt).length || topValues(group.records.flatMap(record => record.projects || [])).length,
-      totalContentPublished: contentItems.filter(item => item.status === 'published' && safeDate(item.createdAt).startsWith(year)).length,
-      contentSeeds: contentItems.filter(item => safeDate(item.createdAt).startsWith(year)).length,
-      topTags: topValues(group.records.flatMap(record => record.tags || []), 8),
-      months: distinct(group.activities.map(item => safeDate(item.date).slice(0, 7))).filter(Boolean).sort()
-    }));
+    .map(([year, group]) => {
+      const yearFollowups = followups.filter(item => safeDate(item.createdAt || item.sourceDate || item.dueDate).startsWith(year));
+      const yearContent = contentItems.filter(item => safeDate(item.createdAt).startsWith(year));
+      const yearProjects = projects.filter(project => !project.deletedAt);
+      const projectNames = topValues(group.records.flatMap(record => record.projects || []), 8);
+      const activity = buildPeriodActivity(group, yearFollowups, yearContent, {
+        expectedReviewDays: getYearExpectedDays(Number(year)),
+        contentLabel: '篇内容发布'
+      });
+
+      return {
+        year: Number(year),
+        totalAchievements: countAchievements(group.records, group.reviews),
+        totalProjects: yearProjects.length || projectNames.length,
+        totalContentPublished: yearContent.filter(item => item.status === 'published').length,
+        contentPublished: yearContent.filter(item => item.status === 'published').length,
+        contentSeeds: yearContent.length,
+        topProjects: distinct([
+          ...yearProjects.map(project => project.name).filter(Boolean),
+          ...projectNames
+        ]).slice(0, 8),
+        topTags: topValues(group.records.flatMap(record => record.tags || []), 8),
+        months: distinct(group.activities.map(item => safeDate(item.date).slice(0, 7))).filter(Boolean).sort(),
+        ...activity
+      };
+    });
+
+  return attachPeriodInsights(summaries, 'yearly');
+}
+
+function buildPeriodActivity(group, periodFollowups = [], periodContent = [], options = {}) {
+  const reviewDates = distinct(group.reviews.map(review => safeDate(review.date || review.createdAt))).sort();
+  const recordDates = distinct(group.records.map(record => safeDate(record.date || record.createdAt))).sort();
+  const activityDates = distinct([
+    ...reviewDates,
+    ...recordDates
+  ]).sort();
+  const wins = collectWins(group.records, group.reviews);
+  const blockers = collectBlockers(group.records, group.reviews);
+  const nextActions = collectNextActions(group.records, group.reviews, periodFollowups);
+  const openFollowups = periodFollowups.filter(item => item.status === 'open' || item.status === 'deferred');
+  const completedFollowups = periodFollowups.filter(item => item.status === 'closed').length;
+  const overdueFollowups = openFollowups.filter(item => item.overdue).length;
+  const totalFollowups = periodFollowups.length;
+  const avgEnergy = averageEnergy(group.reviews, group.records);
+  const moodTags = topValues([
+    ...group.reviews.map(review => review.mood),
+    ...group.records.map(record => record.mood)
+  ], 3);
+  const expectedReviewDays = Number(options.expectedReviewDays || activityDates.length || 1);
+  const reviewRate = expectedReviewDays ? Math.round((reviewDates.length / expectedReviewDays) * 100) : 0;
+  const closureRate = totalFollowups ? Math.round((completedFollowups / totalFollowups) * 100) : 0;
+  const domainDistribution = DOMAIN_META.map(meta => ({
+    domain: meta.id,
+    label: meta.label,
+    count: group.records.filter(record => record.domain === meta.id).length
+  }));
+  const dominantDomain = [...domainDistribution].sort((a, b) => b.count - a.count)[0];
+
+  return {
+    reviewDays: reviewDates.length,
+    recordDays: recordDates.length,
+    activityDays: activityDates.length,
+    reviewRate,
+    wins: topValues(wins, 6),
+    blockers: topValues(blockers, 6),
+    nextActions: nextActions.slice(0, 6),
+    completedFollowups,
+    totalFollowUps: totalFollowups,
+    openFollowups,
+    openFollowUps: openFollowups,
+    overdueFollowups,
+    closureRate,
+    averageEnergy: avgEnergy,
+    moodTags,
+    domainDistribution,
+    dominantDomain: dominantDomain?.count ? dominantDomain : null,
+    contentPublished: periodContent.filter(item => item.status === 'published').length,
+    contentSeeds: periodContent.length,
+    contentLabel: options.contentLabel || '内容发布'
+  };
+}
+
+function attachPeriodInsights(summaries, periodType) {
+  return summaries.map((summary, index) => {
+    const previous = summaries[index + 1] || null;
+    const trend = buildPeriodTrend(summary, previous);
+    const enriched = { ...summary, trend };
+    return {
+      ...enriched,
+      insight: buildPeriodInsight(enriched, periodType)
+    };
+  });
+}
+
+function buildPeriodTrend(current, previous) {
+  return {
+    reviewDaysDelta: delta(current.reviewDays, previous?.reviewDays),
+    achievementsDelta: delta(current.totalAchievements, previous?.totalAchievements),
+    completedFollowupsDelta: delta(current.completedFollowups, previous?.completedFollowups),
+    overdueFollowupsDelta: delta(current.overdueFollowups, previous?.overdueFollowups),
+    energyDelta: current.averageEnergy != null && previous?.averageEnergy != null
+      ? Number((current.averageEnergy - previous.averageEnergy).toFixed(1))
+      : null,
+    closureRateDelta: current.closureRate != null && previous?.closureRate != null
+      ? current.closureRate - previous.closureRate
+      : null
+  };
+}
+
+function buildPeriodInsight(summary, periodType) {
+  const label = getPeriodInsightLabel(summary, periodType);
+  const energyText = summary.averageEnergy == null ? '暂无能量数据' : `能量均值 ${summary.averageEnergy}/5`;
+  const closureText = summary.totalFollowUps
+    ? `闭环 ${summary.completedFollowups}/${summary.totalFollowUps}`
+    : '暂无新增待办';
+  const headline = `${label}复盘 ${summary.reviewDays} 天，沉淀 ${summary.totalAchievements || 0} 个成果，${closureText}。${energyText}。`;
+
+  return {
+    title: `${label}经营洞察`,
+    periodKey: summary.key || String(summary.year || ''),
+    dateRange: summary.dateRange || summary.key || String(summary.year || ''),
+    headline,
+    metrics: buildInsightMetrics(summary, periodType),
+    wins: summary.wins || [],
+    blockers: summary.blockers || [],
+    nextFocus: summary.nextActions || [],
+    trendHighlights: buildTrendHighlights(summary, periodType),
+    stateHighlights: buildStateHighlights(summary),
+    domainDistribution: summary.domainDistribution || []
+  };
+}
+
+function buildInsightMetrics(summary, periodType) {
+  const reviewValue = periodType === 'weekly'
+    ? `${summary.reviewDays || 0}/7`
+    : `${summary.reviewDays || 0} 天`;
+
+  return [
+    {
+      label: '复盘节奏',
+      value: reviewValue,
+      detail: formatDelta(summary.trend?.reviewDaysDelta, '天'),
+      tone: trendTone(summary.trend?.reviewDaysDelta)
+    },
+    {
+      label: '事项闭环',
+      value: summary.totalFollowUps ? `${summary.closureRate || 0}%` : '--',
+      detail: summary.totalFollowUps ? `${summary.completedFollowups || 0}/${summary.totalFollowUps}` : '暂无待办',
+      tone: trendTone(summary.trend?.closureRateDelta)
+    },
+    {
+      label: '成果沉淀',
+      value: String(summary.totalAchievements || 0),
+      detail: formatDelta(summary.trend?.achievementsDelta, '个'),
+      tone: trendTone(summary.trend?.achievementsDelta)
+    },
+    {
+      label: '能量均值',
+      value: summary.averageEnergy == null ? '--' : String(summary.averageEnergy),
+      detail: formatDelta(summary.trend?.energyDelta, ''),
+      tone: trendTone(summary.trend?.energyDelta)
+    },
+    {
+      label: '超时事项',
+      value: String(summary.overdueFollowups || 0),
+      detail: `${summary.openFollowups?.length || 0} 个未闭环`,
+      tone: trendTone(summary.trend?.overdueFollowupsDelta, true)
+    }
+  ];
+}
+
+function buildTrendHighlights(summary, periodType) {
+  const highlights = [
+    describeTrend('复盘节奏', summary.trend?.reviewDaysDelta, '天'),
+    describeTrend('成果沉淀', summary.trend?.achievementsDelta, '个'),
+    describeTrend('闭环事项', summary.trend?.completedFollowupsDelta, '个'),
+    describeTrend('能量', summary.trend?.energyDelta, '')
+  ].filter(Boolean);
+
+  if (summary.overdueFollowups) {
+    highlights.push(`还有 ${summary.overdueFollowups} 个超时事项，需要尽快清掉。`);
+  }
+
+  if (!highlights.length) {
+    highlights.push(periodType === 'yearly' ? '这一年已经形成可回看的经营轨迹。' : '这一周期的数据还少，先保持记录节奏。');
+  }
+
+  return highlights;
+}
+
+function buildStateHighlights(summary) {
+  return [
+    summary.dominantDomain ? `投入最多：${summary.dominantDomain.label} ${summary.dominantDomain.count} 条` : '',
+    summary.moodTags?.length ? `高频状态：${summary.moodTags.join('、')}` : '',
+    summary.blockers?.length ? `主要卡点：${summary.blockers.slice(0, 2).join('；')}` : '',
+    summary.contentSeeds ? `内容素材 ${summary.contentSeeds} 条，已发布 ${summary.contentPublished || 0} 条` : ''
+  ].filter(Boolean);
+}
+
+function getPeriodInsightLabel(summary, periodType) {
+  if (periodType === 'weekly') return '本周';
+  if (periodType === 'monthly') return summary.monthName || '本月';
+  if (periodType === 'yearly') return `${summary.year || ''} 年`;
+  return '本周期';
+}
+
+function collectWins(records, reviews) {
+  return [
+    ...reviews.flatMap(review => review.wins || []),
+    ...records.filter(record => record.type === 'progress').map(record => record.summary || record.content)
+  ].filter(Boolean);
+}
+
+function collectBlockers(records, reviews) {
+  return [
+    ...reviews.flatMap(review => review.blockers || []),
+    ...records.filter(record => record.type === 'blocker').map(record => record.summary || record.content)
+  ].filter(Boolean);
+}
+
+function collectNextActions(records, reviews, followups) {
+  return distinct([
+    ...reviews.map(review => review.tomorrowFirstStep),
+    ...records.flatMap(record => record.nextActions || []),
+    ...followups
+      .filter(item => item.status === 'open' || item.status === 'deferred')
+      .map(item => item.text)
+  ]).filter(Boolean);
+}
+
+function averageEnergy(reviews, records) {
+  const reviewValues = reviews.map(review => Number(review.energy)).filter(Number.isFinite);
+  const recordValues = records.map(record => Number(record.energy)).filter(Number.isFinite);
+  const values = reviewValues.length ? reviewValues : recordValues;
+  if (!values.length) return null;
+  const sum = values.reduce((total, value) => total + value, 0);
+  return Number((sum / values.length).toFixed(1));
+}
+
+function delta(current = 0, previous = null) {
+  if (previous == null) return null;
+  return Number(current || 0) - Number(previous || 0);
+}
+
+function formatDelta(value, suffix) {
+  if (value == null || value === 0) return '较上周期持平';
+  const prefix = value > 0 ? '+' : '';
+  return `较上周期 ${prefix}${value}${suffix}`;
+}
+
+function describeTrend(label, value, suffix) {
+  if (value == null || value === 0) return '';
+  const direction = value > 0 ? '增加' : '减少';
+  return `${label}较上周期${direction} ${Math.abs(value)}${suffix}。`;
+}
+
+function trendTone(value, reverse = false) {
+  if (value == null || value === 0) return 'neutral';
+  const isPositive = reverse ? value < 0 : value > 0;
+  return isPositive ? 'positive' : 'negative';
 }
 
 function groupActivitiesBy(records, dailyReviews, getKey) {
@@ -275,6 +543,16 @@ function getWeekDateRange(key) {
   const sunday = new Date(monday);
   sunday.setUTCDate(monday.getUTCDate() + 6);
   return `${monday.toISOString().slice(0, 10)} ~ ${sunday.toISOString().slice(0, 10)}`;
+}
+
+function getMonthDays(year, month) {
+  if (!year || !month) return 30;
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function getYearExpectedDays(year) {
+  if (!year) return 365;
+  return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
 }
 
 function safeDate(value) {

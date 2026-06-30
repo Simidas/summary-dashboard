@@ -377,8 +377,8 @@ export function createWeekCard(data) {
   const details = document.createElement('div');
   details.className = 'week-card-details';
   details.innerHTML = `
-    <div class="week-card-days">${data.days || 0} 天记录 · ${data.totalFollowUps || 0} 个待跟进</div>
-    <div class="week-card-content">${data.contentPublished || 0} 篇内容发布</div>
+    <div class="week-card-days">${data.reviewDays || data.days || 0}/7 天复盘 · ${data.closureRate || 0}% 闭环 · ${data.overdueFollowups || 0} 个超时</div>
+    <div class="week-card-content">${data.contentPublished || 0} 篇内容发布 · 能量 ${data.averageEnergy == null ? '--' : data.averageEnergy}</div>
     ${buildProjectListHTML(data.topProjects)}
     ${buildDailyRecordsHTML(data.dailyRecords)}
   `;
@@ -417,7 +417,8 @@ export function createMonthCard(data) {
   const details = document.createElement('div');
   details.className = 'month-card-details';
   details.innerHTML = `
-    <div>${(data.weeks || []).length} 个周报 · ${data.contentPublished || 0} 篇内容发布</div>
+    <div>${data.reviewDays || 0} 天复盘 · ${data.closureRate || 0}% 闭环 · ${data.overdueFollowups || 0} 个超时</div>
+    <div>${(data.weeks || []).length} 个周 · ${data.contentPublished || 0} 篇内容发布 · 能量 ${data.averageEnergy == null ? '--' : data.averageEnergy}</div>
     ${buildProjectListHTML(data.topProjects)}
   `;
   card.appendChild(details);
@@ -441,10 +442,13 @@ export function createYearHeroCard(data) {
       <div class="year-hero-subtitle">${(data.months || []).length} 个月度复盘</div>
     </div>
     <div class="year-hero-stats">
+      ${buildYearStatHTML(data.reviewDays || 0, '复盘天数')}
       ${buildYearStatHTML(data.totalAchievements || 0, '成就')}
       ${buildYearStatHTML(data.totalProjects || 0, '项目')}
+      ${buildYearStatHTML(`${data.closureRate || 0}%`, '闭环率')}
       ${buildYearStatHTML(data.totalContentPublished || 0, '内容')}
     </div>
+    <p class="year-hero-summary">${escapeHtml(data.insight?.headline || '')}</p>
     <div class="year-hero-tags">
       <div class="year-hero-tags-label">年度高频标签</div>
       <div class="year-hero-tags-list">

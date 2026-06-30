@@ -1,5 +1,5 @@
-import { getPeriodReview, updatePeriodReview } from '../api.js?v=20260630a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
+import { generatePeriodReview, getPeriodReview, updatePeriodReview } from '../api.js?v=20260630d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
 
 export async function buildPeriodReviewPanel(type, periodKey, label) {
   const authState = getAuthState();
@@ -14,7 +14,9 @@ export async function buildPeriodReviewPanel(type, periodKey, label) {
         <h2 class="section-title">${escapeHtml(label)}复盘草稿</h2>
         <span class="panel-date">${escapeHtml(periodKey)}${review?.updatedAt ? ` · ${escapeHtml(formatShortTime(review.updatedAt))}` : ''}</span>
       </div>
-      ${review ? buildReviewPreview(review) : '<div class="empty-inline">这一周期还没有在线复盘草稿。</div>'}
+      <div data-period-review-preview-slot>
+        ${review ? buildReviewPreview(review) : '<div class="empty-inline">这一周期还没有在线复盘草稿。</div>'}
+      </div>
       <form class="dashboard-settings-form" data-period-review-form data-period-type="${escapeAttr(type)}" data-period-key="${escapeAttr(periodKey)}">
         <label>
           <span>主题</span>
@@ -47,6 +49,7 @@ export async function buildPeriodReviewPanel(type, periodKey, label) {
             </select>
           </label>
           <span class="form-status" data-period-review-status></span>
+          <button class="filter-tab" type="button" data-period-review-generate>AI 生成草稿</button>
           <button class="primary-action" type="submit">保存周期复盘</button>
         </div>
       </form>
@@ -56,10 +59,32 @@ export async function buildPeriodReviewPanel(type, periodKey, label) {
 
 export function bindPeriodReviewForms(root) {
   root.querySelectorAll('[data-period-review-form]').forEach(form => {
+    const panel = form.closest('[data-period-review-panel]');
+    const status = form.querySelector('[data-period-review-status]');
+    const previewSlot = panel?.querySelector('[data-period-review-preview-slot]');
+    const generateButton = form.querySelector('[data-period-review-generate]');
+
+    generateButton?.addEventListener('click', async () => {
+      generateButton.disabled = true;
+      status.textContent = 'AI 生成中...';
+
+      try {
+        const data = await generatePeriodReview(form.dataset.periodType, form.dataset.periodKey);
+        fillPeriodReviewForm(form, data.review);
+        if (previewSlot) previewSlot.innerHTML = buildReviewPreview(data.review);
+        status.textContent = data.ai?.status === 'failed'
+          ? '已用现有数据生成草稿，AI 返回异常'
+          : 'AI 草稿已生成';
+      } catch (error) {
+        status.textContent = error.message || '生成失败';
+      } finally {
+        generateButton.disabled = false;
+      }
+    });
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = form.querySelector('button[type="submit"]');
-      const status = form.querySelector('[data-period-review-status]');
       button.disabled = true;
       status.textContent = '保存中...';
 
@@ -72,6 +97,7 @@ export function bindPeriodReviewForms(root) {
           nextActions: splitLines(form.elements.nextActions.value),
           status: form.elements.status.value
         });
+        if (previewSlot && data.review) previewSlot.innerHTML = buildReviewPreview(data.review);
         status.textContent = data.review?.status === 'confirmed' ? '已确认' : '草稿已保存';
       } catch (error) {
         status.textContent = error.message || '保存失败';
@@ -80,6 +106,15 @@ export function bindPeriodReviewForms(root) {
       }
     });
   });
+}
+
+function fillPeriodReviewForm(form, review = {}) {
+  form.elements.theme.value = review.theme || '';
+  form.elements.summary.value = review.summary || '';
+  form.elements.wins.value = joinLines(review.wins);
+  form.elements.blockers.value = joinLines(review.blockers);
+  form.elements.nextActions.value = joinLines(review.nextActions);
+  form.elements.status.value = review.status || 'draft';
 }
 
 function buildReviewPreview(review) {

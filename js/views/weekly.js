@@ -2,13 +2,14 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630a';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630a';
-import { createWeekCard } from '../components/card.js?v=20260630a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630a';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630a';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630d';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630d';
+import { createWeekCard } from '../components/card.js?v=20260630d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -96,12 +97,20 @@ export async function renderWeeklyView(container, params = {}) {
 
   weekCards = [];
 
+  if (latestInsight) {
+    page.appendChild(createPeriodInsightPanel(latestInsight, '本周经营洞察'));
+  }
+
   const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
 
-  if (latestInsight) {
-    page.appendChild(createInsightPanel(latestInsight));
-  }
+  const historyHeading = document.createElement('div');
+  historyHeading.className = 'section-heading period-history-heading';
+  historyHeading.innerHTML = `
+    <h2 class="section-title">周度趋势</h2>
+    <span class="panel-date">最近 ${recentWeekSummaries.length} 周</span>
+  `;
+  page.appendChild(historyHeading);
 
   for (let i = 0; i < recentWeekSummaries.length; i++) {
     const weekData = recentWeekSummaries[i];
@@ -141,36 +150,6 @@ function createGiscusSection(topic) {
   const toggle = createGiscusToggle('giscus-weekly', '展开评论区');
   section.querySelector('.giscus-header').appendChild(toggle);
   return section;
-}
-
-function createInsightPanel(insight) {
-  const panel = document.createElement('section');
-  panel.className = 'ops-panel weekly-insight animate-fade-in-up';
-  panel.innerHTML = `
-    <div class="section-heading">
-      <h2 class="section-title">${escapeHtml(insight.theme || '本周洞察')}</h2>
-      <span class="panel-date">${escapeHtml(insight.dateRange || insight.week || '')}</span>
-    </div>
-    <p class="panel-lead">${escapeHtml(insight.summary || '')}</p>
-    <div class="insight-grid">
-      ${buildInsightColumn('胜利', insight.wins)}
-      ${buildInsightColumn('卡点', insight.blockers)}
-      ${buildInsightColumn('下周聚焦', insight.nextWeekFocus)}
-    </div>
-  `;
-  return panel;
-}
-
-function buildInsightColumn(title, items = []) {
-  const list = items.length ? items : ['暂无记录'];
-  return `
-    <div class="insight-column">
-      <h3>${escapeHtml(title)}</h3>
-      <ul class="plain-list">
-        ${list.slice(0, 4).map(item => `<li>${escapeHtml(item)}</li>`).join('')}
-      </ul>
-    </div>
-  `;
 }
 
 function escapeHtml(value) {

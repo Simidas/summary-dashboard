@@ -2,13 +2,14 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630a';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630a';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260630a';
-import { createMonthCard } from '../components/card.js?v=20260630a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630a';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630a';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630d';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260630d';
+import { createMonthCard } from '../components/card.js?v=20260630d';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -129,23 +130,33 @@ export async function renderMonthlyView(container, params = {}) {
 
   monthCards = [];
 
+  if (monthlyDataList[0]?.insight) {
+    page.appendChild(createPeriodInsightPanel(monthlyDataList[0].insight, '本月经营洞察'));
+  }
+
   const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+
+  page.appendChild(chartSection);
+
+  const historyHeading = document.createElement('div');
+  historyHeading.className = 'section-heading period-history-heading';
+  historyHeading.innerHTML = `
+    <h2 class="section-title">月度趋势</h2>
+    <span class="panel-date">最近 ${monthlyDataList.length} 个月</span>
+  `;
+  page.appendChild(historyHeading);
 
   for (let i = 0; i < monthlyDataList.length; i++) {
     const monthData = monthlyDataList[i];
     const card = createMonthCard(monthData, i === 0);
     card.classList.add('animate-fade-in-up');
     card.style.animationDelay = `${i * 60}ms`;
-    
+
     grid.appendChild(card);
     monthCards.push({ card, monthData, monthStr: monthData.key || `${monthData.year}-${monthData.month}` });
   }
 
-  if (monthlyDataList[0]) {
-    page.appendChild(createMonthlyInsight(monthlyDataList[0]));
-  }
-  page.appendChild(chartSection);
   page.appendChild(grid);
   
   // Giscus section

@@ -301,6 +301,87 @@
   margin-bottom: var(--space-5);
 }
 
+.period-insight-panel {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid #BFDBFE;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+}
+
+.period-insight-lead {
+  max-width: 820px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.75;
+  margin-bottom: var(--space-3);
+}
+
+.period-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .period-metric-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.period-metric-card {
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.period-metric-card span,
+.period-metric-card small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.period-metric-card strong {
+  display: block;
+  margin: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.period-metric-card.is-positive strong {
+  color: #047857;
+}
+
+.period-metric-card.is-negative strong {
+  color: #B91C1C;
+}
+
+.period-insight-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 900px) {
+  .period-insight-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.period-insight-column h3 {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-1);
+}
+
+.period-history-heading {
+  margin-top: var(--space-5);
+}
+
 .panel-lead {
   color: var(--text-primary);
   font-size: 1rem;
