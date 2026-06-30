@@ -2,16 +2,17 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630e';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260630e';
-import { createMonthCard } from '../components/card.js?v=20260630e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
-import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630f';
+import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260630f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630f';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260630f';
+import { createMonthCard } from '../components/card.js?v=20260630f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630f';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630f';
 
 const MONTH_DISPLAY_COUNT = 12;
+const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
 let monthCards = [];
 
@@ -46,39 +47,45 @@ export async function renderMonthlyView(container, params = {}) {
   const authState = getAuthState();
   const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   let monthlyDataList = [];
+  let monthlyChartList = [];
+  let periodReviews = [];
 
   if (useOwnerApi) {
-    const [recordsData, reviewsData, followupsData, contentData] = await Promise.all([
+    const [recordsData, reviewsData, followupsData, contentData, periodReviewsData] = await Promise.all([
       getRecords({ limit: 500 }).catch(() => null),
       getDailyReviews({ limit: 500 }).catch(() => null),
       getFollowups({ status: 'all', limit: 200 }).catch(() => null),
-      getContentItems({ limit: 100 }).catch(() => null)
+      getContentItems({ limit: 100 }).catch(() => null),
+      getPeriodReviews({ type: 'monthly', limit: 50 }).catch(() => null)
     ]);
-    monthlyDataList = buildMonthlySummaries({
+    const monthlySummaries = buildMonthlySummaries({
       records: recordsData?.records || [],
       dailyReviews: reviewsData?.reviews || [],
       followups: followupsData?.followups || [],
       contentItems: contentData?.items || []
-    }).slice(0, MONTH_DISPLAY_COUNT);
+    });
+    periodReviews = periodReviewsData?.reviews || [];
+    monthlyChartList = monthlySummaries.slice(0, MONTH_DISPLAY_COUNT);
+    monthlyDataList = mergeMonthlySummariesWithReviews(monthlySummaries, periodReviews);
   } else {
     const availableMonths = await getAvailableMonths();
     const recentMonths = availableMonths.slice(-MONTH_DISPLAY_COUNT).reverse();
     monthlyDataList = (await Promise.all(recentMonths.map(month => loadMonthlySummary(month))))
       .filter(Boolean);
+    monthlyChartList = monthlyDataList;
   }
 
   const reviewMonth = monthlyDataList[0]?.key || new Date().toISOString().slice(0, 7);
+  const reviewMap = createReviewMap(periodReviews);
   
   if (monthlyDataList.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
-    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('monthly', '月', reviewMonth);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Monthly</h1>
         <p class="view-subtitle">按月聚合的复盘数据</p>
       </div>
       ${reviewPanel}
-      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">月数据正在整理中...</p>
@@ -89,7 +96,7 @@ export async function renderMonthlyView(container, params = {}) {
   }
 
   // Collect data for chart
-  const chartData = monthlyDataList.map(data => ({
+  const chartData = monthlyChartList.map(data => ({
     month: data.key || `${data.year}-${data.month}`,
     monthName: data.monthName,
     totalAchievements: data.totalAchievements || 0
@@ -138,22 +145,24 @@ export async function renderMonthlyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
-  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('monthly', '月', reviewMonth);
-  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   page.appendChild(chartSection);
 
   const historyHeading = document.createElement('div');
   historyHeading.className = 'section-heading period-history-heading';
   historyHeading.innerHTML = `
-    <h2 class="section-title">月度趋势</h2>
-    <span class="panel-date">最近 ${monthlyDataList.length} 个月</span>
+    <h2 class="section-title">月度复盘与趋势</h2>
+    <span class="panel-date">最近数据 + 已保存复盘 · ${monthlyDataList.length} 个月</span>
   `;
   page.appendChild(historyHeading);
 
   for (let i = 0; i < monthlyDataList.length; i++) {
     const monthData = monthlyDataList[i];
-    const card = createMonthCard(monthData, i === 0);
+    const card = createMonthCard(monthData, useOwnerApi ? {
+      periodType: 'monthly',
+      periodLabel: '月',
+      review: reviewMap.get(monthData.key || `${monthData.year}-${monthData.month}`)
+    } : {});
     card.classList.add('animate-fade-in-up');
     card.style.animationDelay = `${i * 60}ms`;
 
@@ -219,6 +228,40 @@ function buildInsightColumn(title, items = []) {
       </ul>
     </div>
   `;
+}
+
+function mergeMonthlySummariesWithReviews(summaries = [], reviews = []) {
+  const rows = new Map();
+  summaries.slice(0, MONTH_DISPLAY_COUNT).forEach(summary => rows.set(summary.key, summary));
+  reviews.forEach(review => {
+    if (!rows.has(review.periodKey)) rows.set(review.periodKey, createMonthlyReviewPlaceholder(review));
+  });
+  return Array.from(rows.values()).sort((left, right) => String(right.key).localeCompare(String(left.key)));
+}
+
+function createMonthlyReviewPlaceholder(review) {
+  const [yearText, monthText] = String(review.periodKey || '').split('-');
+  const month = Number(monthText);
+  return {
+    key: review.periodKey,
+    year: Number(yearText) || '',
+    month: monthText || '',
+    monthName: MONTH_NAMES[month - 1] || review.periodKey,
+    reviewDays: 0,
+    closureRate: 0,
+    overdueFollowups: 0,
+    weeks: [],
+    contentPublished: 0,
+    averageEnergy: null,
+    totalAchievements: 0,
+    totalDiscussions: 0,
+    topProjects: [],
+    topTags: []
+  };
+}
+
+function createReviewMap(reviews = []) {
+  return new Map(reviews.map(review => [review.periodKey, review]));
 }
 
 function escapeHtml(value) {

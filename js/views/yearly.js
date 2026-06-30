@@ -2,14 +2,14 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630e';
-import { getContentItems, getDailyReviews, getFollowups, getProjects, getRecords } from '../api.js?v=20260630e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
-import { buildYearlySummaries } from '../aggregations.js?v=20260630e';
-import { createYearHeroCard } from '../components/card.js?v=20260630e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
-import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630f';
+import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260630f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630f';
+import { buildYearlySummaries } from '../aggregations.js?v=20260630f';
+import { createYearHeroCard } from '../components/card.js?v=20260630f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630f';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630f';
 
 let yearCards = [];
 
@@ -40,22 +40,26 @@ export async function renderYearlyView(container, params = {}) {
   const authState = getAuthState();
   const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   let yearsData = [];
+  let periodReviews = [];
 
   if (useOwnerApi) {
-    const [recordsData, reviewsData, followupsData, projectsData, contentData] = await Promise.all([
+    const [recordsData, reviewsData, followupsData, projectsData, contentData, periodReviewsData] = await Promise.all([
       getRecords({ limit: 500 }).catch(() => null),
       getDailyReviews({ limit: 500 }).catch(() => null),
       getFollowups({ status: 'all', limit: 200 }).catch(() => null),
       getProjects().catch(() => null),
-      getContentItems({ limit: 100 }).catch(() => null)
+      getContentItems({ limit: 100 }).catch(() => null),
+      getPeriodReviews({ type: 'yearly', limit: 50 }).catch(() => null)
     ]);
-    yearsData = buildYearlySummaries({
+    const yearlySummaries = buildYearlySummaries({
       records: recordsData?.records || [],
       dailyReviews: reviewsData?.reviews || [],
       followups: followupsData?.followups || [],
       projects: projectsData?.projects || [],
       contentItems: contentData?.items || []
     }).map(data => ({ year: String(data.year), data }));
+    periodReviews = periodReviewsData?.reviews || [];
+    yearsData = mergeYearSummariesWithReviews(yearlySummaries, periodReviews);
   } else {
     const availableYears = await getAvailableYears();
     const sortedYears = [...availableYears].sort().reverse();
@@ -66,17 +70,16 @@ export async function renderYearlyView(container, params = {}) {
   }
 
   const reviewYear = yearsData[0]?.year || String(new Date().getFullYear());
+  const reviewMap = createReviewMap(periodReviews);
   
   if (yearsData.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
-    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('yearly', '年', reviewYear);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Yearly</h1>
         <p class="view-subtitle">按年聚合的复盘数据</p>
       </div>
       ${reviewPanel}
-      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">年数据正在整理中...</p>
@@ -100,20 +103,22 @@ export async function renderYearlyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
-  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('yearly', '年', reviewYear);
-  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   const historyHeading = document.createElement('div');
   historyHeading.className = 'section-heading period-history-heading';
   historyHeading.innerHTML = `
-    <h2 class="section-title">年度趋势</h2>
-    <span class="panel-date">共 ${yearsData.length} 年</span>
+    <h2 class="section-title">年度复盘与趋势</h2>
+    <span class="panel-date">年度数据 + 已保存复盘 · 共 ${yearsData.length} 年</span>
   `;
   page.appendChild(historyHeading);
 
   // Create year hero cards
   yearsData.forEach(({ year, data }, index) => {
-    const heroCard = createYearHeroCard(data);
+    const heroCard = createYearHeroCard(data, useOwnerApi ? {
+      periodType: 'yearly',
+      periodLabel: '年',
+      review: reviewMap.get(year)
+    } : {});
     heroCard.classList.add('animate-fade-in-up');
     heroCard.style.animationDelay = `${index * 100}ms`;
     page.appendChild(heroCard);
@@ -145,4 +150,37 @@ function createGiscusSection(topic) {
   const toggle = createGiscusToggle('giscus-yearly', '展开评论区');
   section.querySelector('.giscus-header').appendChild(toggle);
   return section;
+}
+
+function mergeYearSummariesWithReviews(yearsData = [], reviews = []) {
+  const rows = new Map();
+  yearsData.forEach(item => rows.set(item.year, item));
+  reviews.forEach(review => {
+    if (!rows.has(review.periodKey)) rows.set(review.periodKey, createYearReviewPlaceholder(review));
+  });
+  return Array.from(rows.values()).sort((left, right) => String(right.year).localeCompare(String(left.year)));
+}
+
+function createYearReviewPlaceholder(review) {
+  const year = Number(review.periodKey);
+  return {
+    year: review.periodKey,
+    data: {
+      year,
+      reviewDays: 0,
+      totalAchievements: 0,
+      totalProjects: 0,
+      closureRate: 0,
+      totalContentPublished: 0,
+      months: [],
+      topTags: [],
+      insight: {
+        headline: '这一年还没有统计数据，先查看已保存的年度复盘。'
+      }
+    }
+  };
+}
+
+function createReviewMap(reviews = []) {
+  return new Map(reviews.map(review => [review.periodKey, review]));
 }

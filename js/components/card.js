@@ -352,7 +352,7 @@ export function createAggregationCard(data) {
  * @param {Object} data
  * @returns {HTMLElement}
  */
-export function createWeekCard(data) {
+export function createWeekCard(data, options = {}) {
   const card = createAggregationCard({
     title: `${data.year || ''} ${data.week || ''}`.trim(),
     stats: {
@@ -365,6 +365,7 @@ export function createWeekCard(data) {
 
   card.classList.add('week-card');
   card.dataset.week = `${data.year || ''}-${data.week || ''}`;
+  card.dataset.periodKey = data.key || '';
 
   const header = card.querySelector('.aggregation-card-header');
   if (header && data.dateRange) {
@@ -383,6 +384,12 @@ export function createWeekCard(data) {
     ${buildDailyRecordsHTML(data.dailyRecords)}
   `;
   card.appendChild(details);
+  appendPeriodReviewDigest(card, {
+    type: options.periodType,
+    label: options.periodLabel,
+    periodKey: data.key,
+    review: options.review
+  });
 
   return card;
 }
@@ -392,7 +399,7 @@ export function createWeekCard(data) {
  * @param {Object} data
  * @returns {HTMLElement}
  */
-export function createMonthCard(data) {
+export function createMonthCard(data, options = {}) {
   const card = createAggregationCard({
     title: data.monthName || `${data.year}-${data.month}`,
     stats: {
@@ -405,6 +412,7 @@ export function createMonthCard(data) {
 
   card.classList.add('month-card');
   card.dataset.month = `${data.year || ''}-${data.month || ''}`;
+  card.dataset.periodKey = data.key || `${data.year || ''}-${data.month || ''}`;
 
   const header = card.querySelector('.aggregation-card-header');
   if (header && data.year) {
@@ -422,6 +430,12 @@ export function createMonthCard(data) {
     ${buildProjectListHTML(data.topProjects)}
   `;
   card.appendChild(details);
+  appendPeriodReviewDigest(card, {
+    type: options.periodType,
+    label: options.periodLabel,
+    periodKey: data.key || `${data.year || ''}-${data.month || ''}`,
+    review: options.review
+  });
 
   return card;
 }
@@ -431,10 +445,11 @@ export function createMonthCard(data) {
  * @param {Object} data
  * @returns {HTMLElement}
  */
-export function createYearHeroCard(data) {
+export function createYearHeroCard(data, options = {}) {
   const card = document.createElement('article');
   card.className = 'year-hero-card';
   card.dataset.year = data.year;
+  card.dataset.periodKey = String(data.year || '');
 
   card.innerHTML = `
     <div class="year-hero-header">
@@ -449,6 +464,12 @@ export function createYearHeroCard(data) {
       ${buildYearStatHTML(data.totalContentPublished || 0, '内容')}
     </div>
     <p class="year-hero-summary">${escapeHtml(data.insight?.headline || '')}</p>
+    ${buildPeriodReviewDigestHTML({
+      type: options.periodType,
+      label: options.periodLabel,
+      periodKey: String(data.year || ''),
+      review: options.review
+    })}
     <div class="year-hero-tags">
       <div class="year-hero-tags-label">年度高频标签</div>
       <div class="year-hero-tags-list">
@@ -458,6 +479,34 @@ export function createYearHeroCard(data) {
   `;
 
   return card;
+}
+
+function appendPeriodReviewDigest(card, options) {
+  const html = buildPeriodReviewDigestHTML(options);
+  if (!html) return;
+  card.insertAdjacentHTML('beforeend', html);
+}
+
+function buildPeriodReviewDigestHTML({ type, label, periodKey, review } = {}) {
+  if (!type || !periodKey) return '';
+
+  const status = review?.status || 'missing';
+  const statusText = status === 'confirmed' ? '已确认' : status === 'draft' ? '草稿' : '未复盘';
+  const theme = review?.theme || '这一周期还没有确认复盘';
+  const summary = review?.summary || '补一段判断，让这组数据变成下一步行动。';
+  const updated = review?.updatedAt ? formatShortTime(review.updatedAt) : '';
+
+  return `
+    <div class="period-review-digest ${review ? 'has-review' : ''}" data-period-review-card data-period-type="${escapeAttr(type)}" data-period-key="${escapeAttr(periodKey)}">
+      <div class="period-review-digest-topline">
+        <span class="period-review-digest-status ${escapeAttr(status)}" data-period-review-card-status>${escapeHtml(statusText)}</span>
+        <span data-period-review-card-updated>${escapeHtml(updated)}</span>
+      </div>
+      <h3 data-period-review-card-theme>${escapeHtml(theme)}</h3>
+      <p data-period-review-card-summary>${escapeHtml(summary)}</p>
+      <button class="filter-tab period-review-card-action" type="button" data-period-review-edit="${escapeAttr(periodKey)}" data-period-type="${escapeAttr(type)}" data-period-label="${escapeAttr(label || '')}">查看/编辑复盘</button>
+    </div>
+  `;
 }
 
 function buildProjectListHTML(projects = []) {
@@ -487,4 +536,19 @@ function buildYearStatHTML(value, label) {
       <div class="year-stat-label">${escapeHtml(label)}</div>
     </div>
   `;
+}
+
+function formatShortTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
 }

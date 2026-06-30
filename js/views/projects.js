@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260630e';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260630f';
 import {
   createFollowup,
   createProject,
@@ -14,10 +14,10 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260630e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630e';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630e';
+} from '../api.js?v=20260630f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630f';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630f';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630f';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();

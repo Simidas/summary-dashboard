@@ -2,14 +2,14 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630e';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630e';
-import { createWeekCard } from '../components/card.js?v=20260630e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
-import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630f';
+import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260630f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630f';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630f';
+import { createWeekCard } from '../components/card.js?v=20260630f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630f';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630f';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -42,24 +42,28 @@ export async function renderWeeklyView(container, params = {}) {
   const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   let recentWeekSummaries = [];
   let latestInsight = null;
+  let periodReviews = [];
 
   if (useOwnerApi) {
-    const [recordsData, reviewsData, followupsData, contentData] = await Promise.all([
+    const [recordsData, reviewsData, followupsData, contentData, periodReviewsData] = await Promise.all([
       getRecords({ limit: 500 }).catch(() => null),
       getDailyReviews({ limit: 500 }).catch(() => null),
       getFollowups({ status: 'all', limit: 200 }).catch(() => null),
-      getContentItems({ limit: 100 }).catch(() => null)
+      getContentItems({ limit: 100 }).catch(() => null),
+      getPeriodReviews({ type: 'weekly', limit: 50 }).catch(() => null)
     ]);
     const records = recordsData?.records || [];
     const dailyReviews = reviewsData?.reviews || [];
     const followups = followupsData?.followups || [];
-    recentWeekSummaries = buildWeeklySummaries({
+    const weeklySummaries = buildWeeklySummaries({
       records,
       dailyReviews,
       followups,
       contentItems: contentData?.items || []
-    }).slice(0, WEEK_DISPLAY_COUNT);
-    latestInsight = buildWeeklyInsight(recentWeekSummaries[0], records, dailyReviews, followups);
+    });
+    periodReviews = periodReviewsData?.reviews || [];
+    recentWeekSummaries = mergeWeeklySummariesWithReviews(weeklySummaries, periodReviews);
+    latestInsight = buildWeeklyInsight(weeklySummaries[0], records, dailyReviews, followups);
   } else {
     const availableWeeks = await getAvailableWeeks();
     const recentWeeks = availableWeeks.slice(-WEEK_DISPLAY_COUNT).reverse();
@@ -69,17 +73,16 @@ export async function renderWeeklyView(container, params = {}) {
   }
 
   const reviewWeek = recentWeekSummaries[0]?.key || getCurrentWeekKey();
+  const reviewMap = createReviewMap(periodReviews);
   
   if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
-    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('weekly', '周', reviewWeek);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Weekly</h1>
         <p class="view-subtitle">按周聚合的复盘数据</p>
       </div>
       ${reviewPanel}
-      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">周数据正在整理中...</p>
@@ -105,20 +108,22 @@ export async function renderWeeklyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
-  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('weekly', '周', reviewWeek);
-  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   const historyHeading = document.createElement('div');
   historyHeading.className = 'section-heading period-history-heading';
   historyHeading.innerHTML = `
-    <h2 class="section-title">周度趋势</h2>
-    <span class="panel-date">最近 ${recentWeekSummaries.length} 周</span>
+    <h2 class="section-title">周度复盘与趋势</h2>
+    <span class="panel-date">最近数据 + 已保存复盘 · ${recentWeekSummaries.length} 周</span>
   `;
   page.appendChild(historyHeading);
 
   for (let i = 0; i < recentWeekSummaries.length; i++) {
     const weekData = recentWeekSummaries[i];
-    const card = createWeekCard(weekData, i === 0);
+    const card = createWeekCard(weekData, useOwnerApi ? {
+      periodType: 'weekly',
+      periodLabel: '周',
+      review: reviewMap.get(weekData.key)
+    } : {});
     card.classList.add('animate-fade-in-up');
     card.style.animationDelay = `${i * 80}ms`;
     
@@ -170,4 +175,38 @@ function getCurrentWeekKey() {
   const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
   const week = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
   return `${utcDate.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function mergeWeeklySummariesWithReviews(summaries = [], reviews = []) {
+  const rows = new Map();
+  summaries.slice(0, WEEK_DISPLAY_COUNT).forEach(summary => rows.set(summary.key, summary));
+  reviews.forEach(review => {
+    if (!rows.has(review.periodKey)) rows.set(review.periodKey, createWeeklyReviewPlaceholder(review));
+  });
+  return Array.from(rows.values()).sort((left, right) => String(right.key).localeCompare(String(left.key)));
+}
+
+function createWeeklyReviewPlaceholder(review) {
+  const [yearText, weekText] = String(review.periodKey || '').split('-');
+  return {
+    key: review.periodKey,
+    year: Number(yearText) || '',
+    week: weekText || '',
+    dateRange: '',
+    days: 0,
+    reviewDays: 0,
+    closureRate: 0,
+    overdueFollowups: 0,
+    contentPublished: 0,
+    averageEnergy: null,
+    totalAchievements: 0,
+    totalDiscussions: 0,
+    topProjects: [],
+    topTags: [],
+    dailyRecords: []
+  };
+}
+
+function createReviewMap(reviews = []) {
+  return new Map(reviews.map(review => [review.periodKey, review]));
 }
