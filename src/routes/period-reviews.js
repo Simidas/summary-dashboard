@@ -13,6 +13,11 @@ import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handlePeriodReviews(request, env) {
   const url = new URL(request.url);
+  if (url.pathname === '/api/period-reviews') {
+    if (request.method === 'GET') return listPeriodReviews(request, env, url);
+    return fail(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
+  }
+
   const match = url.pathname.match(/^\/api\/period-reviews\/([^/]+)\/([^/]+)(?:\/generate)?$/);
   if (!match) return fail(404, 'NOT_FOUND', 'Period review endpoint not found');
 
@@ -27,6 +32,25 @@ export async function handlePeriodReviews(request, env) {
   if (request.method === 'GET') return getPeriodReview(request, env, periodType, periodKey);
   if (request.method === 'PUT') return putPeriodReview(request, env, periodType, periodKey);
   return fail(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
+}
+
+async function listPeriodReviews(request, env, url) {
+  const session = await getSession(request, env);
+  if (!session || session.user.role !== 'owner') return ok({ reviews: [] });
+
+  const periodType = normalizePeriodType(url.searchParams.get('type'));
+  if (!periodType) return fail(400, 'PERIOD_TYPE_INVALID', '复盘周期不存在');
+
+  const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 30));
+  const rows = await env.DB.prepare(`
+    SELECT *
+    FROM period_reviews
+    WHERE owner_id = ? AND period_type = ?
+    ORDER BY period_key DESC, updated_at DESC
+    LIMIT ?
+  `).bind(session.user.id, periodType, limit).all();
+
+  return ok({ reviews: (rows.results || []).map(mapPeriodReview) });
 }
 
 async function getPeriodReview(request, env, periodType, periodKey) {

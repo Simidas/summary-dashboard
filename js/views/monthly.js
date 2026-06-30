@@ -2,14 +2,14 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630d';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260630d';
-import { createMonthCard } from '../components/card.js?v=20260630d';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260630e';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260630e';
+import { createMonthCard } from '../components/card.js?v=20260630e';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
+import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
 
 const MONTH_DISPLAY_COUNT = 12;
 
@@ -71,12 +71,14 @@ export async function renderMonthlyView(container, params = {}) {
   
   if (monthlyDataList.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
+    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('monthly', '月', reviewMonth);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Monthly</h1>
         <p class="view-subtitle">按月聚合的复盘数据</p>
       </div>
       ${reviewPanel}
+      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">月数据正在整理中...</p>
@@ -136,6 +138,8 @@ export async function renderMonthlyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('monthly', '月', reviewMonth);
+  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   page.appendChild(chartSection);
 

@@ -2,11 +2,11 @@
    Diary View
    ======================================== */
 
-import { loadDiaryEntries } from '../data.js?v=20260630d';
-import { createRecord, getRecords } from '../api.js?v=20260630d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630d';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630d';
+import { loadDiaryEntries } from '../data.js?v=20260630e';
+import { createRecord, getRecords } from '../api.js?v=20260630e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630e';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630e';
 
 const DRAFT_KEY = 'summary-dashboard:diary-drafts';
 

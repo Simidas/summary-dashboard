@@ -1,5 +1,5 @@
-import { generatePeriodReview, getPeriodReview, updatePeriodReview } from '../api.js?v=20260630d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
+import { generatePeriodReview, getPeriodReview, getPeriodReviews, updatePeriodReview } from '../api.js?v=20260630e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
 
 export async function buildPeriodReviewPanel(type, periodKey, label) {
   const authState = getAuthState();
@@ -57,8 +57,33 @@ export async function buildPeriodReviewPanel(type, periodKey, label) {
   `;
 }
 
+export async function buildPeriodReviewHistoryPanel(type, label, currentKey) {
+  const authState = getAuthState();
+  if (!authState.apiAvailable || authState.user?.role !== 'owner' || !isApiEnabled()) return '';
+
+  const data = await getPeriodReviews({ type, limit: 50 }).catch(() => null);
+  const reviews = data?.reviews || [];
+
+  return `
+    <section class="settings-panel period-review-history-panel" data-period-review-history data-period-type="${escapeAttr(type)}" data-period-label="${escapeAttr(label)}">
+      <div class="section-heading">
+        <h2 class="section-title">周期复盘历史</h2>
+        <span class="panel-date">${escapeHtml(label)}复盘 · ${reviews.length} 条</span>
+      </div>
+      ${reviews.length ? `
+        <div class="period-review-history-list">
+          ${reviews.map(review => buildHistoryItem(review, currentKey)).join('')}
+        </div>
+      ` : '<div class="empty-inline">还没有保存过周期复盘。</div>'}
+    </section>
+  `;
+}
+
 export function bindPeriodReviewForms(root) {
   root.querySelectorAll('[data-period-review-form]').forEach(form => {
+    if (form.dataset.periodReviewBound === 'true') return;
+    form.dataset.periodReviewBound = 'true';
+
     const panel = form.closest('[data-period-review-panel]');
     const status = form.querySelector('[data-period-review-status]');
     const previewSlot = panel?.querySelector('[data-period-review-preview-slot]');
@@ -72,6 +97,8 @@ export function bindPeriodReviewForms(root) {
         const data = await generatePeriodReview(form.dataset.periodType, form.dataset.periodKey);
         fillPeriodReviewForm(form, data.review);
         if (previewSlot) previewSlot.innerHTML = buildReviewPreview(data.review);
+        updateEditorDate(panel, form.dataset.periodKey, data.review);
+        emitReviewChanged(panel, data.review);
         status.textContent = data.ai?.status === 'failed'
           ? '已用现有数据生成草稿，AI 返回异常'
           : 'AI 草稿已生成';
@@ -98,6 +125,8 @@ export function bindPeriodReviewForms(root) {
           status: form.elements.status.value
         });
         if (previewSlot && data.review) previewSlot.innerHTML = buildReviewPreview(data.review);
+        updateEditorDate(panel, form.dataset.periodKey, data.review);
+        emitReviewChanged(panel, data.review);
         status.textContent = data.review?.status === 'confirmed' ? '已确认' : '草稿已保存';
       } catch (error) {
         status.textContent = error.message || '保存失败';
@@ -106,6 +135,8 @@ export function bindPeriodReviewForms(root) {
       }
     });
   });
+
+  bindPeriodReviewHistory(root);
 }
 
 function fillPeriodReviewForm(form, review = {}) {
@@ -115,6 +146,141 @@ function fillPeriodReviewForm(form, review = {}) {
   form.elements.blockers.value = joinLines(review.blockers);
   form.elements.nextActions.value = joinLines(review.nextActions);
   form.elements.status.value = review.status || 'draft';
+}
+
+function bindPeriodReviewHistory(root) {
+  root.querySelectorAll('[data-period-review-history]').forEach(panel => {
+    if (panel.dataset.periodReviewHistoryBound === 'true') return;
+    panel.dataset.periodReviewHistoryBound = 'true';
+
+    panel.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-period-review-edit]');
+      if (!button) return;
+
+      const type = panel.dataset.periodType;
+      const label = panel.dataset.periodLabel;
+      const periodKey = button.dataset.periodReviewEdit;
+      const editor = root.querySelector('[data-period-review-panel]');
+      const form = editor?.querySelector('[data-period-review-form]');
+      const status = editor?.querySelector('[data-period-review-status]');
+      if (!editor || !form) return;
+
+      button.disabled = true;
+      const oldText = button.textContent;
+      button.textContent = '加载中...';
+
+      try {
+        const data = await getPeriodReview(type, periodKey);
+        setPeriodReviewEditor(editor, form, type, periodKey, label, data.review);
+        setActiveHistoryItem(panel, periodKey);
+        if (status) status.textContent = '已加载历史复盘';
+        editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (error) {
+        if (status) status.textContent = error.message || '加载失败';
+      } finally {
+        button.disabled = false;
+        button.textContent = oldText;
+      }
+    });
+
+    root.addEventListener('period-review:changed', (event) => {
+      updateHistoryItem(panel, event.detail?.review);
+    });
+  });
+}
+
+function setPeriodReviewEditor(panel, form, type, periodKey, label, review) {
+  form.dataset.periodType = type;
+  form.dataset.periodKey = periodKey;
+  fillPeriodReviewForm(form, review || {});
+
+  const title = panel.querySelector('.section-title');
+  if (title) title.textContent = `${label}复盘草稿`;
+
+  const date = panel.querySelector('.panel-date');
+  if (date) {
+    date.textContent = `${periodKey}${review?.updatedAt ? ` · ${formatShortTime(review.updatedAt)}` : ''}`;
+  }
+
+  const previewSlot = panel.querySelector('[data-period-review-preview-slot]');
+  if (previewSlot) {
+    previewSlot.innerHTML = review
+      ? buildReviewPreview(review)
+      : '<div class="empty-inline">这一周期还没有在线复盘草稿。</div>';
+  }
+}
+
+function updateEditorDate(panel, periodKey, review) {
+  const date = panel?.querySelector('.panel-date');
+  if (!date) return;
+  date.textContent = `${periodKey}${review?.updatedAt ? ` · ${formatShortTime(review.updatedAt)}` : ''}`;
+}
+
+function buildHistoryItem(review, currentKey) {
+  const isActive = review.periodKey === currentKey;
+  return `
+    <article class="period-review-history-item ${isActive ? 'active' : ''}" data-period-review-history-item="${escapeAttr(review.periodKey)}">
+      <div class="domain-card-topline">
+        <span>${escapeHtml(review.periodKey)}</span>
+        <span data-history-status>${escapeHtml(review.status === 'confirmed' ? '已确认' : '草稿')}</span>
+      </div>
+      <h3 data-history-theme>${escapeHtml(review.theme || '未命名复盘')}</h3>
+      <p data-history-summary>${escapeHtml(review.summary || '还没有填写总结。')}</p>
+      <div class="period-review-history-footer">
+        <span data-history-updated>${escapeHtml(review.updatedAt ? formatShortTime(review.updatedAt) : '')}</span>
+        <button class="filter-tab" type="button" data-period-review-edit="${escapeAttr(review.periodKey)}">查看/编辑</button>
+      </div>
+    </article>
+  `;
+}
+
+function updateHistoryItem(panel, review) {
+  if (!review || review.periodType !== panel.dataset.periodType) return;
+
+  const list = panel.querySelector('.period-review-history-list');
+  if (!list) {
+    panel.querySelector('.empty-inline')?.remove();
+    const container = document.createElement('div');
+    container.className = 'period-review-history-list';
+    container.innerHTML = buildHistoryItem(review, review.periodKey);
+    panel.appendChild(container);
+    updateHistoryCount(panel);
+    return;
+  }
+
+  const existing = list.querySelector(`[data-period-review-history-item="${cssEscape(review.periodKey)}"]`);
+  if (!existing) {
+    list.insertAdjacentHTML('afterbegin', buildHistoryItem(review, review.periodKey));
+    setActiveHistoryItem(panel, review.periodKey);
+    updateHistoryCount(panel);
+    return;
+  }
+
+  existing.querySelector('[data-history-status]').textContent = review.status === 'confirmed' ? '已确认' : '草稿';
+  existing.querySelector('[data-history-theme]').textContent = review.theme || '未命名复盘';
+  existing.querySelector('[data-history-summary]').textContent = review.summary || '还没有填写总结。';
+  existing.querySelector('[data-history-updated]').textContent = review.updatedAt ? formatShortTime(review.updatedAt) : '';
+  setActiveHistoryItem(panel, review.periodKey);
+}
+
+function setActiveHistoryItem(panel, periodKey) {
+  panel.querySelectorAll('[data-period-review-history-item]').forEach(item => {
+    item.classList.toggle('active', item.dataset.periodReviewHistoryItem === periodKey);
+  });
+}
+
+function updateHistoryCount(panel) {
+  const count = panel.querySelectorAll('[data-period-review-history-item]').length;
+  const date = panel.querySelector('.panel-date');
+  if (date) date.textContent = `${panel.dataset.periodLabel}复盘 · ${count} 条`;
+}
+
+function emitReviewChanged(panel, review) {
+  if (!panel || !review) return;
+  panel.dispatchEvent(new CustomEvent('period-review:changed', {
+    bubbles: true,
+    detail: { review }
+  }));
 }
 
 function buildReviewPreview(review) {
@@ -177,4 +343,9 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) return window.CSS.escape(value);
+  return String(value).replace(/["\\]/g, '\\$&');
 }

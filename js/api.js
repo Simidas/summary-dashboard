@@ -189,6 +189,15 @@ export function getPeriodReview(type, key) {
   return apiRequest(`/api/period-reviews/${encodeURIComponent(type)}/${encodeURIComponent(key)}`);
 }
 
+export function getPeriodReviews(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/period-reviews${query ? `?${query}` : ''}`);
+}
+
 export function updatePeriodReview(type, key, input) {
   return apiRequest(`/api/period-reviews/${encodeURIComponent(type)}/${encodeURIComponent(key)}`, {
     method: 'PUT',

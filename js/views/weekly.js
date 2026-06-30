@@ -2,14 +2,14 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630d';
-import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630d';
-import { createWeekCard } from '../components/card.js?v=20260630d';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260630e';
+import { getContentItems, getDailyReviews, getFollowups, getRecords } from '../api.js?v=20260630e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260630e';
+import { createWeekCard } from '../components/card.js?v=20260630e';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
+import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -72,12 +72,14 @@ export async function renderWeeklyView(container, params = {}) {
   
   if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
+    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('weekly', '周', reviewWeek);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Weekly</h1>
         <p class="view-subtitle">按周聚合的复盘数据</p>
       </div>
       ${reviewPanel}
+      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">周数据正在整理中...</p>
@@ -103,6 +105,8 @@ export async function renderWeeklyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('weekly', '周', reviewWeek);
+  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   const historyHeading = document.createElement('div');
   historyHeading.className = 'section-heading period-history-heading';

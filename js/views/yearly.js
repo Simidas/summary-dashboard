@@ -2,14 +2,14 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630d';
-import { getContentItems, getDailyReviews, getFollowups, getProjects, getRecords } from '../api.js?v=20260630d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630d';
-import { buildYearlySummaries } from '../aggregations.js?v=20260630d';
-import { createYearHeroCard } from '../components/card.js?v=20260630d';
-import { createGiscusToggle } from '../components/giscus.js?v=20260630d';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630d';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630d';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260630e';
+import { getContentItems, getDailyReviews, getFollowups, getProjects, getRecords } from '../api.js?v=20260630e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630e';
+import { buildYearlySummaries } from '../aggregations.js?v=20260630e';
+import { createYearHeroCard } from '../components/card.js?v=20260630e';
+import { createGiscusToggle } from '../components/giscus.js?v=20260630e';
+import { bindPeriodReviewForms, buildPeriodReviewHistoryPanel, buildPeriodReviewPanel } from '../components/period-review.js?v=20260630e';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260630e';
 
 let yearCards = [];
 
@@ -69,12 +69,14 @@ export async function renderYearlyView(container, params = {}) {
   
   if (yearsData.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
+    const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('yearly', '年', reviewYear);
     page.innerHTML = `
       <div class="view-header animate-fade-in-up">
         <h1 class="view-title">Yearly</h1>
         <p class="view-subtitle">按年聚合的复盘数据</p>
       </div>
       ${reviewPanel}
+      ${reviewHistoryPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
         <p class="empty-state-text">年数据正在整理中...</p>
@@ -98,6 +100,8 @@ export async function renderYearlyView(container, params = {}) {
 
   const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
+  const reviewHistoryPanel = await buildPeriodReviewHistoryPanel('yearly', '年', reviewYear);
+  if (reviewHistoryPanel) page.insertAdjacentHTML('beforeend', reviewHistoryPanel);
 
   const historyHeading = document.createElement('div');
   historyHeading.className = 'section-heading period-history-heading';

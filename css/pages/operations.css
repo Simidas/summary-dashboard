@@ -1117,6 +1117,55 @@
   line-height: 1.7;
 }
 
+.period-review-history-panel {
+  margin-top: var(--space-4);
+}
+
+.period-review-history-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+.period-review-history-item {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.period-review-history-item.active {
+  border-color: #86EFAC;
+  background: #F0FDF4;
+}
+
+.period-review-history-item h3 {
+  margin: var(--space-1) 0;
+  font-size: 0.95rem;
+}
+
+.period-review-history-item p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.period-review-history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+@media (min-width: 820px) {
+  .period-review-history-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .inline-select {
   display: grid;
   grid-template-columns: auto minmax(120px, 160px);
