@@ -18,9 +18,3 @@
   color: var(--text-secondary);
   margin-bottom: 4px;
 }
-
-.week-card-daily-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}

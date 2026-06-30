@@ -62,7 +62,7 @@ export function buildDomainSummaries({ records = [], followups = [], contentItem
       overdueFollowUps: openFollowUps.filter(item => item.overdue),
       blockers: topValues(blockers, 6),
       topProjects: topValues(domainRecords.flatMap(record => record.projects || []), 5),
-      topTags: topValues(domainRecords.flatMap(record => record.tags || []), 6),
+      topTags: topValues(domainRecords.flatMap(getRecordContentTags), 6),
       contentSeeds: domainContent.map(item => ({
         ...item,
         sourceDomainLabel: meta.label,
@@ -91,8 +91,8 @@ export function buildWeeklySummaries({ records = [], dailyReviews = [], followup
       const groupDates = distinct(group.activities.map(item => item.date)).sort();
       const weekFollowups = followups.filter(item => getWeekKey(item.createdAt || item.sourceDate || item.dueDate) === key);
       const weekContent = contentItems.filter(item => getWeekKey(item.createdAt) === key);
-      const topProjects = topValues(group.records.flatMap(record => record.projects || []), 5);
-      const topTags = topValues(group.records.flatMap(record => record.tags || []), 6);
+      const topProjects = topValues(group.records.flatMap(getRecordProjects), 5);
+      const topTags = topValues(group.records.flatMap(getRecordContentTags), 6);
       const activity = buildPeriodActivity(group, weekFollowups, weekContent, {
         expectedReviewDays: 7,
         contentLabel: '篇内容发布'
@@ -175,8 +175,8 @@ export function buildMonthlySummaries({ records = [], dailyReviews = [], followu
         totalAchievements: countAchievements(group.records, group.reviews),
         totalDiscussions: group.records.length,
         weeks: distinct(group.activities.map(item => getWeekKey(item.date))).map(value => value.split('-')[1]),
-        topProjects: topValues(group.records.flatMap(record => record.projects || []), 5),
-        topTags: topValues(group.records.flatMap(record => record.tags || []), 6),
+        topProjects: topValues(group.records.flatMap(getRecordProjects), 5),
+        topTags: topValues(group.records.flatMap(getRecordContentTags), 6),
         contentPublished: monthContent.filter(item => item.status === 'published').length,
         contentSeeds: monthContent.length,
         domainDistribution,
@@ -205,7 +205,7 @@ export function buildYearlySummaries({ records = [], dailyReviews = [], followup
       const yearFollowups = followups.filter(item => safeDate(item.createdAt || item.sourceDate || item.dueDate).startsWith(year));
       const yearContent = contentItems.filter(item => safeDate(item.createdAt).startsWith(year));
       const yearProjects = projects.filter(project => !project.deletedAt);
-      const projectNames = topValues(group.records.flatMap(record => record.projects || []), 8);
+      const projectNames = topValues(group.records.flatMap(getRecordProjects), 8);
       const activity = buildPeriodActivity(group, yearFollowups, yearContent, {
         expectedReviewDays: getYearExpectedDays(Number(year)),
         contentLabel: '篇内容发布'
@@ -222,7 +222,7 @@ export function buildYearlySummaries({ records = [], dailyReviews = [], followup
           ...yearProjects.map(project => project.name).filter(Boolean),
           ...projectNames
         ]).slice(0, 8),
-        topTags: topValues(group.records.flatMap(record => record.tags || []), 8),
+        topTags: topValues(group.records.flatMap(getRecordContentTags), 8),
         months: distinct(group.activities.map(item => safeDate(item.date).slice(0, 7))).filter(Boolean).sort(),
         ...activity
       };
@@ -510,6 +510,17 @@ function topValues(items, limit = 5) {
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'))
     .slice(0, limit)
     .map(([value]) => value);
+}
+
+function getRecordContentTags(record) {
+  return distinct([
+    ...(record.tags || []),
+    ...(record.aiSuggestion?.suggestedTags || [])
+  ]);
+}
+
+function getRecordProjects(record) {
+  return record.projects || [];
 }
 
 function distinct(items) {

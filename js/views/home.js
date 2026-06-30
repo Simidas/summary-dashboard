@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260630f';
+} from '../data.js?v=20260630g';
 import {
   createFollowup,
   createRecord,
@@ -18,12 +18,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260630f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630f';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260630f';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630f';
-import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630f';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260630f';
+} from '../api.js?v=20260630g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260630g';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260630g';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630g';
+import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630g';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260630g';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 

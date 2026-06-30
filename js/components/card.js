@@ -381,7 +381,6 @@ export function createWeekCard(data, options = {}) {
     <div class="week-card-days">${data.reviewDays || data.days || 0}/7 天复盘 · ${data.closureRate || 0}% 闭环 · ${data.overdueFollowups || 0} 个超时</div>
     <div class="week-card-content">${data.contentPublished || 0} 篇内容发布 · 能量 ${data.averageEnergy == null ? '--' : data.averageEnergy}</div>
     ${buildProjectListHTML(data.topProjects)}
-    ${buildDailyRecordsHTML(data.dailyRecords)}
   `;
   card.appendChild(details);
   appendPeriodReviewDigest(card, {
@@ -515,16 +514,6 @@ function buildProjectListHTML(projects = []) {
   return `
     <div class="aggregation-card-tags">
       ${projects.slice(0, 4).map(project => `<span class="tag">${escapeHtml(project)}</span>`).join('')}
-    </div>
-  `;
-}
-
-function buildDailyRecordsHTML(records = []) {
-  if (!records.length) return '';
-
-  return `
-    <div class="week-card-daily-list">
-      ${records.map(record => `<span class="tag">${escapeHtml(record)}</span>`).join('')}
     </div>
   `;
 }
