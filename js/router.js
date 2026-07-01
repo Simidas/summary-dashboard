@@ -10,6 +10,7 @@ class Router {
       weekly: [],
       monthly: [],
       yearly: [],
+      records: [],
       domain: [],
       projects: [],
       diary: [],

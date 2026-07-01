@@ -1,5 +1,17 @@
 export const DOMAINS = new Set(['work', 'side_business', 'life', 'content']);
-export const TYPES = new Set(['progress', 'thought', 'blocker', 'reflection', 'diary', 'content_seed']);
+export const TYPES = new Set([
+  'emotion',
+  'task',
+  'note',
+  'diary',
+  'review',
+  'idea',
+  'content_seed',
+  'progress',
+  'thought',
+  'blocker',
+  'reflection'
+]);
 export const VISIBILITIES = new Set(['private', 'public', 'shared']);
 
 export function nowIso() {
@@ -39,7 +51,15 @@ export function normalizeDomain(domain) {
 }
 
 export function normalizeType(type) {
-  return TYPES.has(type) ? type : 'thought';
+  const aliases = {
+    emotional: 'emotion',
+    todo: 'task',
+    content: 'content_seed',
+    content_material: 'content_seed',
+    reflection: 'review'
+  };
+  const normalized = aliases[type] || type;
+  return TYPES.has(normalized) ? normalized : 'note';
 }
 
 export function normalizeVisibility(visibility) {
@@ -107,6 +127,8 @@ export function mapRecord(row, suggestion) {
     projects: parseJsonText(row.projects_json),
     tags: parseJsonText(row.tags_json),
     nextActions: parseJsonText(row.next_actions_json),
+    structuredPayload: parseJsonText(row.structured_payload_json, {}),
+    aiStatus: row.ai_status || 'pending',
     source: row.source,
     aiSuggestion: suggestion ? mapSuggestion(suggestion) : null
   };
@@ -130,6 +152,10 @@ export function mapSuggestion(row) {
     encouragement: row.encouragement,
     suggestedTags: parseJsonText(row.suggested_tags_json),
     suggestedFollowUps: parseJsonText(row.suggested_followups_json),
+    recordType: row.record_type,
+    promptVersion: row.prompt_version,
+    structuredResult: parseJsonText(row.structured_result_json, {}),
+    destinationSuggestions: parseJsonText(row.destination_suggestions_json),
     errorMessage: row.error_message,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -167,6 +193,7 @@ export function mapContentItem(row) {
     outline: parseJsonText(row.outline_json),
     tags: parseJsonText(row.tags_json),
     nextAction: row.next_action,
+    sourceRecordId: row.source_record_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     source: 'd1'

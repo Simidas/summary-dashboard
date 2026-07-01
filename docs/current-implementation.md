@@ -8,6 +8,8 @@
 
 本项目已经从纯静态复盘展示站，升级为个人在线经营复盘系统。当前重点不是公开博客，而是帮助作者在四个长期场景里持续记录、被 AI 接住、形成下一步行动，并按日/周/月/年回看趋势。
 
+当前最新迭代开始落地“记录中枢与 AI 类型化增强”：所有输入先归属四大场景和一个记录类型，再由 AI 按类型增强，并把任务、内容素材等记录流向对应闭环模块。
+
 四个长期场景：
 
 - 主业：公寓租赁行业系统后端开发、业务理解、技术沉淀。
@@ -28,7 +30,12 @@
 ### 在线记录
 
 - 首页、场景页、Diary、Projects、Content、Follow-up 等模块已接入在线写入。
+- 新增 `Records` 统一记录中枢，支持情绪、任务、笔记、日记、复盘、灵感、内容素材等类型。
+- 首页快速记录入口已改为统一记录组件。
 - 记录主表为 D1 `records`，字段包含 `domain`、`type`、`visibility`、`mood`、`energy`、`projects`、`tags`、`nextActions`。
+- `records` 新增 `structured_payload_json` 和 `ai_status`，用于保存类型化补充字段和 AI 生成状态。
+- 任务类记录会自动生成未闭环事项。
+- 内容素材类记录会自动进入内容素材池。
 - 新记录默认 `private`。
 - 记录保存与 AI 生成解耦：先返回保存成功和 `aiPending`，AI 建议后台生成后前端轮询更新。
 
@@ -36,7 +43,9 @@
 
 - AI provider 默认为 MiniMax，模型为 `MiniMax-M3`。
 - 单条记录 AI 输出保存到 `ai_suggestions`。
-- 输出重点是情绪陪伴、具体鼓励、下一小步、建议标签、建议 follow-up。
+- AI prompt 已升级为类型化版本：情绪类偏陪伴，任务类偏推进，笔记类偏整理，复盘类偏分析，内容素材类偏编辑。
+- 输出重点是情绪陪伴、具体鼓励、下一小步、建议标签、建议 follow-up、结构化结果和分流建议。
+- `ai_suggestions` 新增 `record_type`、`prompt_version`、`structured_result_json`、`destination_suggestions_json`。
 - AI 失败不影响原始记录保存。
 
 ### 每日综合复盘
@@ -98,6 +107,10 @@ D1 表：
 - `followups`
 - `domain_settings`
 - `period_reviews`
+
+新增迁移：
+
+- `migrations/0004_unified_input_ai_enhancement.sql`
 
 仓库里的 `data/records`、`data/summaries` 和历史 JSON 现在主要作为：
 
@@ -182,6 +195,8 @@ npm run deploy:worker
 ```bash
 npm run d1:migrate:remote
 ```
+
+本次 `Records` 统一记录中枢上线前必须执行远程 D1 migration，否则写入接口会因为缺少新增字段而报错。
 
 如果希望部署前显式跑 migration：
 

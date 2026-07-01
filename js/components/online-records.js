@@ -2,6 +2,8 @@
    Online Records
    ======================================== */
 
+import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260702a';
+
 export function buildOnlineRecordsSection(records, options = {}) {
   const title = options.title || '最近在线记录';
   const emptyText = options.emptyText || '还没有线上记录。';
@@ -32,7 +34,7 @@ export function buildOnlineRecordCard(record) {
   return `
     <article class="online-record-card" data-online-record-id="${escapeAttr(record.id || '')}">
       <div class="domain-card-topline">
-        <span>${escapeHtml(getDomainLabel(record.domain))} · ${escapeHtml(getTypeLabel(record.type))}</span>
+        <span>${escapeHtml(getDomainLabel(record.domain))} · ${escapeHtml(getRecordTypeLabel(record.type))}</span>
         <time>${escapeHtml(formatDateTime(record.createdAt || record.date))}</time>
       </div>
       <p>${escapeHtml(record.content || record.summary || '')}</p>
@@ -76,28 +78,6 @@ function buildSuggestion(suggestion) {
       <strong>${escapeHtml(suggestion.nextSmallStep)}</strong>
     </div>
   `;
-}
-
-function getDomainLabel(domain) {
-  const labels = {
-    work: '主业',
-    side_business: '副业',
-    life: '生活和自我',
-    content: '内容产出'
-  };
-  return labels[domain] || domain || '未分类';
-}
-
-function getTypeLabel(type) {
-  const labels = {
-    progress: '进展',
-    thought: '想法',
-    blocker: '卡点',
-    reflection: '反思',
-    diary: '日记',
-    content_seed: '内容素材'
-  };
-  return labels[type] || type || '记录';
 }
 
 function formatDateTime(value) {

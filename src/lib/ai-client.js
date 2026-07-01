@@ -207,6 +207,8 @@ async function generateOpenAIPeriodReview(env, context) {
 
 export function normalizeSuggestion(env, suggestion, rawResponse = null) {
   const nextSmallStep = String(suggestion.nextSmallStep || suggestion.next_small_step || '').trim();
+  const structuredResult = normalizeStructuredResult(suggestion.structuredResult || suggestion.structured_result);
+  const destinationSuggestions = toArray(suggestion.destinationSuggestions || suggestion.destination_suggestions);
 
   return {
     provider: currentProvider(env),
@@ -220,7 +222,10 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
     gentleReminder: toText(suggestion.gentleReminder || suggestion.gentle_reminder),
     encouragement: toText(suggestion.encouragement),
     suggestedTags: toArray(suggestion.suggestedTags || suggestion.suggested_tags),
+    suggestedProjects: toArray(suggestion.suggestedProjects || suggestion.suggested_projects),
     suggestedFollowUps: toArray(suggestion.suggestedFollowUps || suggestion.suggested_followups),
+    structuredResult,
+    destinationSuggestions,
     rawResponse,
     errorMessage: nextSmallStep ? null : 'AI response missed nextSmallStep'
   };
@@ -283,10 +288,22 @@ function failedSuggestion(env, message) {
     gentleReminder: null,
     encouragement: null,
     suggestedTags: [],
+    suggestedProjects: [],
     suggestedFollowUps: [],
+    structuredResult: {},
+    destinationSuggestions: [],
     rawResponse: null,
     errorMessage: message
   };
+}
+
+function normalizeStructuredResult(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item != null && item !== '')
+      .map(([key, item]) => [key, Array.isArray(item) ? item.map(String).filter(Boolean) : item])
+  );
 }
 
 function extractOutputText(response) {

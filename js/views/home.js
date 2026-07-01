@@ -7,10 +7,9 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260630g';
+} from '../data.js?v=20260702a';
 import {
   createFollowup,
-  createRecord,
   getContentItems,
   getDashboard,
   getDomainSettings,
@@ -18,12 +17,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260630g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260630g';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260630g';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260630g';
-import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260630g';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260630g';
+} from '../api.js?v=20260702a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702a';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702a';
+import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702a';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260702a';
+import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702a';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -104,7 +103,7 @@ export async function renderHomeView(container) {
       </div>
     </section>
 
-    ${buildOnlineRecordPanel(dashboard, authState)}
+    ${buildOnlineRecordPanel(dashboard, authState, activeProjects)}
 
     <section class="section">
       <div class="section-heading">
@@ -211,7 +210,7 @@ function bindHomeRecordPagination(page, records, options) {
   });
 }
 
-function buildOnlineRecordPanel(dashboard, authState) {
+function buildOnlineRecordPanel(dashboard, authState, projects = []) {
   if (!authState.apiAvailable) {
     return `
       <section class="access-note">
@@ -243,52 +242,16 @@ function buildOnlineRecordPanel(dashboard, authState) {
     `;
   }
 
-  return `
-    <section class="record-capture-panel" data-online-record-panel>
-      <div class="record-capture-intro">
-        <div class="ops-kicker">今天的入口</div>
-        <h2>${dashboard?.hasRecordedToday ? '今天已经留下记录' : '先写一句真实状态'}</h2>
-        ${buildDashboardFeedback(dashboard)}
-      </div>
-      <form class="online-record-form" id="online-record-form">
-        <textarea id="online-record-content" name="content" rows="5" placeholder="现在最想记录什么？"></textarea>
-        <div class="record-form-grid">
-          <label>
-            <span>场景</span>
-            <select name="domain" id="online-record-domain">
-              <option value="life">生活和自我</option>
-              <option value="work">主业</option>
-              <option value="side_business">副业</option>
-              <option value="content">内容产出</option>
-            </select>
-          </label>
-          <label>
-            <span>类型</span>
-            <select name="type">
-              <option value="thought">想法</option>
-              <option value="reflection">反思</option>
-              <option value="progress">进展</option>
-              <option value="blocker">卡点</option>
-              <option value="diary">日记</option>
-              <option value="content_seed">内容素材</option>
-            </select>
-          </label>
-          <label>
-            <span>可见性</span>
-            <select name="visibility">
-              <option value="private">私密</option>
-              <option value="public">公开</option>
-            </select>
-          </label>
-        </div>
-        <div class="record-form-footer">
-          <span class="form-status" id="online-record-status"></span>
-          <button class="primary-action" type="submit">记录并生成建议</button>
-        </div>
-      </form>
-      <div id="online-record-result"></div>
-    </section>
-  `;
+  return buildUnifiedRecordForm({
+    id: 'home-unified-record',
+    kicker: '今天的入口',
+    title: dashboard?.hasRecordedToday ? '今天已经留下记录' : '先写一句真实状态',
+    subtitle: dashboard?.mode === 'owner'
+      ? `下一步：${dashboard.nextSmallStep || '先写下一个 25 分钟动作'}`
+      : '从一句话开始就够了，不需要一次整理完整。',
+    projects,
+    submitLabel: '记录并生成建议'
+  });
 }
 
 function buildDashboardFeedback(dashboard) {
@@ -313,41 +276,10 @@ function buildDashboardFeedback(dashboard) {
 }
 
 function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], onlineRecordOptions = {}) {
-  const form = page.querySelector('#online-record-form');
-  if (!form) return;
-
-  const input = form.querySelector('#online-record-content');
-  const domain = form.querySelector('#online-record-domain');
-  const status = page.querySelector('#online-record-status');
-  const result = page.querySelector('#online-record-result');
   const intro = page.querySelector('.record-capture-intro');
-  const savedDomain = localStorage.getItem('summary-dashboard:last-domain');
-  if (savedDomain) domain.value = savedDomain;
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const content = input.value.trim();
-    if (!content) {
-      status.textContent = '先写一句就可以。';
-      return;
-    }
-
-    const button = form.querySelector('button[type="submit"]');
-    button.disabled = true;
-    status.textContent = '保存中...';
-    result.innerHTML = '';
-
-    try {
-      const data = await createRecord({
-        content,
-        domain: form.elements.domain.value,
-        type: form.elements.type.value,
-        visibility: form.elements.visibility.value
-      });
-      localStorage.setItem('summary-dashboard:last-domain', form.elements.domain.value);
-      input.value = '';
-      status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
-      result.innerHTML = data.aiPending ? buildAiPendingCard('记录已保存，AI 正在给你收束成更小的下一步。') : buildAiResult(data.aiSuggestion);
+  bindUnifiedRecordForm(page, {
+    id: 'home-unified-record',
+    onSaved: (data) => {
       prependOnlineRecord(page, data.record, data.aiSuggestion, onlineRecords, onlineRecordOptions);
       if (intro) {
         intro.innerHTML = `
@@ -367,29 +299,10 @@ function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], on
         userState: data.userState || dashboard?.userState || {}
       }, authState);
       refreshHeroPanel(page, data.record, data.aiSuggestion);
-      if (data.aiPending) {
-        waitForRecordAiSuggestion(data.record.id, {
-          onReady: (aiSuggestion, record) => {
-            status.textContent = 'AI 建议已生成';
-            result.innerHTML = buildAiResult(aiSuggestion);
-            applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords, onlineRecordOptions);
-            refreshHeroPanel(page, record, aiSuggestion);
-          },
-          onTimeout: () => {
-            status.textContent = '已保存，AI 建议稍后会出现在最近记录里';
-          }
-        });
-      }
-    } catch (error) {
-      status.textContent = '';
-      result.innerHTML = `
-        <div class="access-note danger-note">
-          <strong>保存失败</strong>
-          <p>${escapeHtml(error.message || '请稍后重试。')}</p>
-        </div>
-      `;
-    } finally {
-      button.disabled = false;
+    },
+    onAiReady: (aiSuggestion, record) => {
+      applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords, onlineRecordOptions);
+      refreshHeroPanel(page, record, aiSuggestion);
     }
   });
 }

@@ -517,7 +517,9 @@
 }
 
 .online-record-form textarea,
-.record-form-grid select {
+.record-form-grid select,
+.record-form-grid input,
+.records-filter-row select {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -551,10 +553,46 @@
   font-size: 0.75rem;
 }
 
-.record-form-grid select {
+.record-form-grid select,
+.record-form-grid input,
+.records-filter-row select {
   min-height: 40px;
   padding: 8px 10px;
   font-size: 0.875rem;
+}
+
+.record-type-hint {
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.advanced-record-fields {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.advanced-record-fields summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.advanced-record-fields .record-form-grid {
+  margin-top: var(--space-2);
+}
+
+.unified-record-form [data-task-field] {
+  display: none;
+}
+
+.unified-record-form.is-task-record [data-task-field] {
+  display: grid;
 }
 
 .record-form-footer {
@@ -644,6 +682,22 @@
   line-height: 1.6;
 }
 
+.record-destination-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+.record-destination-list span {
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: #ECFDF5;
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .danger-note {
   border-color: #FECACA;
   border-left-color: #DC2626;
@@ -688,6 +742,19 @@
   background: var(--bg-card);
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.records-filter-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .records-filter-row {
+    grid-template-columns: repeat(2, minmax(0, 220px));
+  }
 }
 
 .record-pagination button:disabled {

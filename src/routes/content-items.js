@@ -78,9 +78,9 @@ async function createContentItem(request, env) {
   await env.DB.prepare(`
     INSERT INTO content_items (
       id, owner_id, title, source_domain, status, angle, outline_json, tags_json,
-      next_action, created_at, updated_at
+      next_action, source_record_id, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     session.user.id,
@@ -91,6 +91,7 @@ async function createContentItem(request, env) {
     toJsonText(body?.outline),
     toJsonText(body?.tags),
     cleanText(body?.nextAction),
+    cleanText(body?.sourceRecordId),
     now,
     now
   ).run();
@@ -119,7 +120,7 @@ async function updateContentItem(request, env, id) {
   await env.DB.prepare(`
     UPDATE content_items
     SET title = ?, source_domain = ?, status = ?, angle = ?, outline_json = ?,
-        tags_json = ?, next_action = ?, updated_at = ?
+        tags_json = ?, next_action = ?, source_record_id = ?, updated_at = ?
     WHERE id = ? AND owner_id = ?
   `).bind(
     title,
@@ -129,6 +130,7 @@ async function updateContentItem(request, env, id) {
     body?.outline == null ? existing.outline_json : toJsonText(body.outline),
     body?.tags == null ? existing.tags_json : toJsonText(body.tags),
     body?.nextAction == null ? existing.next_action : cleanText(body.nextAction),
+    body?.sourceRecordId == null ? existing.source_record_id : cleanText(body.sourceRecordId),
     nowIso(),
     id,
     session.user.id

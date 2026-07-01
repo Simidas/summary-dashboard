@@ -2,8 +2,10 @@ import { generateCompanionSuggestion } from '../lib/ai-client.js';
 import {
   mapRecord,
   mapSuggestion,
+  normalizeContentStatus,
   normalizeDomain,
   normalizeEnergy,
+  normalizeFollowupStatus,
   normalizeType,
   normalizeVisibility,
   nowIso,
@@ -151,15 +153,20 @@ async function createRecord(request, env, ctx) {
     energy: normalizeEnergy(body.energy),
     projects: Array.isArray(body.projects) ? body.projects : [],
     tags: Array.isArray(body.tags) ? body.tags : [],
-    nextActions: Array.isArray(body.nextActions) ? body.nextActions : []
+    nextActions: Array.isArray(body.nextActions) ? body.nextActions : [],
+    structuredPayload: buildStructuredPayload(body)
   };
+
+  const validationError = await validateRecordInput(env, session.user.id, record, body);
+  if (validationError) return validationError;
 
   await env.DB.prepare(`
     INSERT INTO records (
       id, owner_id, date, created_at, updated_at, domain, type, raw_content, summary,
-      visibility, mood, energy, projects_json, tags_json, next_actions_json, source
+      visibility, mood, energy, projects_json, tags_json, next_actions_json,
+      structured_payload_json, ai_status, source
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'web')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'web')
   `).bind(
     record.id,
     record.ownerId,
@@ -175,9 +182,11 @@ async function createRecord(request, env, ctx) {
     record.energy,
     toJsonText(record.projects),
     toJsonText(record.tags),
-    toJsonText(record.nextActions)
+    toJsonText(record.nextActions),
+    JSON.stringify(record.structuredPayload)
   ).run();
 
+  const destinations = await createInitialDestinations(env, record, body);
   scheduleSuggestionGeneration(ctx, env, record);
   const userState = await updateUserStateAfterRecord(env, record.ownerId, record.date);
 
@@ -194,10 +203,13 @@ async function createRecord(request, env, ctx) {
       energy: record.energy,
       projects: record.projects,
       tags: record.tags,
+      structuredPayload: record.structuredPayload,
+      aiStatus: 'pending',
       aiSuggestion: null
     },
     aiSuggestion: null,
     aiPending: true,
+    destinations,
     userState
   }, { status: 201 });
 }
@@ -242,7 +254,8 @@ async function updateRecord(request, env, id) {
   await env.DB.prepare(`
     UPDATE records
     SET raw_content = ?, domain = ?, type = ?, visibility = ?, mood = ?, energy = ?,
-        projects_json = ?, tags_json = ?, next_actions_json = ?, updated_at = ?
+        projects_json = ?, tags_json = ?, next_actions_json = ?, structured_payload_json = ?,
+        updated_at = ?
     WHERE id = ? AND owner_id = ?
   `).bind(
     content,
@@ -254,6 +267,7 @@ async function updateRecord(request, env, id) {
     body.projects == null ? existing.projects_json : toJsonText(body.projects),
     body.tags == null ? existing.tags_json : toJsonText(body.tags),
     body.nextActions == null ? existing.next_actions_json : toJsonText(body.nextActions),
+    body.structuredPayload == null ? existing.structured_payload_json : JSON.stringify(sanitizeObject(body.structuredPayload)),
     nowIso(),
     id,
     session.user.id
@@ -292,9 +306,11 @@ async function regenerateSuggestion(request, env, id) {
     type: record.type,
     content: record.content,
     mood: record.mood,
-    energy: record.energy
+    energy: record.energy,
+    projects: record.projects,
+    tags: record.tags
   });
-  await insertSuggestion(env, { id: record.id, ownerId: session.user.id }, aiSuggestion);
+  await insertSuggestion(env, { id: record.id, ownerId: session.user.id, type: record.type }, aiSuggestion);
 
   return ok({ aiSuggestion });
 }
@@ -306,9 +322,10 @@ async function insertSuggestion(env, record, suggestion) {
     INSERT INTO ai_suggestions (
       id, record_id, owner_id, provider, model, status, summary, validation, emotional_read,
       possible_need, next_small_step, gentle_reminder, encouragement, suggested_tags_json,
-      suggested_followups_json, raw_response_json, error_message, created_at, updated_at
+      suggested_followups_json, raw_response_json, error_message, record_type, prompt_version,
+      structured_result_json, destination_suggestions_json, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     record.id,
@@ -327,8 +344,23 @@ async function insertSuggestion(env, record, suggestion) {
     JSON.stringify(suggestion.suggestedFollowUps || []),
     suggestion.rawResponse ? JSON.stringify(suggestion.rawResponse) : null,
     suggestion.errorMessage,
+    record.type || null,
+    'companion-v2-type-aware',
+    JSON.stringify(suggestion.structuredResult || {}),
+    JSON.stringify(suggestion.destinationSuggestions || []),
     now,
     now
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE records
+    SET ai_status = ?, updated_at = ?
+    WHERE id = ? AND owner_id = ?
+  `).bind(
+    suggestion.status === 'completed' ? 'completed' : 'failed',
+    now,
+    record.id,
+    record.ownerId
   ).run();
 
   return mapSuggestion({
@@ -337,6 +369,10 @@ async function insertSuggestion(env, record, suggestion) {
     owner_id: record.ownerId,
     created_at: now,
     updated_at: now,
+    record_type: record.type || null,
+    prompt_version: 'companion-v2-type-aware',
+    structured_result_json: JSON.stringify(suggestion.structuredResult || {}),
+    destination_suggestions_json: JSON.stringify(suggestion.destinationSuggestions || []),
     ...suggestion
   });
 }
@@ -369,6 +405,138 @@ async function loadLatestSuggestionForRecord(env, recordId) {
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(recordId).first();
+}
+
+async function validateRecordInput(env, ownerId, record, body) {
+  if (!record.domain) return fail(400, 'DOMAIN_REQUIRED', '请选择记录所属场景');
+  if (!record.type) return fail(400, 'TYPE_REQUIRED', '请选择记录类型');
+
+  if (record.type !== 'task') return null;
+
+  const taskTitle = cleanText(body.taskTitle || record.structuredPayload.taskTitle || record.summary || firstLine(record.content));
+  if (!taskTitle) return fail(400, 'TASK_TITLE_REQUIRED', '任务记录需要一个明确标题');
+
+  const project = cleanText(record.projects[0]);
+  if (!project) return null;
+
+  const existing = await env.DB.prepare(`
+    SELECT id
+    FROM projects
+    WHERE owner_id = ? AND name = ? AND deleted_at IS NULL
+    LIMIT 1
+  `).bind(ownerId, project).first();
+  if (!existing) return fail(400, 'PROJECT_NOT_FOUND', '任务关联项目必须从已有项目中选择');
+
+  return null;
+}
+
+async function createInitialDestinations(env, record, body) {
+  const destinations = [];
+
+  if (record.type === 'task') {
+    const followup = await createFollowupFromRecord(env, record, body);
+    if (followup) destinations.push({ type: 'followup', id: followup.id });
+  }
+
+  if (record.type === 'content_seed') {
+    const item = await createContentItemFromRecord(env, record, body);
+    if (item) destinations.push({ type: 'content', id: item.id });
+  }
+
+  return destinations;
+}
+
+async function createFollowupFromRecord(env, record, body) {
+  const now = nowIso();
+  const id = crypto.randomUUID();
+  const title = cleanText(body.taskTitle || record.structuredPayload.taskTitle || record.summary || firstLine(record.content));
+  if (!title) return null;
+
+  await env.DB.prepare(`
+    INSERT INTO followups (
+      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      created_at, updated_at, closed_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    record.ownerId,
+    title,
+    record.domain,
+    cleanText(record.projects[0]),
+    normalizeFollowupStatus(body.status),
+    record.id,
+    cleanDate(body.dueDate || record.structuredPayload.dueDate),
+    now,
+    now,
+    null
+  ).run();
+
+  return { id };
+}
+
+async function createContentItemFromRecord(env, record, body) {
+  const now = nowIso();
+  const id = crypto.randomUUID();
+  const title = cleanText(body.title || record.structuredPayload.topic || record.summary || firstLine(record.content));
+  if (!title) return null;
+
+  await env.DB.prepare(`
+    INSERT INTO content_items (
+      id, owner_id, title, source_domain, status, angle, outline_json, tags_json,
+      next_action, source_record_id, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    record.ownerId,
+    title.slice(0, 80),
+    record.domain,
+    normalizeContentStatus(body.contentStatus),
+    cleanText(body.angle || record.structuredPayload.angle),
+    toJsonText(body.outline || record.structuredPayload.outline),
+    toJsonText(record.tags),
+    cleanText(record.nextActions[0]),
+    record.id,
+    now,
+    now
+  ).run();
+
+  return { id };
+}
+
+function buildStructuredPayload(body) {
+  return sanitizeObject({
+    taskTitle: body?.taskTitle,
+    dueDate: cleanDate(body?.dueDate),
+    title: body?.title,
+    angle: body?.angle,
+    outline: Array.isArray(body?.outline) ? body.outline : [],
+    noteKind: body?.noteKind
+  });
+}
+
+function sanitizeObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item != null && item !== '')
+      .map(([key, item]) => [key, Array.isArray(item) ? item.map(String).filter(Boolean) : item])
+  );
+}
+
+function cleanText(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function cleanDate(value) {
+  const text = cleanText(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text || '') ? text : null;
+}
+
+function firstLine(value) {
+  return String(value || '').trim().split(/\n+/)[0]?.slice(0, 80) || '';
 }
 
 async function getOwnerSession(request, env) {

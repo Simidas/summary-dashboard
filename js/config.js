@@ -41,6 +41,7 @@ export const VIEW_NAMES = {
   weekly: 'Weekly',
   monthly: 'Monthly',
   yearly: 'Yearly',
+  records: 'Records',
   projects: 'Projects',
   diary: 'Diary',
   content: 'Content'
