@@ -2,8 +2,9 @@
    Unified Record Form
    ======================================== */
 
-import { createRecord } from '../api.js?v=20260702d';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702d';
+import { createRecord } from '../api.js?v=20260702e';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702e';
+import { bindRecordDestinationActions, buildRecordDestinationActions } from './record-destinations.js?v=20260702e';
 import {
   DOMAIN_OPTIONS,
   getAvailableRecordTypes,
@@ -11,7 +12,7 @@ import {
   getRecordTypeLabel,
   getTopicTagOptions,
   normalizeRecordTypeForDomain
-} from './record-types.js?v=20260702d';
+} from './record-types.js?v=20260702e';
 
 export function buildUnifiedRecordForm(options = {}) {
   const id = options.id || 'unified-record';
@@ -129,6 +130,7 @@ export function bindUnifiedRecordForm(root, options = {}) {
   const hint = root.querySelector(`[data-unified-record-panel="${cssEscape(id)}"] [data-record-type-hint]`);
   const status = root.querySelector(`#${cssEscape(id)}-status`);
   const result = root.querySelector(`#${cssEscape(id)}-result`);
+  bindRecordDestinationActions(root);
 
   domainSelect?.addEventListener('change', () => {
     refreshTypeOptions(form, typeSelect.value);
@@ -194,14 +196,14 @@ export function bindUnifiedRecordForm(root, options = {}) {
       status.textContent = data.aiPending ? buildSavedText(data.destinations) : '已保存';
       result.innerHTML = data.aiPending
         ? buildAiPendingCard('记录已保存，AI 正在根据类型生成更合适的反馈。')
-        : buildUnifiedAiResult(data.aiSuggestion, data.destinations);
+        : buildUnifiedAiResult(data.aiSuggestion, data.destinations, data.record);
       options.onSaved?.(data);
 
       if (data.aiPending) {
         waitForRecordAiSuggestion(data.record.id, {
           onReady: (aiSuggestion, record) => {
             status.textContent = 'AI 建议已生成';
-            result.innerHTML = buildUnifiedAiResult(aiSuggestion, data.destinations);
+            result.innerHTML = buildUnifiedAiResult(aiSuggestion, data.destinations, record || data.record);
             options.onAiReady?.(aiSuggestion, record);
           },
           onTimeout: () => {
@@ -223,7 +225,7 @@ export function bindUnifiedRecordForm(root, options = {}) {
   });
 }
 
-export function buildUnifiedAiResult(aiSuggestion, destinations = []) {
+export function buildUnifiedAiResult(aiSuggestion, destinations = [], record = null) {
   if (!aiSuggestion) {
     return '<div class="empty-inline">记录已保存，AI 建议稍后生成。</div>';
   }
@@ -243,6 +245,7 @@ export function buildUnifiedAiResult(aiSuggestion, destinations = []) {
       </div>
       ${buildAiLabelGroups(aiSuggestion.structuredResult?.labelGroups)}
       ${buildDestinationList(destinations, aiSuggestion.destinationSuggestions)}
+      ${buildRecordDestinationActions(record || { id: aiSuggestion.recordId, type: aiSuggestion.recordType }, aiSuggestion, destinations)}
       ${aiSuggestion.encouragement ? `<p>${escapeHtml(aiSuggestion.encouragement)}</p>` : ''}
     </article>
   `;

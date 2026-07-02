@@ -207,8 +207,12 @@ async function generateOpenAIPeriodReview(env, context) {
 
 export function normalizeSuggestion(env, suggestion, rawResponse = null) {
   const nextSmallStep = String(suggestion.nextSmallStep || suggestion.next_small_step || '').trim();
+  const suggestedProjects = toArray(suggestion.suggestedProjects || suggestion.suggested_projects);
   const structuredResult = normalizeStructuredResult(suggestion.structuredResult || suggestion.structured_result);
   const destinationSuggestions = toArray(suggestion.destinationSuggestions || suggestion.destination_suggestions);
+  if (suggestedProjects.length) {
+    structuredResult.suggestedProjects = suggestedProjects.slice(0, 5).map(String).filter(Boolean);
+  }
 
   return {
     provider: currentProvider(env),
@@ -222,7 +226,7 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
     gentleReminder: toText(suggestion.gentleReminder || suggestion.gentle_reminder),
     encouragement: toText(suggestion.encouragement),
     suggestedTags: toArray(suggestion.suggestedTags || suggestion.suggested_tags),
-    suggestedProjects: toArray(suggestion.suggestedProjects || suggestion.suggested_projects),
+    suggestedProjects,
     suggestedFollowUps: toArray(suggestion.suggestedFollowUps || suggestion.suggested_followups),
     structuredResult,
     destinationSuggestions,

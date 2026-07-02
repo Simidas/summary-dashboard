@@ -80,6 +80,13 @@ export function createRecord(input) {
   });
 }
 
+export function applyRecordDestination(id, input) {
+  return apiRequest(`/api/records/${encodeURIComponent(id)}/destinations`, {
+    method: 'POST',
+    body: input
+  });
+}
+
 export function getProjects() {
   return apiRequest('/api/projects');
 }

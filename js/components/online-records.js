@@ -2,7 +2,8 @@
    Online Records
    ======================================== */
 
-import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260702d';
+import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260702e';
+import { buildRecordDestinationActions } from './record-destinations.js?v=20260702e';
 
 export function buildOnlineRecordsSection(records, options = {}) {
   const title = options.title || '最近在线记录';
@@ -40,6 +41,7 @@ export function buildOnlineRecordCard(record) {
       <p>${escapeHtml(record.content || record.summary || '')}</p>
       ${buildRecordTags(record)}
       ${buildSuggestion(record.aiSuggestion)}
+      ${buildRecordDestinationActions(record, record.aiSuggestion, record.destinations || [])}
     </article>
   `;
 }

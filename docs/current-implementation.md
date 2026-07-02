@@ -31,7 +31,7 @@
 
 - 首页、场景页、Diary、Projects、Content、Follow-up 等模块已接入在线写入。
 - 新增 `Records` 统一记录中枢，支持情绪、任务、笔记、复盘、灵感、日记、健康等手动输入类型。
-- 首页快速记录入口已改为统一记录组件。
+- 首页不再直接承载完整输入表单，只保留 Records 引导和快捷类型入口；真正新增记录统一从 `Records` 进入。
 - 输入表单支持场景与类型联动：健康、日记只在生活场景下可选。
 - 内容素材不再作为手动输入类型，改由 AI 从任意记录中识别为内容候选。
 - 用户手动标签收敛为主题标签，Records 中按记录类型展示枚举标签，枚举没有时可手动补充，最多保存 3 个。
@@ -39,6 +39,7 @@
 - 记录主表为 D1 `records`，字段包含 `domain`、`type`、`visibility`、`mood`、`energy`、`projects`、`tags`、`nextActions`。
 - `records` 新增 `structured_payload_json` 和 `ai_status`，用于保存类型化补充字段和 AI 生成状态。
 - 任务类记录会自动生成未闭环事项。
+- AI 判断出的内容素材、Daily 复盘、项目线索和非任务待办会展示为“分流建议”，owner 确认后写入对应模块。
 - 新记录默认 `private`。
 - 记录保存与 AI 生成解耦：先返回保存成功和 `aiPending`，AI 建议后台生成后前端轮询更新。
 
@@ -47,7 +48,7 @@
 - AI provider 默认为 MiniMax，模型为 `MiniMax-M3`。
 - 单条记录 AI 输出保存到 `ai_suggestions`。
 - AI prompt 已升级为类型化版本：情绪类偏陪伴，任务类偏推进，笔记类偏整理，复盘类偏分析，健康类偏状态观察。
-- 分析侧当前只做标签补全，不做复杂分析报表。
+- 分析侧当前聚焦单条记录增强：类型化陪伴建议、标签补全和确认式自动分流；复杂跨周期分析报表仍留在后续迭代。
 - 输出重点是情绪陪伴、具体鼓励、下一小步、主题标签建议、状态/对象/行动/影响标签、建议 follow-up 和候选判断。
 - `ai_suggestions` 新增 `record_type`、`prompt_version`、`structured_result_json`、`destination_suggestions_json`。
 - AI 失败不影响原始记录保存。
@@ -140,6 +141,7 @@ D1 表：
 - `PATCH /api/records/:id`
 - `DELETE /api/records/:id`
 - `POST /api/records/:id/ai/regenerate`
+- `POST /api/records/:id/destinations`
 - `GET /api/daily-reviews`
 - `GET /api/daily-reviews/:date`
 - `PUT /api/daily-reviews/:date`

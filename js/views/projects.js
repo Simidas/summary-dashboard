@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260702d';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260702e';
 import {
   createFollowup,
   createProject,
@@ -14,10 +14,11 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260702d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702d';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702d';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702d';
+} from '../api.js?v=20260702e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702e';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702e';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260702e';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -170,6 +171,7 @@ function renderManagedProjectDetail(container, project, records, followups, auth
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindRecordDestinationActions(page);
   bindProjectEditForm(page, project);
   bindProjectRecordForm(page, project);
   bindProjectFollowupForm(page, project);
@@ -231,6 +233,7 @@ function renderStaticProjectDetail(container, project, onlineRecords = [], onlin
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindRecordDestinationActions(page);
   bindProjectRecordForm(page, project);
   bindProjectFollowupForm(page, project);
 }

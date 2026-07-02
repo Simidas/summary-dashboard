@@ -2,14 +2,14 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260702d';
-import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260702d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702d';
-import { buildYearlySummaries } from '../aggregations.js?v=20260702d';
-import { createYearHeroCard } from '../components/card.js?v=20260702d';
-import { createGiscusToggle } from '../components/giscus.js?v=20260702d';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260702d';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260702d';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260702e';
+import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260702e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
+import { buildYearlySummaries } from '../aggregations.js?v=20260702e';
+import { createYearHeroCard } from '../components/card.js?v=20260702e';
+import { createGiscusToggle } from '../components/giscus.js?v=20260702e';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260702e';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260702e';
 
 let yearCards = [];
 

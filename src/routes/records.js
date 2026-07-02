@@ -1,15 +1,22 @@
 import { generateCompanionSuggestion } from '../lib/ai-client.js';
 import {
+  mapContentItem,
+  mapFollowup,
+  mapProject,
   mapRecord,
   mapSuggestion,
   normalizeDomain,
   normalizeEnergy,
   normalizeFollowupStatus,
+  normalizeProjectStatus,
   normalizeType,
   normalizeVisibility,
   nowIso,
+  parseJsonText,
+  slugifyProjectName,
   toJsonText,
   todayShanghai,
+  updateUserStateAfterActivity,
   updateUserStateAfterRecord
 } from '../lib/db.js';
 import { fail, ok, readJson } from '../lib/response.js';
@@ -30,6 +37,11 @@ export async function handleRecords(request, env, ctx) {
   const regenerateMatch = path.match(/^\/api\/records\/([^/]+)\/ai\/regenerate$/);
   if (regenerateMatch && request.method === 'POST') {
     return regenerateSuggestion(request, env, regenerateMatch[1]);
+  }
+
+  const destinationMatch = path.match(/^\/api\/records\/([^/]+)\/destinations$/);
+  if (destinationMatch && request.method === 'POST') {
+    return applyRecordDestination(request, env, destinationMatch[1]);
   }
 
   const recordMatch = path.match(/^\/api\/records\/([^/]+)$/);
@@ -314,6 +326,45 @@ async function regenerateSuggestion(request, env, id) {
   return ok({ aiSuggestion });
 }
 
+async function applyRecordDestination(request, env, id) {
+  const session = await getOwnerSession(request, env);
+  if (session instanceof Response) return session;
+  if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
+
+  const body = await readJson(request);
+  const type = normalizeDestinationType(body?.type);
+  if (!type) return fail(400, 'DESTINATION_TYPE_REQUIRED', '请选择要分流到哪里');
+
+  const row = await env.DB.prepare(`
+    SELECT *
+    FROM records
+    WHERE id = ? AND owner_id = ? AND deleted_at IS NULL
+    LIMIT 1
+  `).bind(id, session.user.id).first();
+  if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
+
+  const suggestionRow = await loadLatestSuggestionForRecord(env, row.id);
+  const record = {
+    ...mapRecord(row, suggestionRow),
+    ownerId: session.user.id
+  };
+  const suggestion = suggestionRow ? mapSuggestion(suggestionRow) : null;
+
+  let destination;
+  if (type === 'followup') {
+    destination = await applyFollowupDestination(env, record, suggestion, body);
+  } else if (type === 'content') {
+    destination = await applyContentDestination(env, record, suggestion, body);
+  } else if (type === 'daily_review') {
+    destination = await applyDailyReviewDestination(env, record, suggestion, body);
+  } else if (type === 'project') {
+    destination = await applyProjectDestination(env, record, suggestion, body);
+  }
+
+  if (destination instanceof Response) return destination;
+  return ok({ destination });
+}
+
 async function insertSuggestion(env, record, suggestion) {
   const now = nowIso();
   const id = crypto.randomUUID();
@@ -374,6 +425,266 @@ async function insertSuggestion(env, record, suggestion) {
     destination_suggestions_json: JSON.stringify(suggestion.destinationSuggestions || []),
     ...suggestion
   });
+}
+
+async function applyFollowupDestination(env, record, suggestion, body = {}) {
+  const existing = await env.DB.prepare(`
+    SELECT *
+    FROM followups
+    WHERE owner_id = ? AND source_record_id = ? AND deleted_at IS NULL
+    LIMIT 1
+  `).bind(record.ownerId, record.id).first();
+  if (existing) {
+    return {
+      type: 'followup',
+      id: existing.id,
+      status: 'existing',
+      label: '已在未闭环事项',
+      item: mapFollowup(existing)
+    };
+  }
+
+  const structured = suggestion?.structuredResult || {};
+  const suggestedFollowup = firstObject(suggestion?.suggestedFollowUps);
+  const text = cleanText(body.text)
+    || cleanText(suggestedFollowup?.text)
+    || cleanText(structured.taskTitle)
+    || cleanText(suggestion?.nextSmallStep)
+    || firstLine(record.content);
+  if (!text) return fail(400, 'FOLLOWUP_TEXT_REQUIRED', '没有可生成待办的内容');
+
+  const now = nowIso();
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`
+    INSERT INTO followups (
+      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      created_at, updated_at, closed_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    record.ownerId,
+    text,
+    record.domain,
+    cleanText(record.projects?.[0]),
+    'open',
+    record.id,
+    cleanDate(body.dueDate || structured.suggestedDueDate),
+    now,
+    now,
+    null
+  ).run();
+
+  const row = await env.DB.prepare('SELECT * FROM followups WHERE id = ?').bind(id).first();
+  return {
+    type: 'followup',
+    id,
+    status: 'created',
+    label: '已加入未闭环事项',
+    item: mapFollowup(row)
+  };
+}
+
+async function applyContentDestination(env, record, suggestion, body = {}) {
+  const existing = await env.DB.prepare(`
+    SELECT *
+    FROM content_items
+    WHERE owner_id = ? AND source_record_id = ? AND deleted_at IS NULL
+    LIMIT 1
+  `).bind(record.ownerId, record.id).first();
+  if (existing) {
+    return {
+      type: 'content',
+      id: existing.id,
+      status: 'existing',
+      label: '已在内容素材',
+      item: mapContentItem(existing)
+    };
+  }
+
+  const structured = suggestion?.structuredResult || {};
+  const title = cleanText(body.title)
+    || cleanText(structured.topic)
+    || cleanText(structured.ideaSummary)
+    || cleanText(suggestion?.summary)
+    || firstLine(record.content);
+  if (!title) return fail(400, 'CONTENT_TITLE_REQUIRED', '没有可生成内容素材的标题');
+
+  const outline = uniqueTexts([
+    ...toArray(structured.keyPoints),
+    structured.audience ? `目标读者：${structured.audience}` : '',
+    structured.value ? `读者价值：${structured.value}` : ''
+  ]).slice(0, 6);
+  const tags = uniqueTexts([
+    ...(record.tags || []),
+    ...(suggestion?.suggestedTags || []),
+    ...toArray(structured.labelGroups?.impactTags),
+    ...toArray(structured.labelGroups?.actionTags)
+  ]).slice(0, 8);
+  const now = nowIso();
+  const id = crypto.randomUUID();
+
+  await env.DB.prepare(`
+    INSERT INTO content_items (
+      id, owner_id, title, source_domain, status, angle, outline_json, tags_json,
+      next_action, source_record_id, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    record.ownerId,
+    title,
+    record.domain,
+    'idea',
+    cleanText(body.angle) || cleanText(structured.angle),
+    toJsonText(outline),
+    toJsonText(tags),
+    cleanText(suggestion?.nextSmallStep),
+    record.id,
+    now,
+    now
+  ).run();
+
+  const row = await env.DB.prepare('SELECT * FROM content_items WHERE id = ?').bind(id).first();
+  return {
+    type: 'content',
+    id,
+    status: 'created',
+    label: '已加入内容素材',
+    item: mapContentItem(row)
+  };
+}
+
+async function applyDailyReviewDestination(env, record, suggestion, body = {}) {
+  const existing = await env.DB.prepare(`
+    SELECT *
+    FROM daily_reviews
+    WHERE owner_id = ? AND date = ?
+    LIMIT 1
+  `).bind(record.ownerId, record.date).first();
+  const structured = suggestion?.structuredResult || {};
+  const summary = cleanText(body.summary)
+    || cleanText(suggestion?.summary)
+    || cleanText(record.summary)
+    || firstLine(record.content);
+  const reflectionLine = summary ? `自动分流记录：${summary}` : '';
+  const reflection = appendUniqueLine(existing?.reflection, reflectionLine);
+  const wins = uniqueTexts([
+    ...parseJsonText(existing?.wins_json),
+    ...toArray(structured.wins),
+    suggestion?.validation
+  ]).slice(0, 8);
+  const blockers = uniqueTexts([
+    ...parseJsonText(existing?.blockers_json),
+    ...toArray(structured.problems),
+    structured.blocker,
+    structured.risk
+  ]).slice(0, 8);
+  const now = nowIso();
+
+  await env.DB.prepare(`
+    INSERT INTO daily_reviews (
+      id, owner_id, date, most_important_thing, wins_json, blockers_json,
+      reflection, tomorrow_first_step, mood, energy, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(owner_id, date) DO UPDATE SET
+      most_important_thing = excluded.most_important_thing,
+      wins_json = excluded.wins_json,
+      blockers_json = excluded.blockers_json,
+      reflection = excluded.reflection,
+      tomorrow_first_step = excluded.tomorrow_first_step,
+      mood = excluded.mood,
+      energy = excluded.energy,
+      updated_at = excluded.updated_at
+  `).bind(
+    crypto.randomUUID(),
+    record.ownerId,
+    record.date,
+    cleanText(existing?.most_important_thing) || summary,
+    toJsonText(wins),
+    toJsonText(blockers),
+    reflection,
+    cleanText(existing?.tomorrow_first_step) || cleanText(suggestion?.nextSmallStep),
+    cleanText(existing?.mood) || cleanText(record.mood),
+    existing?.energy || record.energy || null,
+    now,
+    now
+  ).run();
+  await updateUserStateAfterActivity(env, record.ownerId, record.date);
+
+  const row = await env.DB.prepare('SELECT * FROM daily_reviews WHERE owner_id = ? AND date = ?')
+    .bind(record.ownerId, record.date)
+    .first();
+  return {
+    type: 'daily_review',
+    id: row?.id || record.date,
+    status: existing && existing.reflection === reflection ? 'existing' : 'updated',
+    label: '已纳入 Daily 复盘',
+    item: {
+      id: row?.id,
+      date: row?.date
+    }
+  };
+}
+
+async function applyProjectDestination(env, record, suggestion, body = {}) {
+  const structured = suggestion?.structuredResult || {};
+  const projectName = cleanText(body.name)
+    || cleanText(firstText(structured.suggestedProjects))
+    || cleanText(firstDestinationName(suggestion?.destinationSuggestions, 'project'));
+  if (!projectName) return fail(400, 'PROJECT_NAME_REQUIRED', '没有可分流的项目名称');
+
+  const now = nowIso();
+  let project = await env.DB.prepare(`
+    SELECT *
+    FROM projects
+    WHERE owner_id = ? AND deleted_at IS NULL AND name = ?
+    LIMIT 1
+  `).bind(record.ownerId, projectName).first();
+
+  if (!project) {
+    const id = crypto.randomUUID();
+    const slug = await uniqueProjectSlug(env, record.ownerId, slugifyProjectName(projectName));
+    await env.DB.prepare(`
+      INSERT INTO projects (
+        id, owner_id, slug, name, summary, status, current_focus, next_action, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id,
+      record.ownerId,
+      slug,
+      projectName,
+      cleanText(suggestion?.summary),
+      normalizeProjectStatus(body.status),
+      firstLine(record.content),
+      cleanText(suggestion?.nextSmallStep),
+      now,
+      now
+    ).run();
+    project = await env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(id).first();
+  }
+
+  const nextProjects = uniqueTexts([...(record.projects || []), project.name]);
+  await env.DB.prepare(`
+    UPDATE records
+    SET projects_json = ?, updated_at = ?
+    WHERE id = ? AND owner_id = ?
+  `).bind(
+    toJsonText(nextProjects),
+    now,
+    record.id,
+    record.ownerId
+  ).run();
+
+  return {
+    type: 'project',
+    id: project.id,
+    status: record.projects?.includes(project.name) ? 'existing' : 'updated',
+    label: record.projects?.includes(project.name) ? '已关联项目' : '已关联项目',
+    item: mapProject(project)
+  };
 }
 
 async function loadLatestSuggestionsForRecords(env, recordIds) {
@@ -520,6 +831,57 @@ function firstLine(value) {
 function normalizeTopicTags(tags) {
   if (!Array.isArray(tags)) return [];
   return Array.from(new Set(tags.map(item => String(item || '').trim()).filter(Boolean))).slice(0, 3);
+}
+
+function normalizeDestinationType(type) {
+  const normalized = String(type || '').trim();
+  const allowed = new Set(['followup', 'content', 'daily_review', 'project']);
+  return allowed.has(normalized) ? normalized : null;
+}
+
+function firstObject(value) {
+  return Array.isArray(value) ? value.find(item => item && typeof item === 'object') : null;
+}
+
+function toArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : [value];
+}
+
+function firstText(value) {
+  return toArray(value).map(item => String(item || '').trim()).find(Boolean) || null;
+}
+
+function firstDestinationName(suggestions = [], type) {
+  const item = toArray(suggestions).find(candidate => candidate?.type === type);
+  return cleanText(item?.name || item?.project || item?.title);
+}
+
+function uniqueTexts(values = []) {
+  const result = [];
+  values.forEach(value => {
+    const text = String(value || '').trim();
+    if (text && !result.includes(text)) result.push(text);
+  });
+  return result;
+}
+
+function appendUniqueLine(existing, line) {
+  const current = String(existing || '').trim();
+  const next = String(line || '').trim();
+  if (!next) return current || null;
+  if (current.includes(next)) return current;
+  return [current, next].filter(Boolean).join('\n');
+}
+
+async function uniqueProjectSlug(env, ownerId, baseSlug) {
+  let slug = baseSlug;
+  let index = 2;
+  while (await env.DB.prepare('SELECT id FROM projects WHERE owner_id = ? AND slug = ? LIMIT 1').bind(ownerId, slug).first()) {
+    slug = `${baseSlug}-${index}`;
+    index += 1;
+  }
+  return slug;
 }
 
 async function getOwnerSession(request, env) {

@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260702d';
+} from '../data.js?v=20260702e';
 import {
   getContentItems,
   getDashboard,
@@ -16,11 +16,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260702d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702d';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702d';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260702d';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260702d';
+} from '../api.js?v=20260702e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702e';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260702e';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260702e';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260702e';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -144,6 +145,7 @@ export async function renderHomeView(container) {
 
   container.innerHTML = '';
   container.appendChild(page);
+  bindRecordDestinationActions(page);
   bindHomeRecordPagination(page, onlineRecords, onlineRecordOptions);
   bindFollowupPanel(page);
 }
