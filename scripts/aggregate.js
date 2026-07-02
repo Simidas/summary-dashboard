@@ -206,14 +206,14 @@ function getRecordTags(record) {
 
 function countRecordStats(records) {
   return records.reduce((stats, record) => {
-    if (record.type === 'progress') stats.achievements++;
-    if (['thought', 'decision', 'reflection'].includes(record.type)) stats.discussions++;
+    if (isAchievementRecord(record)) stats.achievements++;
+    if (['note', 'idea', 'review', 'emotion', 'diary'].includes(record.type)) stats.discussions++;
     if (record.type === 'followup') stats.followUps++;
     if (record.type !== 'followup') {
       stats.followUps += (record.nextActions || []).length;
     }
     stats.contentSeeds += (record.contentSeeds || []).length;
-    if (record.type === 'content_seed') stats.contentSeeds++;
+    if (record.domain === 'content' || (record.tags || []).includes('内容选题')) stats.contentSeeds++;
     return stats;
   }, {
     achievements: 0,
@@ -385,7 +385,7 @@ function buildContentSeeds(dailyRecords) {
       });
     });
 
-    if (record.type === 'content_seed' || record.domain === 'content') {
+    if (record.domain === 'content' || (record.tags || []).includes('内容选题')) {
       const text = getRecordText(record);
       if (!text) return;
 
@@ -835,7 +835,7 @@ function generateWeeklyInsights(dailyRecords, followups) {
     const topProject = getTopN(projectFreq, 1)[0] || '';
     const topTag = getTopN(tagFreq, 1)[0] || '';
     const wins = records
-      .filter(record => record.type === 'progress')
+      .filter(isAchievementRecord)
       .map(getRecordText)
       .filter(Boolean)
       .slice(0, 3);
@@ -869,6 +869,11 @@ function generateWeeklyInsights(dailyRecords, followups) {
     weeks: weeks.sort()
   });
   console.log(`Generated weekly insights: ${weeks.length} weeks`);
+}
+
+function isAchievementRecord(record) {
+  return ['task', 'review'].includes(record.type)
+    || (record.tags || []).some(tag => ['成果', '推进', '交付'].includes(tag));
 }
 
 /**

@@ -27,7 +27,7 @@ ${typeInstruction}
 
 当前记录：
 domain: ${record.domain || 'unknown'}
-type: ${record.type || 'thought'}
+type: ${record.type || 'note'}
 mood: ${record.mood || ''}
 energy: ${record.energy || ''}
 projects: ${(record.projects || []).join(', ')}
@@ -106,10 +106,6 @@ function buildTypeInstruction(type) {
     idea: [
       '- 重点判断想法的潜在价值和最小验证动作。',
       '- 判断它更适合进入 project、content、followup 还是 archive。'
-    ],
-    content_seed: [
-      '- 重点提炼选题、角度、目标读者、读者价值和下一步草稿动作。',
-      '- destinationSuggestions 应包含 content。'
     ],
     health: [
       '- 重点观察睡眠、饮食、运动、身体状态、精力对生活和工作的影响。',

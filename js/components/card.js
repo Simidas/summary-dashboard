@@ -284,14 +284,14 @@ function getDomainLabel(domain) {
 
 function getTypeLabel(type) {
   const labels = {
-    progress: '进展',
-    thought: '想法',
-    decision: '决策',
-    blocker: '卡点',
-    followup: '行动',
-    reflection: '反思',
+    emotion: '情绪',
+    task: '任务',
+    note: '笔记',
+    review: '复盘',
+    idea: '灵感',
     diary: '日记',
-    content_seed: '素材'
+    health: '健康',
+    followup: '行动'
   };
   return labels[type] || type || '记录';
 }

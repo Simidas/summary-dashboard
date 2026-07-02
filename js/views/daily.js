@@ -5,11 +5,12 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260702b';
-import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260702b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
-import { createSummaryCard } from '../components/card.js?v=20260702b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260702b';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260702c';
+import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260702c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
+import { createSummaryCard } from '../components/card.js?v=20260702c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260702c';
+import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260702c';
 
 const TIMELINE_DAYS = 14;
 
@@ -219,7 +220,10 @@ function buildDailyReviewEditor(authState, review) {
         <div class="record-form-grid">
           <label>
             <span>心情</span>
-            <input name="mood" value="${escapeAttr(review?.mood || '')}" placeholder="例如：平静、焦虑、松了一口气">
+            <select name="mood">
+              <option value="">不记录</option>
+              ${DAILY_MOOD_OPTIONS.map(item => `<option value="${escapeAttr(item.value)}" ${item.value === review?.mood ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('')}
+            </select>
           </label>
           <label>
             <span>能量</span>

@@ -2,15 +2,16 @@
    Unified Record Form
    ======================================== */
 
-import { createRecord } from '../api.js?v=20260702b';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702b';
+import { createRecord } from '../api.js?v=20260702c';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702c';
 import {
   DOMAIN_OPTIONS,
   getAvailableRecordTypes,
   getRecordTypeHint,
   getRecordTypeLabel,
+  getTopicTagOptions,
   normalizeRecordTypeForDomain
-} from './record-types.js?v=20260702b';
+} from './record-types.js?v=20260702c';
 
 export function buildUnifiedRecordForm(options = {}) {
   const id = options.id || 'unified-record';
@@ -85,8 +86,14 @@ export function buildUnifiedRecordForm(options = {}) {
               </select>
             </label>
             <label>
-              <span>主题标签</span>
-              <input name="tags" placeholder="最多 3 个，用逗号分隔">
+              <span>枚举主题标签</span>
+              <div class="tag-choice-list" data-topic-tag-options>
+                ${buildTagPresetOptions(defaultType)}
+              </div>
+            </label>
+            <label>
+              <span>手动标签</span>
+              <input name="manualTags" placeholder="枚举没有时填写，最多补到 3 个">
             </label>
             <label data-health-field>
               <span>睡眠时长</span>
@@ -128,6 +135,14 @@ export function bindUnifiedRecordForm(root, options = {}) {
     updateTypeState(form, hint);
   });
   typeSelect?.addEventListener('change', () => updateTypeState(form, hint));
+  form.addEventListener('change', (event) => {
+    if (event.target?.name !== 'tagPresets') return;
+    const checked = form.querySelectorAll('[name="tagPresets"]:checked');
+    if (checked.length > 3) {
+      event.target.checked = false;
+      status.textContent = '主题标签最多选择 3 个。';
+    }
+  });
   refreshTypeOptions(form, typeSelect?.value || 'note');
   updateTypeState(form, hint);
 
@@ -159,7 +174,7 @@ export function bindUnifiedRecordForm(root, options = {}) {
       mood: form.elements.mood?.value.trim() || null,
       energy: form.elements.energy?.value || null,
       projects: project ? [project] : [],
-      tags: splitTags(form.elements.tags?.value),
+      tags: collectTopicTags(form),
       taskTitle,
       dueDate: form.elements.dueDate?.value || null,
       structuredPayload: {
@@ -244,6 +259,7 @@ function refreshTypeOptions(form, preferredType) {
   const type = normalizeRecordTypeForDomain(preferredType, domain);
   form.elements.type.innerHTML = buildTypeOptions(domain, type);
   form.elements.type.value = type;
+  refreshTagPresetOptions(form, type);
 }
 
 function updateTypeState(form, hint) {
@@ -251,6 +267,25 @@ function updateTypeState(form, hint) {
   if (hint) hint.textContent = getRecordTypeHint(type);
   form.classList.toggle('is-task-record', type === 'task');
   form.classList.toggle('is-health-record', type === 'health');
+  refreshTagPresetOptions(form, type);
+}
+
+function buildTagPresetOptions(type, selected = '') {
+  const options = getTopicTagOptions(type);
+  const selectedTags = Array.isArray(selected) ? selected : [selected].filter(Boolean);
+  return options.map(tag => `
+    <label>
+      <input type="checkbox" name="tagPresets" value="${escapeAttr(tag)}" ${selectedTags.includes(tag) ? 'checked' : ''}>
+      <span>${escapeHtml(tag)}</span>
+    </label>
+  `).join('');
+}
+
+function refreshTagPresetOptions(form, type) {
+  const container = form.querySelector('[data-topic-tag-options]');
+  if (!container) return;
+  const selected = Array.from(form.querySelectorAll('[name="tagPresets"]:checked')).map(item => item.value);
+  container.innerHTML = buildTagPresetOptions(type, selected);
 }
 
 function buildAiLabelGroups(labelGroups = {}) {
@@ -306,12 +341,19 @@ function buildDestinationList(destinations = [], suggestions = []) {
   `;
 }
 
+function collectTopicTags(form) {
+  return [
+    ...Array.from(form.querySelectorAll('[name="tagPresets"]:checked')).map(item => item.value),
+    ...splitTags(form.elements.manualTags?.value)
+  ].filter(Boolean).slice(0, 3);
+}
+
 function splitTags(value) {
   return String(value || '')
     .split(/[,，\s]+/)
     .map(item => item.trim())
     .filter(Boolean)
-    .slice(0, 3);
+    .filter((item, index, list) => list.indexOf(item) === index);
 }
 
 function firstLine(value) {

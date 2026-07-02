@@ -109,26 +109,26 @@ function migrateDaily(legacy) {
   let index = 1;
 
   (legacy.achievements || []).forEach(raw => {
-    records.push(createRecord({ legacy, index: index++, type: 'progress', raw }));
+    records.push(createRecord({ legacy, index: index++, type: 'review', raw }));
   });
 
   (legacy.discussions || []).forEach(raw => {
-    records.push(createRecord({ legacy, index: index++, type: 'thought', raw }));
+    records.push(createRecord({ legacy, index: index++, type: 'note', raw }));
   });
 
   (legacy.followUps || []).forEach(raw => {
-    records.push(createRecord({ legacy, index: index++, type: 'followup', raw }));
+    records.push(createRecord({ legacy, index: index++, type: 'task', raw }));
   });
 
   (legacy.learnings || []).forEach(raw => {
-    records.push(createRecord({ legacy, index: index++, type: 'reflection', raw }));
+    records.push(createRecord({ legacy, index: index++, type: 'review', raw }));
   });
 
   if (legacy.exercise && legacy.exercise !== '无') {
     records.push(createRecord({
       legacy,
       index: index++,
-      type: 'progress',
+      type: 'health',
       raw: legacy.exercise,
       extra: { domain: 'life' }
     }));

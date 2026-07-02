@@ -49,7 +49,7 @@ data/records/daily/YYYY-MM-DD.json
       "id": "record-20260624-001",
       "createdAt": "2026-06-24T09:00:00+08:00",
       "domain": "work",
-      "type": "progress",
+      "type": "note",
       "raw": "",
       "summary": "",
       "projects": [],

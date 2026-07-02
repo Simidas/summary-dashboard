@@ -159,7 +159,7 @@
 选填：
 
 - `domain`：`work` / `side_business` / `life` / `content`。
-- `type`：`progress` / `thought` / `blocker` / `reflection` / `diary` / `content_seed`。
+- `type`：`emotion` / `task` / `note` / `review` / `idea` / `diary` / `health`。
 - `mood`：当前情绪。
 - `energy`：1-5 分精力。
 - `projects`：关联项目。

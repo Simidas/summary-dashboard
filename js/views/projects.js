@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260702b';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260702c';
 import {
   createFollowup,
   createProject,
@@ -14,10 +14,10 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260702b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702b';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702b';
+} from '../api.js?v=20260702c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702c';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702c';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -341,10 +341,11 @@ function buildProjectRecordPanel(project) {
           <option value="life">生活和自我</option>
         </select>
         <select id="project-record-type" aria-label="类型">
-          <option value="progress">进展</option>
-          <option value="blocker">卡点</option>
-          <option value="reflection">反思</option>
-          <option value="thought">想法</option>
+          <option value="task">任务</option>
+          <option value="review">复盘</option>
+          <option value="note">笔记</option>
+          <option value="idea">灵感</option>
+          <option value="emotion">情绪</option>
         </select>
         <button id="project-record-save" class="primary-action" type="button">写入项目记录</button>
       </div>

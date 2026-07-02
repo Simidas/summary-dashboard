@@ -12,12 +12,12 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260702b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260702b';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260702b';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702b';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260702b';
+} from '../api.js?v=20260702c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260702c';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260702c';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702c';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260702c';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

@@ -9,6 +9,8 @@ import {
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
+const DAILY_MOOD_VALUES = new Set(['平静', '开心', '有进展感', '疲惫', '焦虑', '烦躁', '低落', '松了一口气']);
+
 export async function handleDailyReviews(request, env) {
   const url = new URL(request.url);
 
@@ -86,7 +88,7 @@ async function putDailyReview(request, env, date) {
     toJsonText(body?.blockers),
     String(body?.reflection || '').trim() || null,
     String(body?.tomorrowFirstStep || '').trim() || null,
-    String(body?.mood || '').trim() || null,
+    normalizeDailyMood(body?.mood),
     normalizeEnergy(body?.energy),
     now,
     now
@@ -101,6 +103,11 @@ async function putDailyReview(request, env, date) {
     review: mapDailyReview(row),
     userState
   });
+}
+
+function normalizeDailyMood(value) {
+  const mood = String(value || '').trim();
+  return DAILY_MOOD_VALUES.has(mood) ? mood : null;
 }
 
 function mapDailyReview(row) {

@@ -45,15 +45,15 @@ export function buildDomainSummaries({ records = [], followups = [], contentItem
     const latestRecord = domainRecords[0];
     const settings = settingsByDomain[meta.id] || {};
     const blockers = domainRecords
-      .filter(record => record.type === 'blocker')
+      .filter(isBlockerRecord)
       .map(record => record.summary || record.content)
       .filter(Boolean);
 
     return {
       ...meta,
       recordCount: domainRecords.length,
-      progressCount: domainRecords.filter(record => record.type === 'progress').length,
-      discussionCount: domainRecords.filter(record => record.type === 'thought' || record.type === 'reflection').length,
+      progressCount: domainRecords.filter(isAchievementRecord).length,
+      discussionCount: domainRecords.filter(record => ['note', 'idea', 'emotion', 'diary'].includes(record.type)).length,
       followupCount: domainFollowups.length,
       contentSeedCount: domainContent.length,
       currentFocus: settings.currentFocus || latestRecord?.summary || latestRecord?.content || '',
@@ -127,11 +127,11 @@ export function buildWeeklyInsight(summary, records = [], dailyReviews = [], fol
   const weekReviews = dailyReviews.filter(review => getWeekKey(review.date) === summary.key);
   const wins = [
     ...weekReviews.flatMap(review => review.wins || []),
-    ...weekRecords.filter(record => record.type === 'progress').map(record => record.summary || record.content)
+    ...weekRecords.filter(isAchievementRecord).map(record => record.summary || record.content)
   ].filter(Boolean);
   const blockers = [
     ...weekReviews.flatMap(review => review.blockers || []),
-    ...weekRecords.filter(record => record.type === 'blocker').map(record => record.summary || record.content)
+    ...weekRecords.filter(isBlockerRecord).map(record => record.summary || record.content)
   ].filter(Boolean);
   const openFollowUps = followups
     .filter(item => (item.status === 'open' || item.status === 'deferred') && getWeekKey(item.createdAt || item.dueDate) === summary.key)
@@ -182,7 +182,7 @@ export function buildMonthlySummaries({ records = [], dailyReviews = [], followu
         domainDistribution,
         repeatedBlockers: topValues([
           ...group.reviews.flatMap(review => review.blockers || []),
-          ...group.records.filter(record => record.type === 'blocker').map(record => record.summary || record.content)
+          ...group.records.filter(isBlockerRecord).map(record => record.summary || record.content)
         ].filter(Boolean), 5),
         openFollowUps: monthFollowups.filter(item => item.status === 'open' || item.status === 'deferred'),
         nextMonthStrategy: monthFollowups
@@ -411,14 +411,14 @@ function getPeriodInsightLabel(summary, periodType) {
 function collectWins(records, reviews) {
   return [
     ...reviews.flatMap(review => review.wins || []),
-    ...records.filter(record => record.type === 'progress').map(record => record.summary || record.content)
+    ...records.filter(isAchievementRecord).map(record => record.summary || record.content)
   ].filter(Boolean);
 }
 
 function collectBlockers(records, reviews) {
   return [
     ...reviews.flatMap(review => review.blockers || []),
-    ...records.filter(record => record.type === 'blocker').map(record => record.summary || record.content)
+    ...records.filter(isBlockerRecord).map(record => record.summary || record.content)
   ].filter(Boolean);
 }
 
@@ -495,8 +495,18 @@ function ensureGroup(groups, key) {
 }
 
 function countAchievements(records, reviews) {
-  return records.filter(record => record.type === 'progress').length
+  return records.filter(isAchievementRecord).length
     + reviews.reduce((count, review) => count + (review.wins?.length || 0), 0);
+}
+
+function isAchievementRecord(record) {
+  return ['task', 'review'].includes(record.type)
+    || (record.tags || []).some(tag => ['成果', '推进', '交付'].includes(tag));
+}
+
+function isBlockerRecord(record) {
+  return (record.tags || []).some(tag => ['卡点', '压力', '焦虑', '身体不适'].includes(tag))
+    || record.aiSuggestion?.structuredResult?.labelGroups?.statusTags?.some(tag => ['卡住', '焦虑', '疲惫'].includes(tag));
 }
 
 function topValues(items, limit = 5) {

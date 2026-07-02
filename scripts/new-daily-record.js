@@ -41,7 +41,7 @@ function createTemplate(dateStr) {
         id: `record-${compactDate}-001`,
         createdAt,
         domain: 'work',
-        type: 'progress',
+        type: 'note',
         raw: '',
         summary: '',
         projects: [],

@@ -2,11 +2,11 @@
    Records Center View
    ======================================== */
 
-import { getProjects, getRecords } from '../api.js?v=20260702b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702b';
-import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702b';
-import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702b';
+import { getProjects, getRecords } from '../api.js?v=20260702c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702c';
+import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702c';
+import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702c';
 
 const PAGE_SIZE = 12;
 

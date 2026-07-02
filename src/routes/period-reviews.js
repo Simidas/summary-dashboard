@@ -177,11 +177,11 @@ async function buildPeriodReviewContext(env, ownerId, periodType, periodKey) {
   ]);
   const wins = topValues([
     ...reviews.flatMap(review => review.wins),
-    ...records.filter(record => record.type === 'progress').map(record => record.summary || record.content)
+    ...records.filter(isAchievementRecord).map(record => record.summary || record.content)
   ], 8);
   const blockers = topValues([
     ...reviews.flatMap(review => review.blockers),
-    ...records.filter(record => record.type === 'blocker').map(record => record.summary || record.content)
+    ...records.filter(isBlockerRecord).map(record => record.summary || record.content)
   ], 8);
   const nextActions = distinct([
     ...reviews.map(review => review.tomorrowFirstStep),
@@ -395,6 +395,16 @@ function topValues(items, limit = 5) {
 
 function distinct(items) {
   return Array.from(new Set(items.filter(Boolean)));
+}
+
+function isAchievementRecord(record) {
+  return ['task', 'review'].includes(record.type)
+    || (record.tags || []).some(tag => ['成果', '推进', '交付'].includes(tag));
+}
+
+function isBlockerRecord(record) {
+  return (record.tags || []).some(tag => ['卡点', '压力', '焦虑', '身体不适'].includes(tag))
+    || record.aiSuggestion?.structuredResult?.labelGroups?.statusTags?.some(tag => ['卡住', '焦虑', '疲惫'].includes(tag));
 }
 
 function cleanText(value) {

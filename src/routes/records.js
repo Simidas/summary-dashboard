@@ -2,7 +2,6 @@ import { generateCompanionSuggestion } from '../lib/ai-client.js';
 import {
   mapRecord,
   mapSuggestion,
-  normalizeContentStatus,
   normalizeDomain,
   normalizeEnergy,
   normalizeFollowupStatus,
@@ -152,7 +151,7 @@ async function createRecord(request, env, ctx) {
     mood: String(body.mood || '').trim() || null,
     energy: normalizeEnergy(body.energy),
     projects: Array.isArray(body.projects) ? body.projects : [],
-    tags: Array.isArray(body.tags) ? body.tags : [],
+    tags: normalizeTopicTags(body.tags),
     nextActions: Array.isArray(body.nextActions) ? body.nextActions : [],
     structuredPayload: buildStructuredPayload(body)
   };
@@ -441,11 +440,6 @@ async function createInitialDestinations(env, record, body) {
     if (followup) destinations.push({ type: 'followup', id: followup.id });
   }
 
-  if (record.type === 'content_seed') {
-    const item = await createContentItemFromRecord(env, record, body);
-    if (item) destinations.push({ type: 'content', id: item.id });
-  }
-
   return destinations;
 }
 
@@ -473,36 +467,6 @@ async function createFollowupFromRecord(env, record, body) {
     now,
     now,
     null
-  ).run();
-
-  return { id };
-}
-
-async function createContentItemFromRecord(env, record, body) {
-  const now = nowIso();
-  const id = crypto.randomUUID();
-  const title = cleanText(body.title || record.structuredPayload.topic || record.summary || firstLine(record.content));
-  if (!title) return null;
-
-  await env.DB.prepare(`
-    INSERT INTO content_items (
-      id, owner_id, title, source_domain, status, angle, outline_json, tags_json,
-      next_action, source_record_id, created_at, updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    id,
-    record.ownerId,
-    title.slice(0, 80),
-    record.domain,
-    normalizeContentStatus(body.contentStatus),
-    cleanText(body.angle || record.structuredPayload.angle),
-    toJsonText(body.outline || record.structuredPayload.outline),
-    toJsonText(record.tags),
-    cleanText(record.nextActions[0]),
-    record.id,
-    now,
-    now
   ).run();
 
   return { id };
@@ -551,6 +515,11 @@ function cleanDate(value) {
 
 function firstLine(value) {
   return String(value || '').trim().split(/\n+/)[0]?.slice(0, 80) || '';
+}
+
+function normalizeTopicTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return Array.from(new Set(tags.map(item => String(item || '').trim()).filter(Boolean))).slice(0, 3);
 }
 
 async function getOwnerSession(request, env) {

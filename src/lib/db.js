@@ -6,12 +6,7 @@ export const TYPES = new Set([
   'diary',
   'review',
   'idea',
-  'health',
-  'content_seed',
-  'progress',
-  'thought',
-  'blocker',
-  'reflection'
+  'health'
 ]);
 export const VISIBILITIES = new Set(['private', 'public', 'shared']);
 
@@ -55,8 +50,12 @@ export function normalizeType(type) {
   const aliases = {
     emotional: 'emotion',
     todo: 'task',
-    content: 'content_seed',
-    content_material: 'content_seed',
+    content: 'idea',
+    content_material: 'idea',
+    content_seed: 'idea',
+    thought: 'note',
+    progress: 'review',
+    blocker: 'review',
     reflection: 'review'
   };
   const normalized = aliases[type] || type;

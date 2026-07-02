@@ -34,7 +34,8 @@
 - 首页快速记录入口已改为统一记录组件。
 - 输入表单支持场景与类型联动：健康、日记只在生活场景下可选。
 - 内容素材不再作为手动输入类型，改由 AI 从任意记录中识别为内容候选。
-- 用户手动标签收敛为主题标签，最多保存 3 个。
+- 用户手动标签收敛为主题标签，Records 中按记录类型展示枚举标签，枚举没有时可手动补充，最多保存 3 个。
+- 历史旧类型不再做长期兼容展示，会通过 D1 migration 清洗到新版类型。
 - 记录主表为 D1 `records`，字段包含 `domain`、`type`、`visibility`、`mood`、`energy`、`projects`、`tags`、`nextActions`。
 - `records` 新增 `structured_payload_json` 和 `ai_status`，用于保存类型化补充字段和 AI 生成状态。
 - 任务类记录会自动生成未闭环事项。
@@ -54,6 +55,7 @@
 ### 每日综合复盘
 
 - Daily 模块支持在线编辑指定日期的每日综合复盘，默认今天，也可补昨天或历史日期。
+- Daily 心情改为枚举选择：平静、开心、有进展感、疲惫、焦虑、烦躁、低落、松了一口气。
 - 每日复盘数据存入 `daily_reviews`。
 - Daily 头部展示逻辑：优先展示当天已保存复盘；当天没有时展示最近一天的已保存复盘。
 
@@ -114,6 +116,7 @@ D1 表：
 新增迁移：
 
 - `migrations/0004_unified_input_ai_enhancement.sql`
+- `migrations/0005_clean_legacy_input_data.sql`
 
 仓库里的 `data/records`、`data/summaries` 和历史 JSON 现在主要作为：
 
@@ -199,7 +202,7 @@ npm run deploy:worker
 npm run d1:migrate:remote
 ```
 
-本次 `Records` 统一记录中枢上线前必须执行远程 D1 migration，否则写入接口会因为缺少新增字段而报错。
+本次 `Records` 输入体系清洗上线前必须执行远程 D1 migration，用于把历史旧类型、自由心情、过长标签清洗到新版结构。
 
 如果希望部署前显式跑 migration：
 

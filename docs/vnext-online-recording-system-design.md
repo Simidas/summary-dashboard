@@ -177,7 +177,7 @@ CREATE TABLE records (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   domain TEXT,
-  type TEXT NOT NULL DEFAULT 'thought',
+  type TEXT NOT NULL DEFAULT 'note',
   raw_content TEXT NOT NULL,
   summary TEXT,
   visibility TEXT NOT NULL DEFAULT 'private',
@@ -201,7 +201,7 @@ CREATE INDEX idx_records_domain_date ON records(domain, date DESC);
 
 - `visibility` 允许 `private` / `public` / `shared`，本版只实现 private/public。
 - `domain` 允许 `work` / `side_business` / `life` / `content` / `NULL`。
-- `type` 允许 `progress` / `thought` / `blocker` / `reflection` / `diary` / `content_seed`。
+- `type` 允许 `emotion` / `task` / `note` / `review` / `idea` / `diary` / `health`。
 
 ### 4.4 ai_suggestions
 
@@ -392,7 +392,7 @@ Query：
 {
   "content": "今天有点分心，但我还是想把 PDF Q&A 往前推一点。",
   "domain": "side_business",
-  "type": "reflection",
+  "type": "review",
   "mood": "anxious",
   "energy": 2,
   "projects": ["PDF Q&A"],

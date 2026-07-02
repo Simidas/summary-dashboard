@@ -53,6 +53,7 @@ function importDailyRecords() {
     for (const record of daily.records || []) {
       const createdAt = record.createdAt || `${date}T00:00:00+08:00`;
       const id = record.id || `record-${date}-${stableSlug(record.raw || record.content || record.summary || createdAt)}`;
+      const domain = normalizeDomain(record.domain) || 'life';
       statements.push(`
 INSERT OR IGNORE INTO records (
   id, owner_id, date, created_at, updated_at, domain, type, raw_content, summary,
@@ -63,15 +64,15 @@ INSERT OR IGNORE INTO records (
   ${sql(date)},
   ${sql(createdAt)},
   ${sql(record.updatedAt || createdAt)},
-  ${sql(normalizeDomain(record.domain))},
-  ${sql(record.type || 'thought')},
+  ${sql(domain)},
+  ${sql(normalizeRecordType(record.type, domain))},
   ${sql(record.raw || record.content || record.summary || '')},
   ${sql(record.summary || null)},
   ${sql(record.visibility || 'private')},
   ${sql(record.mood || null)},
   ${record.energy == null ? 'NULL' : Number(record.energy)},
   ${sql(JSON.stringify(arrayOrEmpty(record.projects)))},
-  ${sql(JSON.stringify(arrayOrEmpty(record.tags)))},
+  ${sql(JSON.stringify(normalizeTopicTags(record.tags)))},
   ${sql(JSON.stringify(arrayOrEmpty(record.nextActions)))},
   ${sql(record.source || source)},
   ${sql(id)}
@@ -94,7 +95,7 @@ INSERT OR IGNORE INTO daily_reviews (
   ${sql(JSON.stringify(arrayOrEmpty(review.blockers)))},
   ${sql(review.reflection || null)},
   ${sql(review.tomorrowFirstStep || null)},
-  ${sql(review.mood || null)},
+  ${sql(normalizeDailyMood(review.mood))},
   ${review.energy == null ? 'NULL' : Number(review.energy)},
   ${sql(review.createdAt || now)},
   ${sql(review.updatedAt || now)}
@@ -363,6 +364,45 @@ function normalizeFollowupStatus(status) {
 function normalizeContentStatus(status) {
   const allowed = new Set(['idea', 'outline', 'drafting', 'published', 'dropped']);
   return allowed.has(status) ? status : 'idea';
+}
+
+function normalizeRecordType(type, domain) {
+  const aliases = {
+    thought: 'note',
+    progress: 'review',
+    blocker: 'review',
+    reflection: 'review',
+    content_seed: 'idea',
+    emotional: 'emotion',
+    todo: 'task',
+    content: 'idea',
+    content_material: 'idea'
+  };
+  const normalized = aliases[type] || type || 'note';
+  const allowed = new Set(['emotion', 'task', 'note', 'review', 'idea', 'diary', 'health']);
+  if (!allowed.has(normalized)) return 'note';
+  if (['diary', 'health'].includes(normalized) && domain !== 'life') return 'note';
+  return normalized;
+}
+
+function normalizeDailyMood(value) {
+  const text = cleanText(value);
+  if (!text) return null;
+  const allowed = ['平静', '开心', '有进展感', '疲惫', '焦虑', '烦躁', '低落', '松了一口气'];
+  if (allowed.includes(text)) return text;
+  if (text.includes('平静') || text.includes('稳定')) return '平静';
+  if (text.includes('开心') || text.includes('高兴') || text.includes('愉快')) return '开心';
+  if (text.includes('进展') || text.includes('充实') || text.includes('成就')) return '有进展感';
+  if (text.includes('疲') || text.includes('累')) return '疲惫';
+  if (text.includes('焦虑') || text.includes('担心')) return '焦虑';
+  if (text.includes('烦') || text.includes('躁')) return '烦躁';
+  if (text.includes('低落') || text.includes('沮丧') || text.includes('难过')) return '低落';
+  if (text.includes('松') || text.includes('放松')) return '松了一口气';
+  return null;
+}
+
+function normalizeTopicTags(value) {
+  return Array.from(new Set(arrayOrEmpty(value).map(item => String(item).trim()).filter(Boolean))).slice(0, 3);
 }
 
 function arrayOrEmpty(value) {

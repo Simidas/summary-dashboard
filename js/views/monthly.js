@@ -2,14 +2,14 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260702b';
-import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260702b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260702b';
-import { createMonthCard } from '../components/card.js?v=20260702b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260702b';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260702b';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260702b';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260702c';
+import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260702c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260702c';
+import { createMonthCard } from '../components/card.js?v=20260702c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260702c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260702c';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260702c';
 
 const MONTH_DISPLAY_COUNT = 12;
 const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];

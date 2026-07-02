@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS records (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   domain TEXT,
-  type TEXT NOT NULL DEFAULT 'thought',
+  type TEXT NOT NULL DEFAULT 'note',
   raw_content TEXT NOT NULL,
   summary TEXT,
   visibility TEXT NOT NULL DEFAULT 'private',
