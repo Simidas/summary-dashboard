@@ -12,11 +12,12 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260702a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702a';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260702a';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260702a';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702a';
+} from '../api.js?v=20260702b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260702b';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260702b';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702b';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260702b';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -211,11 +212,7 @@ function buildDomainRecordPanel(authState, domainId) {
           <label>
             <span>类型</span>
             <select name="type">
-              <option value="thought">想法</option>
-              <option value="progress">进展</option>
-              <option value="blocker">卡点</option>
-              <option value="reflection">反思</option>
-              <option value="content_seed">内容素材</option>
+              ${getAvailableRecordTypes(domainId).map(item => `<option value="${escapeAttr(item.value)}">${escapeHtml(item.label)}</option>`).join('')}
             </select>
           </label>
           <label>

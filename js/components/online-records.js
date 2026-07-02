@@ -2,7 +2,7 @@
    Online Records
    ======================================== */
 
-import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260702a';
+import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260702b';
 
 export function buildOnlineRecordsSection(records, options = {}) {
   const title = options.title || '最近在线记录';

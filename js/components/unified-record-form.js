@@ -2,14 +2,20 @@
    Unified Record Form
    ======================================== */
 
-import { createRecord } from '../api.js?v=20260702a';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702a';
-import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS, getRecordTypeHint, getRecordTypeLabel } from './record-types.js?v=20260702a';
+import { createRecord } from '../api.js?v=20260702b';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260702b';
+import {
+  DOMAIN_OPTIONS,
+  getAvailableRecordTypes,
+  getRecordTypeHint,
+  getRecordTypeLabel,
+  normalizeRecordTypeForDomain
+} from './record-types.js?v=20260702b';
 
 export function buildUnifiedRecordForm(options = {}) {
   const id = options.id || 'unified-record';
   const defaultDomain = options.defaultDomain || localStorage.getItem('summary-dashboard:last-domain') || 'life';
-  const defaultType = options.defaultType || 'note';
+  const defaultType = normalizeRecordTypeForDomain(options.defaultType || 'note', defaultDomain);
   const projects = options.projects || [];
   const title = options.title || '记一笔';
   const subtitle = options.subtitle || '先低摩擦写下来，系统再帮你结构化、分析和分流。';
@@ -33,7 +39,7 @@ export function buildUnifiedRecordForm(options = {}) {
           <label>
             <span>类型</span>
             <select name="type">
-              ${RECORD_TYPE_OPTIONS.map(item => `<option value="${escapeAttr(item.value)}" ${item.value === defaultType ? 'selected' : ''}>${escapeHtml(item.label)}</option>`).join('')}
+              ${buildTypeOptions(defaultDomain, defaultType)}
             </select>
           </label>
           <label>
@@ -79,8 +85,20 @@ export function buildUnifiedRecordForm(options = {}) {
               </select>
             </label>
             <label>
-              <span>标签</span>
-              <input name="tags" placeholder="用逗号分隔">
+              <span>主题标签</span>
+              <input name="tags" placeholder="最多 3 个，用逗号分隔">
+            </label>
+            <label data-health-field>
+              <span>睡眠时长</span>
+              <input name="sleepHours" inputmode="decimal" placeholder="例如 6.5">
+            </label>
+            <label data-health-field>
+              <span>运动</span>
+              <input name="exercise" placeholder="例如 快走 30 分钟">
+            </label>
+            <label data-health-field>
+              <span>饮食/身体状态</span>
+              <input name="bodyState" placeholder="例如 饮食清淡，下午犯困">
             </label>
           </div>
         </details>
@@ -100,15 +118,18 @@ export function bindUnifiedRecordForm(root, options = {}) {
   if (!form) return;
 
   const typeSelect = form.elements.type;
+  const domainSelect = form.elements.domain;
   const hint = root.querySelector(`[data-unified-record-panel="${cssEscape(id)}"] [data-record-type-hint]`);
   const status = root.querySelector(`#${cssEscape(id)}-status`);
   const result = root.querySelector(`#${cssEscape(id)}-result`);
 
-  typeSelect?.addEventListener('change', () => {
-    if (hint) hint.textContent = getRecordTypeHint(typeSelect.value);
-    form.classList.toggle('is-task-record', typeSelect.value === 'task');
+  domainSelect?.addEventListener('change', () => {
+    refreshTypeOptions(form, typeSelect.value);
+    updateTypeState(form, hint);
   });
-  form.classList.toggle('is-task-record', typeSelect?.value === 'task');
+  typeSelect?.addEventListener('change', () => updateTypeState(form, hint));
+  refreshTypeOptions(form, typeSelect?.value || 'note');
+  updateTypeState(form, hint);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -140,7 +161,12 @@ export function bindUnifiedRecordForm(root, options = {}) {
       projects: project ? [project] : [],
       tags: splitTags(form.elements.tags?.value),
       taskTitle,
-      dueDate: form.elements.dueDate?.value || null
+      dueDate: form.elements.dueDate?.value || null,
+      structuredPayload: {
+        sleepHours: form.elements.sleepHours?.value || null,
+        exercise: form.elements.exercise?.value.trim() || null,
+        bodyState: form.elements.bodyState?.value.trim() || null
+      }
     };
 
     try {
@@ -148,9 +174,8 @@ export function bindUnifiedRecordForm(root, options = {}) {
       localStorage.setItem('summary-dashboard:last-domain', payload.domain);
       form.reset();
       form.elements.domain.value = payload.domain;
-      form.elements.type.value = type;
-      form.classList.toggle('is-task-record', type === 'task');
-      if (hint) hint.textContent = getRecordTypeHint(type);
+      refreshTypeOptions(form, type);
+      updateTypeState(form, hint);
       status.textContent = data.aiPending ? buildSavedText(data.destinations) : '已保存';
       result.innerHTML = data.aiPending
         ? buildAiPendingCard('记录已保存，AI 正在根据类型生成更合适的反馈。')
@@ -201,9 +226,52 @@ export function buildUnifiedAiResult(aiSuggestion, destinations = []) {
         <span>现在只做这一步</span>
         <strong>${escapeHtml(aiSuggestion.nextSmallStep || '先把这条记录保存下来。')}</strong>
       </div>
+      ${buildAiLabelGroups(aiSuggestion.structuredResult?.labelGroups)}
       ${buildDestinationList(destinations, aiSuggestion.destinationSuggestions)}
       ${aiSuggestion.encouragement ? `<p>${escapeHtml(aiSuggestion.encouragement)}</p>` : ''}
     </article>
+  `;
+}
+
+function buildTypeOptions(domain, selectedType) {
+  return getAvailableRecordTypes(domain)
+    .map(item => `<option value="${escapeAttr(item.value)}" ${item.value === selectedType ? 'selected' : ''}>${escapeHtml(item.label)}</option>`)
+    .join('');
+}
+
+function refreshTypeOptions(form, preferredType) {
+  const domain = form.elements.domain.value;
+  const type = normalizeRecordTypeForDomain(preferredType, domain);
+  form.elements.type.innerHTML = buildTypeOptions(domain, type);
+  form.elements.type.value = type;
+}
+
+function updateTypeState(form, hint) {
+  const type = form.elements.type.value;
+  if (hint) hint.textContent = getRecordTypeHint(type);
+  form.classList.toggle('is-task-record', type === 'task');
+  form.classList.toggle('is-health-record', type === 'health');
+}
+
+function buildAiLabelGroups(labelGroups = {}) {
+  const groups = [
+    ['状态标签', labelGroups.statusTags],
+    ['对象标签', labelGroups.objectTags],
+    ['行动标签', labelGroups.actionTags],
+    ['影响标签', labelGroups.impactTags]
+  ].filter(([, tags]) => Array.isArray(tags) && tags.length);
+
+  if (!groups.length) return '';
+
+  return `
+    <div class="ai-label-groups">
+      ${groups.map(([label, tags]) => `
+        <div>
+          <span>${escapeHtml(label)}</span>
+          <strong>${tags.slice(0, 5).map(tag => escapeHtml(tag)).join(' / ')}</strong>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
 
@@ -242,7 +310,8 @@ function splitTags(value) {
   return String(value || '')
     .split(/[,，\s]+/)
     .map(item => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, 3);
 }
 
 function firstLine(value) {

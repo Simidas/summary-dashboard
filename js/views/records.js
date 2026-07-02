@@ -2,11 +2,11 @@
    Records Center View
    ======================================== */
 
-import { getProjects, getRecords } from '../api.js?v=20260702a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702a';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702a';
-import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702a';
-import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702a';
+import { getProjects, getRecords } from '../api.js?v=20260702b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702b';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702b';
+import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702b';
+import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702b';
 
 const PAGE_SIZE = 12;
 
@@ -34,7 +34,7 @@ export async function renderRecordsView(container) {
       <div>
         <div class="ops-kicker">记录中枢</div>
         <h1 class="ops-title">所有输入先从这里进入</h1>
-        <p class="ops-hero-focus">情绪、任务、笔记、日记、复盘、灵感和内容素材都可以低摩擦记录，系统会按类型增强和分流。</p>
+        <p class="ops-hero-focus">情绪、任务、笔记、复盘、灵感、日记和健康都可以低摩擦记录，内容素材交给 AI 从记录里识别。</p>
       </div>
       <div class="ops-next-step">
         <span>使用原则</span>
@@ -118,7 +118,7 @@ function buildAccessOrForm(authState, canWrite, projects) {
   return buildUnifiedRecordForm({
     id: 'records-center',
     title: '记一笔经营数据',
-    subtitle: '选择场景和类型即可。任务类会进入未闭环事项，内容素材会进入素材池。',
+    subtitle: '选择场景和类型即可。任务类会进入未闭环事项，主题标签最多填 3 个。',
     projects,
     rows: 6
   });

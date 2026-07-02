@@ -6,6 +6,7 @@ export const TYPES = new Set([
   'diary',
   'review',
   'idea',
+  'health',
   'content_seed',
   'progress',
   'thought',

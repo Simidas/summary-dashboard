@@ -410,6 +410,9 @@ async function loadLatestSuggestionForRecord(env, recordId) {
 async function validateRecordInput(env, ownerId, record, body) {
   if (!record.domain) return fail(400, 'DOMAIN_REQUIRED', '请选择记录所属场景');
   if (!record.type) return fail(400, 'TYPE_REQUIRED', '请选择记录类型');
+  if (!isTypeAllowedInDomain(record.type, record.domain)) {
+    return fail(400, 'TYPE_DOMAIN_MISMATCH', '当前场景不能选择这个记录类型');
+  }
 
   if (record.type !== 'task') return null;
 
@@ -506,14 +509,25 @@ async function createContentItemFromRecord(env, record, body) {
 }
 
 function buildStructuredPayload(body) {
+  const existing = sanitizeObject(body?.structuredPayload);
   return sanitizeObject({
+    ...existing,
     taskTitle: body?.taskTitle,
     dueDate: cleanDate(body?.dueDate),
     title: body?.title,
     angle: body?.angle,
     outline: Array.isArray(body?.outline) ? body.outline : [],
-    noteKind: body?.noteKind
+    noteKind: body?.noteKind,
+    sleepHours: existing.sleepHours,
+    exercise: existing.exercise,
+    bodyState: existing.bodyState
   });
+}
+
+function isTypeAllowedInDomain(type, domain) {
+  const lifeOnly = new Set(['diary', 'health']);
+  if (lifeOnly.has(type)) return domain === 'life';
+  return true;
 }
 
 function sanitizeObject(value) {

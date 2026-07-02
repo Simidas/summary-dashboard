@@ -595,6 +595,14 @@
   display: grid;
 }
 
+.unified-record-form [data-health-field] {
+  display: none;
+}
+
+.unified-record-form.is-health-record [data-health-field] {
+  display: grid;
+}
+
 .record-form-footer {
   display: flex;
   justify-content: space-between;
@@ -696,6 +704,32 @@
   color: #047857;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.ai-label-groups {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+.ai-label-groups div {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ai-label-groups span {
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ai-label-groups strong {
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 .danger-note {

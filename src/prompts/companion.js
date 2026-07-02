@@ -19,7 +19,8 @@ export function buildCompanionPrompt(record, recentRecords = []) {
 - nextSmallStep 必须是一个 25 分钟内能启动的小动作。
 - 如果用户明显低落，只给一个很小的动作和支持性提醒。
 - 区分事实和推测，用“可能”“也许”这类温和表达。
-- 根据记录 type 切换角色：情绪类像陪伴者，任务类像推进教练，笔记类像整理者，复盘类像分析师，内容类像编辑。
+- 根据记录 type 切换角色：情绪类像陪伴者，任务类像推进教练，笔记类像整理者，复盘类像分析师，健康类像状态观察员。
+- 分析侧本版只做标签补全，不做长篇周期分析。
 
 类型化要求：
 ${typeInstruction}
@@ -52,6 +53,15 @@ ${recent || '- 暂无'}
     { "type": "followup | content | project | daily_review | archive", "reason": "为什么建议流向这里" }
   ],
   "structuredResult": {
+    "labelGroups": {
+      "statusTags": ["状态标签，如焦虑、疲惫、卡住、有进展"],
+      "objectTags": ["对象标签，如孩子、妻子、用户、竞品、项目名"],
+      "actionTags": ["行动标签，如待跟进、可复盘、可沉淀、需决策"],
+      "impactTags": ["影响标签，如主业效率、家庭关系、健康、收入、内容产出"]
+    },
+    "contentCandidate": false,
+    "followupCandidate": false,
+    "reviewCandidate": false,
     "taskTitle": "任务类才需要",
     "risk": "任务类风险",
     "blocker": "任务类卡点",
@@ -100,6 +110,11 @@ function buildTypeInstruction(type) {
     content_seed: [
       '- 重点提炼选题、角度、目标读者、读者价值和下一步草稿动作。',
       '- destinationSuggestions 应包含 content。'
+    ],
+    health: [
+      '- 重点观察睡眠、饮食、运动、身体状态、精力对生活和工作的影响。',
+      '- 不做医疗诊断，不给药物或治疗建议。',
+      '- structuredResult.labelGroups 至少包含状态标签和影响标签。'
     ]
   };
 
