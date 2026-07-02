@@ -1,0 +1,98 @@
+{
+  "name": "summary-dashboard",
+  "slug": "summary-dashboard",
+  "status": "active",
+  "firstSeen": "2026-04-15",
+  "lastUpdated": "2026-04-15",
+  "timeline": [
+    {
+      "date": "2026-04-15",
+      "recordId": "record-20260415-002",
+      "type": "progress",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "text": "确定本月核心目标：AI产品建设（PDF Q&A）",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-04-15",
+      "recordId": "record-20260415-003",
+      "type": "progress",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "text": "summary-dashboard 项目梳理，明确更新方向",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-04-15",
+      "recordId": "record-20260415-005",
+      "type": "thought",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "text": "AI产品建设的完整开发流程梳理",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": []
+    },
+    {
+      "date": "2026-04-15",
+      "recordId": "record-20260415-006",
+      "type": "followup",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "text": "推进 PDF Q&A 项目 MVP",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": [
+        "推进 PDF Q&A 项目 MVP"
+      ]
+    },
+    {
+      "date": "2026-04-15",
+      "recordId": "record-20260415-007",
+      "type": "followup",
+      "domain": "side_business",
+      "domainLabel": "副业",
+      "text": "继续 summary-dashboard 功能更新",
+      "decisions": [],
+      "blockers": [],
+      "nextActions": [
+        "继续 summary-dashboard 功能更新"
+      ]
+    }
+  ],
+  "decisions": [],
+  "blockers": [],
+  "nextActions": [
+    "推进 PDF Q&A 项目 MVP",
+    "继续 summary-dashboard 功能更新"
+  ],
+  "tags": [
+    "AI产品",
+    "工作提效",
+    "生活琐碎",
+    "AI产品",
+    "工作提效",
+    "生活琐碎",
+    "AI产品",
+    "工作提效",
+    "生活琐碎",
+    "AI产品",
+    "工作提效",
+    "生活琐碎",
+    "AI产品",
+    "工作提效",
+    "生活琐碎"
+  ],
+  "summary": "继续 summary-dashboard 功能更新",
+  "topTags": [
+    "AI产品",
+    "工作提效",
+    "生活琐碎"
+  ],
+  "openFollowUps": []
+}

@@ -1,6 +1,36 @@
 {
   "projects": [
     {
+      "name": "PDF Q&A",
+      "slug": "pdf-q-a",
+      "status": "active",
+      "summary": "继续 summary-dashboard 功能更新",
+      "firstSeen": "2026-04-15",
+      "lastUpdated": "2026-04-15",
+      "recordCount": 5,
+      "openFollowUps": 2,
+      "topTags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ]
+    },
+    {
+      "name": "summary-dashboard",
+      "slug": "summary-dashboard",
+      "status": "active",
+      "summary": "继续 summary-dashboard 功能更新",
+      "firstSeen": "2026-04-15",
+      "lastUpdated": "2026-04-15",
+      "recordCount": 5,
+      "openFollowUps": 0,
+      "topTags": [
+        "AI产品",
+        "工作提效",
+        "生活琐碎"
+      ]
+    },
+    {
       "name": "OpenClaw",
       "slug": "openclaw",
       "status": "active",
@@ -16,6 +46,21 @@
         "公众号",
         "OpenClaw",
         "复盘项目"
+      ]
+    },
+    {
+      "name": "复盘项目",
+      "slug": "project-bqhow0",
+      "status": "active",
+      "summary": "GitHub Discussions 作为 CMS 评论系统的优缺点",
+      "firstSeen": "2026-03-30",
+      "lastUpdated": "2026-03-30",
+      "recordCount": 9,
+      "openFollowUps": 3,
+      "topTags": [
+        "OpenClaw",
+        "复盘项目",
+        "规范立项"
       ]
     },
     {

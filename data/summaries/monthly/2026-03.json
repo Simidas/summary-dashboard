@@ -2,8 +2,8 @@
   "year": 2026,
   "month": "03",
   "monthName": "三月",
-  "totalAchievements": 10,
-  "totalDiscussions": 11,
+  "totalAchievements": 0,
+  "totalDiscussions": 0,
   "weeks": [
     "W13",
     "W14"
@@ -21,7 +21,7 @@
     "OpenClaw"
   ],
   "contentPublished": 2,
-  "contentSeeds": 0,
+  "contentSeeds": 11,
   "domainDistribution": [
     {
       "domain": "work",
