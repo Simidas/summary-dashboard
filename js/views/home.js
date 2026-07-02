@@ -7,9 +7,8 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260702c';
+} from '../data.js?v=20260702d';
 import {
-  createFollowup,
   getContentItems,
   getDashboard,
   getDomainSettings,
@@ -17,12 +16,11 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260702c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702c';
-import { buildOnlineRecordList, buildOnlineRecordsSection, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702c';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260702c';
-import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702c';
+} from '../api.js?v=20260702d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702d';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702d';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260702d';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260702d';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -103,7 +101,7 @@ export async function renderHomeView(container) {
       </div>
     </section>
 
-    ${buildOnlineRecordPanel(dashboard, authState, activeProjects)}
+    ${buildRecordGuidePanel(dashboard, authState)}
 
     <section class="section">
       <div class="section-heading">
@@ -120,7 +118,7 @@ export async function renderHomeView(container) {
         <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupPanel(authState, displayFollowups, openFollowups.slice(0, 6), activeProjects)}
+        ${buildFollowupPanel(authState, displayFollowups, openFollowups.slice(0, 6))}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -146,7 +144,6 @@ export async function renderHomeView(container) {
 
   container.innerHTML = '';
   container.appendChild(page);
-  bindOnlineRecordForm(page, dashboard, authState, onlineRecords, onlineRecordOptions);
   bindHomeRecordPagination(page, onlineRecords, onlineRecordOptions);
   bindFollowupPanel(page);
 }
@@ -210,7 +207,7 @@ function bindHomeRecordPagination(page, records, options) {
   });
 }
 
-function buildOnlineRecordPanel(dashboard, authState, projects = []) {
+function buildRecordGuidePanel(dashboard, authState) {
   if (!authState.apiAvailable) {
     return `
       <section class="access-note">
@@ -224,9 +221,9 @@ function buildOnlineRecordPanel(dashboard, authState, projects = []) {
     return `
       <section class="record-capture-panel">
         <div>
-          <div class="ops-kicker">Online Recording</div>
-          <h2>登录后开始记录</h2>
-          <p>写下一句真实状态，系统会帮你收束成一个更小的下一步。</p>
+          <div class="ops-kicker">记录入口</div>
+          <h2>登录后去 Records 记录</h2>
+          <p>所有输入统一进入 Records，写下真实状态后再由系统做分类、建议和沉淀。</p>
         </div>
         <a class="primary-action" href="/api/auth/google/start">Google 登录</a>
       </section>
@@ -237,156 +234,34 @@ function buildOnlineRecordPanel(dashboard, authState, projects = []) {
     return `
       <section class="access-note">
         <strong>只读账号</strong>
-        <p>当前 Google 账号不是作者账号，只能浏览公开内容。</p>
+        <p>当前 Google 账号不是作者账号，只能浏览公开内容，不能写入 Records。</p>
       </section>
     `;
   }
 
-  return buildUnifiedRecordForm({
-    id: 'home-unified-record',
-    kicker: '今天的入口',
-    title: dashboard?.hasRecordedToday ? '今天已经留下记录' : '先写一句真实状态',
-    subtitle: dashboard?.mode === 'owner'
-      ? `下一步：${dashboard.nextSmallStep || '先写下一个 25 分钟动作'}`
-      : '从一句话开始就够了，不需要一次整理完整。',
-    projects,
-    submitLabel: '记录并生成建议'
-  });
-}
-
-function buildDashboardFeedback(dashboard) {
-  if (!dashboard || dashboard.mode !== 'owner') {
-    return '<p class="record-feedback-text">从一句话开始就够了，不需要一次整理完整。</p>';
-  }
-
-  const state = dashboard.userState || {};
+  const state = dashboard?.userState || {};
   return `
-    <div class="record-feedback">
-      <div>
-        <span>${dashboard.hasRecordedToday ? '今日已记录' : '今日未记录'}</span>
-        <strong>${escapeHtml(dashboard.nextSmallStep || '先写下一个 25 分钟动作')}</strong>
+    <section class="record-capture-panel record-guide-panel">
+      <div class="record-capture-intro">
+        <div class="ops-kicker">今天的记录入口</div>
+        <h2>${dashboard?.hasRecordedToday ? '今天已经留下记录' : '去 Records 记一笔'}</h2>
+        <p>${escapeHtml(dashboard?.nextSmallStep || '先写下一句真实状态，不需要一次整理完整。')}</p>
+        <div class="record-feedback-stats">
+          <span>连续 ${state.currentStreakDays || 0} 天</span>
+          <span>本周 ${state.thisWeekRecordDays || 0} 天</span>
+          <span>累计 ${state.totalRecords || 0} 条</span>
+        </div>
       </div>
-      <div class="record-feedback-stats">
-        <span>连续 ${state.currentStreakDays || 0} 天</span>
-        <span>本周 ${state.thisWeekRecordDays || 0} 天</span>
-        <span>累计 ${state.totalRecords || 0} 条</span>
+      <div class="record-guide-actions">
+        <a class="primary-action" href="#records">去 Records 记一笔</a>
+        <div class="record-guide-shortcuts" aria-label="记录快捷类型">
+          <a href="#records/task">任务</a>
+          <a href="#records/emotion">情绪</a>
+          <a href="#records/health">健康</a>
+          <a href="#records/review">复盘</a>
+        </div>
       </div>
-    </div>
-  `;
-}
-
-function bindOnlineRecordForm(page, dashboard, authState, onlineRecords = [], onlineRecordOptions = {}) {
-  const intro = page.querySelector('.record-capture-intro');
-  bindUnifiedRecordForm(page, {
-    id: 'home-unified-record',
-    onSaved: (data) => {
-      prependOnlineRecord(page, data.record, data.aiSuggestion, onlineRecords, onlineRecordOptions);
-      if (intro) {
-        intro.innerHTML = `
-          <div class="ops-kicker">今天的入口</div>
-          <h2>刚刚这条已经接住了</h2>
-          ${buildDashboardFeedback({
-            mode: 'owner',
-            hasRecordedToday: true,
-            nextSmallStep: data.aiSuggestion?.nextSmallStep,
-            userState: data.userState || dashboard?.userState || {}
-          })}
-        `;
-      }
-      refreshPetPanel(page, {
-        ...dashboard,
-        hasRecordedToday: true,
-        userState: data.userState || dashboard?.userState || {}
-      }, authState);
-      refreshHeroPanel(page, data.record, data.aiSuggestion);
-    },
-    onAiReady: (aiSuggestion, record) => {
-      applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords, onlineRecordOptions);
-      refreshHeroPanel(page, record, aiSuggestion);
-    }
-  });
-}
-
-function applyAiSuggestionToHomeRecord(page, record, aiSuggestion, onlineRecords = [], onlineRecordOptions = {}) {
-  const recordWithSuggestion = { ...record, aiSuggestion };
-  if (Array.isArray(onlineRecords)) {
-    const cached = onlineRecords.find(item => item.id === record.id);
-    if (cached) cached.aiSuggestion = aiSuggestion;
-  }
-
-  if (replaceOnlineRecordCard(page, recordWithSuggestion)) return;
-
-  const paginatedSection = page.querySelector('[data-home-online-records]');
-  if (paginatedSection && Array.isArray(onlineRecords)) {
-    paginatedSection.innerHTML = buildHomeOnlineRecordsInner(
-      onlineRecords,
-      onlineRecordOptions,
-      Number(paginatedSection.dataset.currentPage || 1)
-    );
-  }
-}
-
-function refreshHeroPanel(page, record, aiSuggestion) {
-  const focus = aiSuggestion?.summary || record?.summary || record?.content || '今天还没有记录最重要的事';
-  const nextStep = aiSuggestion?.nextSmallStep || record?.nextActions?.[0] || '先写下一个 25 分钟动作';
-  const focusEl = page.querySelector('#home-hero-focus');
-  const nextEl = page.querySelector('#home-hero-next-step');
-  if (focusEl) focusEl.textContent = focus;
-  if (nextEl) nextEl.textContent = nextStep;
-}
-
-function refreshPetPanel(page, dashboard, authState) {
-  const panel = page.querySelector('#pet-companion-panel');
-  if (!panel) return;
-  panel.outerHTML = buildPetCompanionPanel(dashboard, authState || getAuthState());
-}
-
-function prependOnlineRecord(page, record, aiSuggestion, onlineRecords = null, onlineRecordOptions = {}) {
-  const recordWithSuggestion = { ...record, aiSuggestion };
-  const paginatedSection = page.querySelector('[data-home-online-records]');
-  if (paginatedSection && Array.isArray(onlineRecords)) {
-    onlineRecords.unshift(recordWithSuggestion);
-    paginatedSection.dataset.currentPage = '1';
-    paginatedSection.innerHTML = buildHomeOnlineRecordsInner(onlineRecords, onlineRecordOptions, 1);
-    return;
-  }
-
-  const list = page.querySelector('.online-record-list');
-  const section = page.querySelector('.online-records-section');
-  if (!section) return;
-
-  const html = buildOnlineRecordsSection([recordWithSuggestion], { title: '最近在线记录' });
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  const freshCard = temp.querySelector('.online-record-card');
-
-  if (list && freshCard) {
-    list.prepend(freshCard);
-    return;
-  }
-
-  section.outerHTML = buildOnlineRecordsSection([recordWithSuggestion], { title: '最近在线记录' });
-}
-
-function buildAiResult(aiSuggestion) {
-  if (!aiSuggestion) {
-    return '<div class="empty-inline">记录已保存，AI 建议稍后生成。</div>';
-  }
-
-  return `
-    <article class="ai-result-card">
-      <div class="domain-card-topline">
-        <span>${aiSuggestion.status === 'completed' ? 'AI 建议' : 'AI 待重试'}</span>
-        <span>${escapeHtml(aiSuggestion.model || '')}</span>
-      </div>
-      ${aiSuggestion.summary ? `<p><strong>我听到的是：</strong>${escapeHtml(aiSuggestion.summary)}</p>` : ''}
-      ${aiSuggestion.validation ? `<p><strong>值得肯定的是：</strong>${escapeHtml(aiSuggestion.validation)}</p>` : ''}
-      <div class="next-small-step">
-        <span>现在只做这一步</span>
-        <strong>${escapeHtml(aiSuggestion.nextSmallStep || '先把这条记录保存下来。')}</strong>
-      </div>
-      ${aiSuggestion.encouragement ? `<p>${escapeHtml(aiSuggestion.encouragement)}</p>` : ''}
-    </article>
+    </section>
   `;
 }
 
@@ -432,46 +307,21 @@ function buildFollowupList(followups) {
   `;
 }
 
-function buildFollowupPanel(authState, onlineFollowups, staticFollowups, projects = []) {
+function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
   if (authState.apiAvailable && authState.user?.role === 'owner') {
     return `
-      <form class="quick-inline-form followup-quick-form" id="home-followup-form">
-        <textarea name="text" rows="2" placeholder="新增一个需要闭环的小事项"></textarea>
-        <div class="followup-form-grid">
-          <select name="domain" aria-label="场景">
-            <option value="">未分类</option>
-            <option value="work">主业</option>
-            <option value="side_business">副业</option>
-            <option value="life">生活和自我</option>
-            <option value="content">内容产出</option>
-          </select>
-          ${buildProjectSelect(projects)}
-          <input name="dueDate" type="date" aria-label="截止日期">
-          <button class="primary-action" type="submit">新增</button>
-        </div>
-      </form>
+      <div class="followup-home-guide">
+        <p>新增任务统一去 Records 选择“任务”，系统会自动进入未闭环事项。</p>
+        <a class="primary-action" href="#records/task">新增任务</a>
+      </div>
       <div class="form-status" id="home-followup-status"></div>
       <div class="compact-list manageable-list" id="home-followup-list">
-        ${onlineFollowups.length ? onlineFollowups.map(buildOnlineFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。新增一个，就能在这里闭环。</div>'}
+        ${onlineFollowups.length ? onlineFollowups.map(buildOnlineFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。去 Records 新增一个任务，就能在这里闭环。</div>'}
       </div>
     `;
   }
 
   return buildFollowupList(staticFollowups);
-}
-
-function buildProjectSelect(projects = []) {
-  const options = projects
-    .filter(project => project?.name)
-    .map(project => `<option value="${escapeAttr(project.name)}">${escapeHtml(project.name)}</option>`)
-    .join('');
-
-  return `
-    <select name="project" aria-label="项目">
-      <option value="">不关联项目</option>
-      ${options || '<option value="" disabled>暂无可关联项目</option>'}
-    </select>
-  `;
 }
 
 function buildOnlineFollowupRow(item) {
@@ -516,42 +366,8 @@ function buildFollowupTimeMeta(item) {
 }
 
 function bindFollowupPanel(page) {
-  const form = page.querySelector('#home-followup-form');
   const list = page.querySelector('#home-followup-list');
   const status = page.querySelector('#home-followup-status');
-
-  form?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const text = form.elements.text.value.trim();
-    if (!text) {
-      status.textContent = '先写一个具体事项。';
-      return;
-    }
-
-    const button = form.querySelector('button[type="submit"]');
-    button.disabled = true;
-    status.textContent = '保存中...';
-
-    try {
-      const data = await createFollowup({
-        text,
-        domain: form.elements.domain.value,
-        project: form.elements.project.value,
-        dueDate: form.elements.dueDate.value
-      });
-      form.reset();
-      status.textContent = '已新增';
-      if (list) {
-        const empty = list.querySelector('.empty-inline');
-        if (empty) empty.remove();
-        list.insertAdjacentHTML('afterbegin', buildOnlineFollowupRow(data.followup));
-      }
-    } catch (error) {
-      status.textContent = error.message || '保存失败';
-    } finally {
-      button.disabled = false;
-    }
-  });
 
   list?.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-followup-action]');

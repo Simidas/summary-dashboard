@@ -241,6 +241,27 @@
   color: #64748B;
 }
 
+.followup-home-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+}
+
+.followup-home-guide p {
+  flex: 1 1 220px;
+  margin-bottom: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
 .plain-list {
   display: grid;
   gap: 6px;
@@ -509,6 +530,48 @@
 .record-capture-panel p {
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.record-guide-panel {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .record-guide-panel {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: center;
+  }
+}
+
+.record-guide-actions {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.record-guide-actions .primary-action {
+  text-align: center;
+}
+
+.record-guide-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.record-guide-shortcuts a {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.record-guide-shortcuts a:hover {
+  color: var(--text-primary);
+  border-color: #93C5FD;
 }
 
 .online-record-form {

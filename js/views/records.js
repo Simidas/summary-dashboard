@@ -2,15 +2,17 @@
    Records Center View
    ======================================== */
 
-import { getProjects, getRecords } from '../api.js?v=20260702c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702c';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702c';
-import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702c';
-import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702c';
+import { getProjects, getRecords } from '../api.js?v=20260702d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260702d';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702d';
+import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260702d';
+import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260702d';
 
 const PAGE_SIZE = 12;
+const QUICK_RECORD_TYPES = new Set(RECORD_TYPE_OPTIONS.map(item => item.value));
+const LIFE_ONLY_QUICK_TYPES = new Set(['diary', 'health']);
 
-export async function renderRecordsView(container) {
+export async function renderRecordsView(container, params = {}) {
   container.innerHTML = `
     <div class="page">
       <div class="skeleton" style="height: 220px;"></div>
@@ -26,6 +28,7 @@ export async function renderRecordsView(container) {
   ]);
   const records = recordsData?.records || [];
   const projects = projectsData?.projects || [];
+  const recordDefaults = resolveRecordDefaults(params);
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
@@ -42,7 +45,7 @@ export async function renderRecordsView(container) {
       </div>
     </section>
 
-    ${buildAccessOrForm(authState, canWrite, projects)}
+    ${buildAccessOrForm(authState, canWrite, projects, recordDefaults)}
 
     <section class="ops-panel records-filter-panel">
       <div class="section-heading">
@@ -83,7 +86,7 @@ export async function renderRecordsView(container) {
   renderRecordList(page, records, 1);
 }
 
-function buildAccessOrForm(authState, canWrite, projects) {
+function buildAccessOrForm(authState, canWrite, projects, defaults = {}) {
   if (!authState.apiAvailable) {
     return `
       <section class="access-note">
@@ -119,9 +122,21 @@ function buildAccessOrForm(authState, canWrite, projects) {
     id: 'records-center',
     title: '记一笔经营数据',
     subtitle: '选择场景和类型即可。任务类会进入未闭环事项，主题标签最多填 3 个。',
+    defaultDomain: defaults.defaultDomain,
+    defaultType: defaults.defaultType,
     projects,
     rows: 6
   });
+}
+
+function resolveRecordDefaults(params = {}) {
+  const quickType = String(params.date || '').trim();
+  const defaultType = QUICK_RECORD_TYPES.has(quickType) ? quickType : 'note';
+  const lastDomain = localStorage.getItem('summary-dashboard:last-domain') || 'life';
+  return {
+    defaultType,
+    defaultDomain: LIFE_ONLY_QUICK_TYPES.has(defaultType) ? 'life' : lastDomain
+  };
 }
 
 function bindFilters(page, records) {
