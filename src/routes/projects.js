@@ -1,6 +1,12 @@
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
-import { mapProject, mapRecord, normalizeProjectStatus, nowIso, slugifyProjectName } from '../lib/db.js';
+import {
+  mapProject,
+  mapRecord,
+  normalizeProjectStatus,
+  nowIso,
+  slugifyProjectName
+} from '../lib/db.js';
 
 export async function handleProjects(request, env) {
   const url = new URL(request.url);
@@ -36,6 +42,19 @@ async function listProjects(request, env) {
     return ok({ projects: [] });
   }
 
+  const url = new URL(request.url);
+  const includeClosed = url.searchParams.get('includeClosed') === 'true';
+  const status = url.searchParams.get('status');
+  const clauses = ['p.owner_id = ?', 'p.deleted_at IS NULL'];
+  const params = [session.user.id];
+
+  if (status) {
+    clauses.push('p.status = ?');
+    params.push(normalizeProjectStatus(status));
+  } else if (!includeClosed) {
+    clauses.push("p.status IN ('active', 'paused')");
+  }
+
   const rows = await env.DB.prepare(`
     SELECT
       p.*,
@@ -55,16 +74,16 @@ async function listProjects(request, env) {
           AND f.status IN ('open', 'deferred')
       ) AS open_followups
     FROM projects p
-    WHERE p.owner_id = ? AND p.deleted_at IS NULL
+    WHERE ${clauses.join(' AND ')}
     ORDER BY
       CASE p.status
         WHEN 'active' THEN 0
         WHEN 'paused' THEN 1
-        WHEN 'shipped' THEN 2
+        WHEN 'completed' THEN 2
         ELSE 3
       END,
       p.updated_at DESC
-  `).bind(session.user.id).all();
+  `).bind(...params).all();
 
   return ok({ projects: (rows.results || []).map(mapProject) });
 }

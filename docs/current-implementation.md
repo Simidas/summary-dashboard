@@ -80,6 +80,7 @@
 - Follow-up 数据存入 `followups`，支持创建、更新状态、计划时间、项目关联。
 - 首页和场景页都会展示未闭环事项，超过或等于计划时间的 open/deferred 事项显示超时。
 - Projects 数据存入 `projects`，支持创建、编辑、删除和详情页时间线。
+- 项目状态统一为 `active / paused / completed / dropped`。默认项目列表和所有关联项目入口只返回 `active / paused`，项目管理页显式请求全部状态；旧状态通过 D1 migration 清洗，不在运行时代码里做兼容。
 - 项目详情可以继续写入关联项目的记录。
 
 ### 内容素材

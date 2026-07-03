@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260702e';
+} from '../data.js?v=20260703a';
 import {
   getContentItems,
   getDashboard,
@@ -16,12 +16,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260702e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260702e';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260702e';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260702e';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260702e';
+} from '../api.js?v=20260703a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703a';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703a';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260703a';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260703a';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703a';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -426,6 +426,7 @@ function mergeProjects(onlineProjects, staticProjects) {
   const result = [];
 
   onlineProjects.forEach(project => {
+    if (!isVisibleProject(project)) return;
     seen.add(project.slug);
     result.push({
       ...project,
@@ -434,10 +435,15 @@ function mergeProjects(onlineProjects, staticProjects) {
   });
 
   staticProjects.forEach(project => {
+    if (!isVisibleProject(project)) return;
     if (!seen.has(project.slug)) result.push(project);
   });
 
   return result;
+}
+
+function isVisibleProject(project) {
+  return ['active', 'paused'].includes(project?.status);
 }
 
 function buildSeedList(seeds) {

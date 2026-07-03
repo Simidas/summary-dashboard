@@ -87,8 +87,13 @@ export function applyRecordDestination(id, input) {
   });
 }
 
-export function getProjects() {
-  return apiRequest('/api/projects');
+export function getProjects(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/projects${query ? `?${query}` : ''}`);
 }
 
 export function getProject(slugOrId) {

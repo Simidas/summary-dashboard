@@ -12,12 +12,12 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260702e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260702e';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260702e';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702e';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260702e';
+} from '../api.js?v=20260703a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703a';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703a';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703a';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703a';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -292,17 +292,23 @@ function mergeProjects(onlineProjects, staticProjects) {
   const result = [];
 
   onlineProjects.forEach(project => {
+    if (!isVisibleProject(project)) return;
     if (!project?.name) return;
     seen.add(project.name);
     result.push(project);
   });
 
   staticProjects.forEach(project => {
+    if (!isVisibleProject(project)) return;
     if (!project?.name || seen.has(project.name)) return;
     result.push(project);
   });
 
   return result;
+}
+
+function isVisibleProject(project) {
+  return ['active', 'paused'].includes(project?.status);
 }
 
 function buildOnlineFollowupRow(item) {

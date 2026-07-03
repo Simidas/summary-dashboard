@@ -1,4 +1,10 @@
-import { mapFollowup, normalizeDomain, normalizeFollowupStatus, nowIso } from '../lib/db.js';
+import {
+  isActiveProjectStatus,
+  mapFollowup,
+  normalizeDomain,
+  normalizeFollowupStatus,
+  nowIso
+} from '../lib/db.js';
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
@@ -85,6 +91,9 @@ async function createFollowup(request, env) {
   const status = normalizeFollowupStatus(body?.status);
   const closedAt = isClosedStatus(status) ? now : null;
   const id = crypto.randomUUID();
+  const project = cleanText(body?.project);
+  const projectError = await validateActiveProjectName(env, session.user.id, project);
+  if (projectError) return projectError;
 
   await env.DB.prepare(`
     INSERT INTO followups (
@@ -97,7 +106,7 @@ async function createFollowup(request, env) {
     session.user.id,
     text,
     normalizeDomain(body?.domain),
-    cleanText(body?.project),
+    project,
     status,
     cleanText(body?.sourceRecordId),
     cleanDate(body?.dueDate),
@@ -128,6 +137,9 @@ async function updateFollowup(request, env, id) {
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 
   const status = body?.status == null ? existing.status : normalizeFollowupStatus(body.status);
+  const project = body?.project == null ? existing.project : cleanText(body.project);
+  const projectError = await validateActiveProjectName(env, session.user.id, project);
+  if (projectError) return projectError;
   const now = nowIso();
   const closedAt = isClosedStatus(status)
     ? existing.closed_at || now
@@ -140,7 +152,7 @@ async function updateFollowup(request, env, id) {
   `).bind(
     text,
     body?.domain == null ? existing.domain : normalizeDomain(body.domain),
-    body?.project == null ? existing.project : cleanText(body.project),
+    project,
     status,
     body?.dueDate == null ? existing.due_date : cleanDate(body.dueDate),
     now,
@@ -176,6 +188,23 @@ async function getOwnerSession(request, env) {
 
 function isClosedStatus(status) {
   return status === 'closed' || status === 'dropped';
+}
+
+async function validateActiveProjectName(env, ownerId, projectName) {
+  if (!projectName) return null;
+
+  const project = await env.DB.prepare(`
+    SELECT status
+    FROM projects
+    WHERE owner_id = ? AND deleted_at IS NULL AND name = ?
+    LIMIT 1
+  `).bind(ownerId, projectName).first();
+
+  if (!project) return fail(400, 'PROJECT_NOT_FOUND', '关联项目必须从已有可用项目中选择');
+  if (!isActiveProjectStatus(project.status)) {
+    return fail(400, 'PROJECT_CLOSED', '完成或废弃的项目不能继续关联新待办');
+  }
+  return null;
 }
 
 function cleanText(value) {

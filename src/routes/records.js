@@ -1,5 +1,6 @@
 import { generateCompanionSuggestion } from '../lib/ai-client.js';
 import {
+  isActiveProjectStatus,
   mapContentItem,
   mapFollowup,
   mapProject,
@@ -162,7 +163,7 @@ async function createRecord(request, env, ctx) {
     visibility: normalizeVisibility(body.visibility),
     mood: String(body.mood || '').trim() || null,
     energy: normalizeEnergy(body.energy),
-    projects: Array.isArray(body.projects) ? body.projects : [],
+    projects: normalizeProjectRefs(body.projects),
     tags: normalizeTopicTags(body.tags),
     nextActions: Array.isArray(body.nextActions) ? body.nextActions : [],
     structuredPayload: buildStructuredPayload(body)
@@ -261,6 +262,9 @@ async function updateRecord(request, env, id) {
 
   const content = body.content == null ? existing.raw_content : String(body.content).trim();
   if (!content) return fail(400, 'CONTENT_REQUIRED', '记录内容不能为空');
+  const projects = body.projects == null ? null : normalizeProjectRefs(body.projects);
+  const projectError = await validateActiveProjectNames(env, session.user.id, projects || []);
+  if (projectError) return projectError;
 
   await env.DB.prepare(`
     UPDATE records
@@ -275,7 +279,7 @@ async function updateRecord(request, env, id) {
     body.visibility == null ? existing.visibility : normalizeVisibility(body.visibility),
     body.mood == null ? existing.mood : String(body.mood || '').trim() || null,
     body.energy == null ? existing.energy : normalizeEnergy(body.energy),
-    body.projects == null ? existing.projects_json : toJsonText(body.projects),
+    body.projects == null ? existing.projects_json : toJsonText(projects),
     body.tags == null ? existing.tags_json : toJsonText(body.tags),
     body.nextActions == null ? existing.next_actions_json : toJsonText(body.nextActions),
     body.structuredPayload == null ? existing.structured_payload_json : JSON.stringify(sanitizeObject(body.structuredPayload)),
@@ -455,6 +459,10 @@ async function applyFollowupDestination(env, record, suggestion, body = {}) {
 
   const now = nowIso();
   const id = crypto.randomUUID();
+  const projectName = cleanText(record.projects?.[0]);
+  const projectError = await validateActiveProjectNames(env, record.ownerId, projectName ? [projectName] : []);
+  if (projectError) return projectError;
+
   await env.DB.prepare(`
     INSERT INTO followups (
       id, owner_id, text, domain, project, status, source_record_id, due_date,
@@ -466,7 +474,7 @@ async function applyFollowupDestination(env, record, suggestion, body = {}) {
     record.ownerId,
     text,
     record.domain,
-    cleanText(record.projects?.[0]),
+    projectName,
     'open',
     record.id,
     cleanDate(body.dueDate || structured.suggestedDueDate),
@@ -642,6 +650,9 @@ async function applyProjectDestination(env, record, suggestion, body = {}) {
     WHERE owner_id = ? AND deleted_at IS NULL AND name = ?
     LIMIT 1
   `).bind(record.ownerId, projectName).first();
+  if (project && !isActiveProjectStatus(project.status)) {
+    return fail(400, 'PROJECT_CLOSED', '完成或废弃的项目不能继续关联新记录');
+  }
 
   if (!project) {
     const id = crypto.randomUUID();
@@ -724,21 +735,13 @@ async function validateRecordInput(env, ownerId, record, body) {
     return fail(400, 'TYPE_DOMAIN_MISMATCH', '当前场景不能选择这个记录类型');
   }
 
+  const projectError = await validateActiveProjectNames(env, ownerId, record.projects);
+  if (projectError) return projectError;
+
   if (record.type !== 'task') return null;
 
   const taskTitle = cleanText(body.taskTitle || record.structuredPayload.taskTitle || record.summary || firstLine(record.content));
   if (!taskTitle) return fail(400, 'TASK_TITLE_REQUIRED', '任务记录需要一个明确标题');
-
-  const project = cleanText(record.projects[0]);
-  if (!project) return null;
-
-  const existing = await env.DB.prepare(`
-    SELECT id
-    FROM projects
-    WHERE owner_id = ? AND name = ? AND deleted_at IS NULL
-    LIMIT 1
-  `).bind(ownerId, project).first();
-  if (!existing) return fail(400, 'PROJECT_NOT_FOUND', '任务关联项目必须从已有项目中选择');
 
   return null;
 }
@@ -822,6 +825,34 @@ function cleanText(value) {
 function cleanDate(value) {
   const text = cleanText(value);
   return /^\d{4}-\d{2}-\d{2}$/.test(text || '') ? text : null;
+}
+
+function normalizeProjectRefs(projects) {
+  if (!Array.isArray(projects)) return [];
+  return uniqueTexts(projects).slice(0, 5);
+}
+
+async function validateActiveProjectNames(env, ownerId, projectNames = []) {
+  const names = uniqueTexts(projectNames);
+  if (!names.length) return null;
+
+  const placeholders = names.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(`
+    SELECT name, status
+    FROM projects
+    WHERE owner_id = ? AND deleted_at IS NULL AND name IN (${placeholders})
+  `).bind(ownerId, ...names).all();
+
+  const byName = new Map((rows.results || []).map(row => [row.name, row]));
+  const missing = names.find(name => !byName.has(name));
+  if (missing) return fail(400, 'PROJECT_NOT_FOUND', '关联项目必须从已有可用项目中选择');
+
+  const closed = names
+    .map(name => byName.get(name))
+    .find(project => !isActiveProjectStatus(project.status));
+  if (closed) return fail(400, 'PROJECT_CLOSED', '完成或废弃的项目不能继续关联新记录');
+
+  return null;
 }
 
 function firstLine(value) {

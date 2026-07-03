@@ -9,6 +9,8 @@ export const TYPES = new Set([
   'health'
 ]);
 export const VISIBILITIES = new Set(['private', 'public', 'shared']);
+export const PROJECT_STATUSES = new Set(['active', 'paused', 'completed', 'dropped']);
+export const ACTIVE_PROJECT_STATUSES = new Set(['active', 'paused']);
 
 export function nowIso() {
   return new Date().toISOString();
@@ -67,8 +69,11 @@ export function normalizeVisibility(visibility) {
 }
 
 export function normalizeProjectStatus(status) {
-  const allowed = new Set(['active', 'paused', 'shipped', 'dropped']);
-  return allowed.has(status) ? status : 'active';
+  return PROJECT_STATUSES.has(status) ? status : 'active';
+}
+
+export function isActiveProjectStatus(status) {
+  return ACTIVE_PROJECT_STATUSES.has(status);
 }
 
 export function normalizeContentStatus(status) {

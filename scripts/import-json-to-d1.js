@@ -124,7 +124,7 @@ INSERT OR IGNORE INTO projects (
   ${sql(project.slug)},
   ${sql(project.name)},
   ${sql(project.summary || detail.summary || null)},
-  ${sql(project.status || detail.status || 'active')},
+  ${sql(normalizeProjectStatus(project.status || detail.status))},
   ${sql(project.summary || detail.summary || null)},
   ${sql(openFollowup || null)},
   ${sql(createdAt)},
@@ -364,6 +364,12 @@ function normalizeFollowupStatus(status) {
 function normalizeContentStatus(status) {
   const allowed = new Set(['idea', 'outline', 'drafting', 'published', 'dropped']);
   return allowed.has(status) ? status : 'idea';
+}
+
+function normalizeProjectStatus(status) {
+  const normalized = String(status || '').trim();
+  const allowed = new Set(['active', 'paused', 'completed', 'dropped']);
+  return allowed.has(normalized) ? normalized : 'active';
 }
 
 function normalizeRecordType(type, domain) {

@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260702e';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703a';
 import {
   createFollowup,
   createProject,
@@ -14,11 +14,11 @@ import {
   getRecords,
   updateFollowup,
   updateProject
-} from '../api.js?v=20260702e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260702e';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260702e';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260702e';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260702e';
+} from '../api.js?v=20260703a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703a';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703a';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703a';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -38,7 +38,7 @@ export async function renderProjectsView(container, params = {}) {
 
   const [manifest, onlineProjectsData] = await Promise.all([
     isApiEnabled() && authState.user?.role === 'owner' ? Promise.resolve(null) : loadProjectsManifest(),
-    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getProjects({ includeClosed: true }).catch(() => null) : Promise.resolve(null)
   ]);
   const staticProjects = manifest?.projects || [];
   const onlineProjects = onlineProjectsData?.projects || [];
@@ -95,7 +95,7 @@ async function renderProjectDetail(container, slug, authState) {
 
   const [manifest, onlineProjectsData] = await Promise.all([
     loadProjectsManifest().catch(() => null),
-    isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null)
+    isApiEnabled() && authState.user ? getProjects({ includeClosed: true }).catch(() => null) : Promise.resolve(null)
   ]);
   const staticProjectMeta = (manifest?.projects || []).find(project => project.slug === normalizedSlug);
   const onlineProjectMeta = (onlineProjectsData?.projects || [])
@@ -303,7 +303,7 @@ function buildProjectEditPanel(project) {
         <label>
           <span>状态</span>
           <select name="status">
-            ${['active', 'paused', 'shipped', 'dropped'].map(status => `
+            ${['active', 'paused', 'completed', 'dropped'].map(status => `
               <option value="${status}" ${project.status === status ? 'selected' : ''}>${status}</option>
             `).join('')}
           </select>
