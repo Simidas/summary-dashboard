@@ -593,6 +593,11 @@
   margin-bottom: var(--space-5);
 }
 
+.diary-capture-heading h2 {
+  margin: 2px 0 0;
+  font-size: 1.25rem;
+}
+
 .access-note {
   padding: var(--space-3);
   margin-bottom: var(--space-5);
@@ -628,6 +633,23 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-1);
+}
+
+.diary-recent-lines {
+  display: grid;
+  gap: 8px;
+  margin-top: var(--space-3);
+}
+
+.diary-recent-lines p {
+  margin-bottom: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 .analysis-box {

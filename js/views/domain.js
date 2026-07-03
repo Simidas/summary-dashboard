@@ -12,18 +12,18 @@ import {
   getProjects,
   getRecords,
   updateDomainSettings
-} from '../api.js?v=20260703d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703d';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703d';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703d';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703d';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703d';
+} from '../api.js?v=20260703e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703e';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703e';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703e';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703e';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703d';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703d';
+} from '../components/followup-list.js?v=20260703e';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703e';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

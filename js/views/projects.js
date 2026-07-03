@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703d';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703e';
 import {
   createFollowup,
   createProject,
@@ -13,16 +13,16 @@ import {
   getProjects,
   getRecords,
   updateProject
-} from '../api.js?v=20260703d';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703d';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703d';
+} from '../api.js?v=20260703e';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703e';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703d';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703d';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703d';
+} from '../components/followup-list.js?v=20260703e';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703e';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703e';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();

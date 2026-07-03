@@ -15,7 +15,6 @@ const cache = {
   projects: {},
   followups: {},
   content: {},
-  diary: {},
   insights: {}
 };
 
@@ -411,27 +410,6 @@ export async function loadWeeklyInsight(weekStr) {
   return loadJson(`data/summaries/insights/weekly/${weekStr}.json`, cache.insights, weekStr);
 }
 
-export async function loadDiaryManifest() {
-  return loadJson('data/records/diary/manifest.json', cache.diary, 'manifest');
-}
-
-export async function loadDiaryEntry(id) {
-  return loadJson(`data/records/diary/${id}.json`, cache.diary, id);
-}
-
-export async function loadDiaryEntries() {
-  const manifest = await loadDiaryManifest();
-  const entries = manifest?.entries || [];
-  const loaded = [];
-
-  for (const id of entries) {
-    const entry = await loadDiaryEntry(id);
-    if (entry) loaded.push(entry);
-  }
-
-  return loaded;
-}
-
 /**
  * Clear all cache
  */
@@ -444,6 +422,5 @@ export function clearCache() {
   cache.projects = {};
   cache.followups = {};
   cache.content = {};
-  cache.diary = {};
   cache.insights = {};
 }

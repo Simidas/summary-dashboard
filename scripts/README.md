@@ -1,6 +1,6 @@
 # 脚本说明
 
-这个目录用于维护复盘站的数据流：手动创建每日综合记录和 Diary，迁移旧 Hermes 数据，把历史静态 JSON 导入 D1。
+这个目录用于维护复盘站的数据流：手动创建每日综合记录，迁移旧 Hermes 数据，把历史静态 JSON 导入 D1。
 
 ## 数据流
 
@@ -101,27 +101,6 @@ data/legacy/hermes-daily/
 data/records/daily/
 ```
 
-## new-diary-entry.js
-
-创建一条私密 Diary 记录模板。
-
-```bash
-node scripts/new-diary-entry.js
-node scripts/new-diary-entry.js 2026-06-24
-```
-
-生成文件：
-
-```text
-data/records/diary/diary-YYYYMMDD-001.json
-```
-
-并自动更新：
-
-```text
-data/records/diary/manifest.json
-```
-
 ## aggregate.js
 
 从 `data/records/daily/` 扫描每日综合记录，生成历史静态聚合 JSON 和 manifest。
@@ -200,7 +179,6 @@ node scripts/import-json-to-d1.js --owner-id owner-import --with-transaction
 
 ```bash
 node --check scripts/new-daily-record.js
-node --check scripts/new-diary-entry.js
 node --check scripts/migrate-legacy-daily.js
 node --check scripts/aggregate.js
 node scripts/aggregate.js

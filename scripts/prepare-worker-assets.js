@@ -12,8 +12,7 @@ const copyTargets = [
   { from: 'css', to: 'css' },
   { from: 'js', to: 'js' },
   { from: 'data/summaries', to: 'data/summaries' },
-  { from: 'data/records/daily', to: 'data/records/daily' },
-  { from: 'data/records/diary/manifest.json', to: 'data/records/diary/manifest.json' }
+  { from: 'data/records/daily', to: 'data/records/daily' }
 ];
 
 fs.rmSync(outDir, { recursive: true, force: true });

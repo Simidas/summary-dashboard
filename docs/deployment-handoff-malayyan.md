@@ -444,4 +444,4 @@ database_id = "<真实 database_id>"
 - 不要把 MiniMax key、Google Client Secret、Session Secret 写入文档或代码。
 - 不要直接部署根目录到旧 Cloudflare Pages 来验证在线写入，在线写入必须走 Workers。
 - 不要把 `MINIMAX_API_BASE_URL` 改回 `.io` endpoint。
-- 不要导入 `data/records/diary/*.json`，除非 Weldon 明确确认。
+- 旧 Diary JSON 已废弃，Diary 数据统一来自 D1 `records(type=diary, domain=life)`。

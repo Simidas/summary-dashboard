@@ -330,7 +330,7 @@ JSON 的新定位：
 ### 7.2 迁移要求
 
 - 提供一次性导入脚本，把 `data/records/daily/` 迁移到 D1。
-- Diary JSON 默认不导入公开环境，除非作者显式确认。
+- 旧 Diary JSON 结构已废弃，Diary 统一写入 D1 `records(type=diary, domain=life)`。
 - 导入时保留原始 `id`、`createdAt`、`domain`、`type`、`visibility`。
 - 导入脚本应可重复运行，不产生重复数据。
 
