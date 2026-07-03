@@ -2,14 +2,15 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260703b';
-import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260703b';
-import { createWeekCard } from '../components/card.js?v=20260703b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703b';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703b';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703b';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260703c';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260703c';
+import { createWeekCard } from '../components/card.js?v=20260703c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703c';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703c';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
 
 const WEEK_DISPLAY_COUNT = 8;
 
@@ -74,6 +75,9 @@ export async function renderWeeklyView(container, params = {}) {
 
   const reviewWeek = recentWeekSummaries[0]?.key || getCurrentWeekKey();
   const reviewMap = createReviewMap(periodReviews);
+  const periodAnalysisData = useOwnerApi
+    ? await getAnalysisSnapshot('weekly', reviewWeek).catch(() => null)
+    : null;
   
   if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
@@ -82,6 +86,7 @@ export async function renderWeeklyView(container, params = {}) {
         <h1 class="view-title">Weekly</h1>
         <p class="view-subtitle">按周聚合的复盘数据</p>
       </div>
+      ${buildPeriodAnalysisPanel(useOwnerApi, 'weekly', reviewWeek, periodAnalysisData?.analysis)}
       ${reviewPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
@@ -89,6 +94,7 @@ export async function renderWeeklyView(container, params = {}) {
       </div>
     `;
     bindPeriodReviewForms(page);
+    bindAnalysisPanel(page);
     return;
   }
 
@@ -104,6 +110,10 @@ export async function renderWeeklyView(container, params = {}) {
 
   if (latestInsight) {
     page.appendChild(createPeriodInsightPanel(latestInsight, '本周经营洞察'));
+  }
+
+  if (useOwnerApi) {
+    page.insertAdjacentHTML('beforeend', buildPeriodAnalysisPanel(true, 'weekly', reviewWeek, periodAnalysisData?.analysis));
   }
 
   const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
@@ -139,6 +149,7 @@ export async function renderWeeklyView(container, params = {}) {
   container.innerHTML = '';
   container.appendChild(page);
   bindPeriodReviewForms(page);
+  bindAnalysisPanel(page);
 }
 
 /**
@@ -209,4 +220,16 @@ function createWeeklyReviewPlaceholder(review) {
 
 function createReviewMap(reviews = []) {
   return new Map(reviews.map(review => [review.periodKey, review]));
+}
+
+function buildPeriodAnalysisPanel(enabled, scopeType, scopeKey, analysis) {
+  if (!enabled) return '';
+  return buildAnalysisPanel({
+    scopeType,
+    scopeKey,
+    analysis,
+    title: 'AI 周度节奏分析',
+    generateLabel: '生成/刷新周分析',
+    emptyText: '基于这一周的记录、每日复盘、待办和内容素材，生成节奏、趋势、长期未闭环和下周重点。'
+  });
 }

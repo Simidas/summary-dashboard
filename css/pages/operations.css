@@ -292,6 +292,15 @@
   font-size: 0.8125rem;
 }
 
+.analysis-action-row.is-paused {
+  border-color: #FDE68A;
+  background: #FFFBEB;
+}
+
+.analysis-action-row.is-paused span {
+  color: #92400E;
+}
+
 .status-chip {
   display: inline-flex;
   width: fit-content;
@@ -497,6 +506,17 @@
   font-family: var(--font-sans);
   font-size: 0.875rem;
   margin-bottom: var(--space-1);
+}
+
+.period-review-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.period-review-action-item span {
+  flex: 1;
 }
 
 .period-history-heading {

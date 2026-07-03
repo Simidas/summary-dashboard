@@ -5,13 +5,13 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703b';
-import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { createSummaryCard } from '../components/card.js?v=20260703b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703b';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703b';
-import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703b';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703c';
+import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { createSummaryCard } from '../components/card.js?v=20260703c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703c';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
+import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703c';
 
 const TIMELINE_DAYS = 14;
 

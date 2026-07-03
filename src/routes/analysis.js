@@ -3,6 +3,7 @@ import {
   mapAnalysisSnapshot,
   mapFollowup,
   normalizeDomain,
+  normalizeFollowupStatus,
   nowIso,
   parseJsonText,
   todayShanghai
@@ -11,6 +12,7 @@ import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 const DOMAIN_WINDOW_DAYS = new Set([7, 30]);
+const PERIOD_TYPES = new Set(['weekly', 'monthly', 'yearly']);
 const DOMAIN_LABELS = {
   work: '主业',
   side_business: '副业',
@@ -61,9 +63,7 @@ async function generateAnalysis(request, env, scopeType, rawScopeKey) {
   const scope = normalizeScope(scopeType, rawScopeKey, body?.windowDays);
   if (scope.error) return scope.error;
 
-  const context = scope.scopeType === 'daily'
-    ? await buildDailyAnalysisContext(env, session.user.id, scope.scopeKey)
-    : await buildDomainAnalysisContext(env, session.user.id, scope.scopeKey, scope.windowDays);
+  const context = await buildAnalysisContext(env, session.user.id, scope);
   const draft = await generateAnalysisDraft(env, context);
 
   await upsertAnalysisSnapshot(env, {
@@ -108,12 +108,16 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
 
   const body = await readJson(request);
   const actions = parseJsonText(row.next_actions_json);
+  const insights = parseJsonText(row.insights_json, {});
   const requestedIndex = Number(body?.actionIndex);
+  const requestedPauseIndex = Number(body?.pauseIndex);
   const action = Number.isInteger(requestedIndex) ? actions[requestedIndex] : null;
-  const text = cleanText(body?.text || action?.text);
+  const pauseText = Number.isInteger(requestedPauseIndex) ? insights.pauseSuggestions?.[requestedPauseIndex] : null;
+  const status = pauseText ? 'deferred' : normalizeFollowupStatus(body?.status);
+  const text = cleanText(body?.text || action?.text || pauseText);
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 
-  const actionHash = await sha256Hex(`${analysisId}:${text}`);
+  const actionHash = await sha256Hex(`${analysisId}:${status}:${text}`);
   const existing = await env.DB.prepare(`
     SELECT *
     FROM followups
@@ -134,13 +138,14 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
       id, owner_id, text, domain, project, status, source_record_id, due_date,
       source_analysis_id, source_action_hash, created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, 'open', NULL, ?, ?, ?, ?, ?, NULL)
+    VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, NULL)
   `).bind(
     id,
     session.user.id,
     text,
     domain,
     null,
+    status,
     cleanDate(body?.dueDate),
     analysisId,
     actionHash,
@@ -172,7 +177,24 @@ function normalizeScope(scopeType, rawScopeKey, rawWindowDays) {
     return { scopeType: 'domain', scopeKey, windowDays };
   }
 
+  if (PERIOD_TYPES.has(scopeType)) {
+    if (!isValidPeriodKey(scopeType, rawScopeKey)) {
+      return { error: fail(400, 'PERIOD_KEY_INVALID', '周期格式不正确') };
+    }
+    return { scopeType, scopeKey: rawScopeKey, windowDays: 0 };
+  }
+
   return { error: fail(400, 'SCOPE_INVALID', '分析范围不存在') };
+}
+
+function buildAnalysisContext(env, ownerId, scope) {
+  if (scope.scopeType === 'daily') {
+    return buildDailyAnalysisContext(env, ownerId, scope.scopeKey);
+  }
+  if (scope.scopeType === 'domain') {
+    return buildDomainAnalysisContext(env, ownerId, scope.scopeKey, scope.windowDays);
+  }
+  return buildPeriodAnalysisContext(env, ownerId, scope.scopeType, scope.scopeKey);
 }
 
 async function loadAnalysisSnapshot(env, ownerId, scope) {
@@ -340,12 +362,103 @@ async function buildDomainAnalysisContext(env, ownerId, domain, windowDays) {
       blockers,
       patterns: buildPatterns(records),
       nextActions,
-      watchItems: buildWatchItems(records, openFollowups)
+      watchItems: buildWatchItems(records, openFollowups),
+      pauseSuggestions: buildPauseSuggestions(openFollowups)
     },
     dailyReviews: domainReviewSignals.slice(0, 30),
     records: records.slice(0, 120),
     followups: followups.slice(0, 80),
     contentItems: contentItems.slice(0, 60)
+  };
+}
+
+async function buildPeriodAnalysisContext(env, ownerId, periodType, periodKey) {
+  const range = getPeriodDateRange(periodType, periodKey);
+  const previousRange = getPreviousRange(range);
+  const [records, dailyReviews, followups, contentItems, previousRecords, previousReviews, previousFollowups, previousContentItems] = await Promise.all([
+    loadRecords(env, ownerId, { range }),
+    loadDailyReviews(env, ownerId, range),
+    loadFollowups(env, ownerId, { range }),
+    loadContentItems(env, ownerId, { range }),
+    loadRecords(env, ownerId, { range: previousRange }),
+    loadDailyReviews(env, ownerId, previousRange),
+    loadFollowups(env, ownerId, { range: previousRange }),
+    loadContentItems(env, ownerId, { range: previousRange })
+  ]);
+  const openFollowups = followups.filter(item => item.status === 'open' || item.status === 'deferred');
+  const completedFollowups = followups.filter(item => item.status === 'closed').length;
+  const wins = topValues([
+    ...dailyReviews.flatMap(review => review.wins || []),
+    ...records.filter(isProgressRecord).map(record => record.summary || record.content)
+  ], periodType === 'yearly' ? 12 : 8);
+  const blockers = topValues([
+    ...dailyReviews.flatMap(review => review.blockers || []),
+    ...records.filter(isBlockerRecord).map(record => record.summary || record.content),
+    ...openFollowups.filter(item => item.overdue || item.longOpen).map(item => item.text)
+  ], periodType === 'yearly' ? 12 : 8);
+  const nextActions = distinct([
+    ...dailyReviews.map(review => review.tomorrowFirstStep),
+    ...records.flatMap(record => record.nextActions || []),
+    ...openFollowups.map(item => item.text)
+  ]).slice(0, 10);
+  const energyValues = [
+    ...dailyReviews.map(review => Number(review.energy)),
+    ...records.map(record => Number(record.energy))
+  ].filter(Number.isFinite);
+  const metrics = buildMetrics(records, followups, contentItems, {
+    reviewDays: distinct(dailyReviews.map(review => review.date)).length,
+    completedFollowups,
+    openFollowups: openFollowups.length,
+    overdueFollowups: openFollowups.filter(item => item.overdue).length,
+    longOpenFollowups: openFollowups.filter(item => item.longOpen).length,
+    averageEnergy: average(energyValues)
+  });
+  const previousMetrics = buildMetrics(previousRecords, previousFollowups, previousContentItems, {
+    reviewDays: distinct(previousReviews.map(review => review.date)).length,
+    completedFollowups: previousFollowups.filter(item => item.status === 'closed').length,
+    openFollowups: previousFollowups.filter(item => item.status === 'open' || item.status === 'deferred').length,
+    overdueFollowups: previousFollowups.filter(item => item.overdue).length,
+    longOpenFollowups: previousFollowups.filter(item => item.longOpen).length,
+    averageEnergy: average([
+      ...previousReviews.map(review => Number(review.energy)),
+      ...previousRecords.map(record => Number(record.energy))
+    ].filter(Number.isFinite))
+  });
+
+  return {
+    scopeType: periodType,
+    scopeKey: periodKey,
+    periodType,
+    periodKey,
+    periodLabel: getPeriodLabel(periodType, periodKey),
+    range,
+    previousRange,
+    sourceRecordIds: records.map(record => record.id),
+    metrics: {
+      ...metrics,
+      trend: buildMetricTrend(metrics, previousMetrics),
+      previous: previousMetrics
+    },
+    highlights: {
+      facts: buildPeriodFacts(records, dailyReviews, contentItems, periodType),
+      state: [
+        ...buildStateSignals(records, null),
+        ...buildPeriodStateSignals(metrics, previousMetrics)
+      ],
+      progress: wins,
+      blockers,
+      patterns: [
+        ...buildPatterns(records),
+        ...buildPeriodTrendPatterns(metrics, previousMetrics)
+      ],
+      nextActions,
+      watchItems: buildWatchItems(records, openFollowups),
+      pauseSuggestions: buildPauseSuggestions(openFollowups)
+    },
+    dailyReviews: dailyReviews.slice(0, 80),
+    records: records.slice(0, 160),
+    followups: followups.slice(0, 120),
+    contentItems: contentItems.slice(0, 80)
   };
 }
 
@@ -441,6 +554,7 @@ async function loadFollowups(env, ownerId, options = {}) {
       OR (due_date >= ? AND due_date < ?)
       OR (substr(closed_at, 1, 10) >= ? AND substr(closed_at, 1, 10) < ?)
       OR (status IN ('open', 'deferred') AND due_date < ?)
+      OR (status IN ('open', 'deferred') AND substr(created_at, 1, 10) < ?)
     )`);
     params.push(
       options.range.start,
@@ -448,6 +562,7 @@ async function loadFollowups(env, ownerId, options = {}) {
       options.range.start,
       options.range.endExclusive,
       options.range.start,
+      options.range.endExclusive,
       options.range.endExclusive,
       options.range.endExclusive
     );
@@ -471,7 +586,9 @@ async function loadFollowups(env, ownerId, options = {}) {
     dueDate: row.due_date,
     createdAt: row.created_at,
     closedAt: row.closed_at,
-    overdue: row.due_date ? row.due_date <= today && ['open', 'deferred'].includes(row.status) : false
+    ageDays: daysBetween(row.created_at, nowIso()),
+    overdue: row.due_date ? row.due_date <= today && ['open', 'deferred'].includes(row.status) : false,
+    longOpen: ['open', 'deferred'].includes(row.status) && daysBetween(row.created_at, nowIso()) >= 14
   }));
 }
 
@@ -538,6 +655,7 @@ function buildMetrics(records, followups, contentItems, extra = {}) {
     completedFollowups: Number(extra.completedFollowups || 0),
     openFollowups: Number(extra.openFollowups || 0),
     overdueFollowups: Number(extra.overdueFollowups || 0),
+    longOpenFollowups: Number(extra.longOpenFollowups || 0),
     contentSeeds: contentItems.length,
     contentPublished: contentItems.filter(item => item.status === 'published').length,
     averageEnergy: extra.averageEnergy ?? null,
@@ -583,9 +701,63 @@ function buildPatterns(records) {
 function buildWatchItems(records, followups) {
   return distinct([
     ...followups.filter(item => item.overdue).map(item => `已超时：${item.text}`),
+    ...followups.filter(item => item.longOpen).map(item => `长期未闭环：${item.text}`),
     ...records.filter(record => record.type === 'health').slice(-3).map(record => `健康信号：${record.summary || record.content}`),
     ...records.filter(isBlockerRecord).slice(-4).map(record => `卡点：${record.summary || record.content}`)
   ]).slice(0, 8);
+}
+
+function buildPauseSuggestions(followups) {
+  return distinct(
+    followups
+      .filter(item => item.status === 'deferred' || item.longOpen)
+      .map(item => item.status === 'deferred' ? item.text : `暂缓或重拆：${item.text}`)
+  ).slice(0, 5);
+}
+
+function buildPeriodFacts(records, dailyReviews, contentItems, periodType) {
+  return distinct([
+    `${getPeriodTypeLabel(periodType)}内有 ${records.length} 条记录、${dailyReviews.length} 天每日复盘。`,
+    ...dailyReviews.slice(-8).map(review => review.mostImportantThing ? `${review.date} 重点：${review.mostImportantThing}` : ''),
+    ...records.filter(isProgressRecord).slice(-8).map(record => `${record.date} ${formatDomain(record.domain)}：${record.summary || record.content}`),
+    ...contentItems.slice(-5).map(item => `内容素材：${item.title}`)
+  ]).slice(0, 12);
+}
+
+function buildPeriodStateSignals(metrics, previousMetrics) {
+  const trend = buildMetricTrend(metrics, previousMetrics);
+  return [
+    metrics.averageEnergy != null ? `本周期能量均值 ${metrics.averageEnergy}/5` : '',
+    trend.averageEnergy != null ? `能量较上周期 ${formatSigned(trend.averageEnergy)}` : '',
+    trend.recordCount != null ? `记录数较上周期 ${formatSigned(trend.recordCount)} 条` : '',
+    trend.completedFollowups != null ? `完成事项较上周期 ${formatSigned(trend.completedFollowups)} 个` : ''
+  ].filter(Boolean);
+}
+
+function buildPeriodTrendPatterns(metrics, previousMetrics) {
+  const trend = buildMetricTrend(metrics, previousMetrics);
+  return [
+    metrics.domainDistribution?.length ? `场景投入：${metrics.domainDistribution.map(item => `${formatDomain(item.value)} ${item.count}`).join('，')}` : '',
+    metrics.topTags?.length ? `高频主题：${metrics.topTags.join('、')}` : '',
+    trend.overdueFollowups > 0 ? `超时事项较上周期增加 ${trend.overdueFollowups} 个` : '',
+    metrics.longOpenFollowups ? `有 ${metrics.longOpenFollowups} 个长期未闭环事项需要重拆或暂缓` : ''
+  ].filter(Boolean);
+}
+
+function buildMetricTrend(metrics, previousMetrics) {
+  if (!previousMetrics) return {};
+  return {
+    recordCount: delta(metrics.recordCount, previousMetrics.recordCount),
+    reviewDays: delta(metrics.reviewDays, previousMetrics.reviewDays),
+    completedFollowups: delta(metrics.completedFollowups, previousMetrics.completedFollowups),
+    openFollowups: delta(metrics.openFollowups, previousMetrics.openFollowups),
+    overdueFollowups: delta(metrics.overdueFollowups, previousMetrics.overdueFollowups),
+    contentSeeds: delta(metrics.contentSeeds, previousMetrics.contentSeeds),
+    contentPublished: delta(metrics.contentPublished, previousMetrics.contentPublished),
+    averageEnergy: metrics.averageEnergy != null && previousMetrics.averageEnergy != null
+      ? Number((metrics.averageEnergy - previousMetrics.averageEnergy).toFixed(1))
+      : null
+  };
 }
 
 function countBy(items, key) {
@@ -626,6 +798,10 @@ function average(values) {
   return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
 }
 
+function delta(current = 0, previous = 0) {
+  return Number(current || 0) - Number(previous || 0);
+}
+
 function isProgressRecord(record) {
   return ['task', 'review'].includes(record.type)
     || (record.tags || []).some(tag => ['成果', '推进', '交付', '完成', '复盘'].includes(tag));
@@ -639,6 +815,78 @@ function isBlockerRecord(record) {
 
 function formatDomain(domain) {
   return DOMAIN_LABELS[domain] || domain || '未分类';
+}
+
+function getPeriodDateRange(type, key) {
+  if (type === 'weekly') {
+    const [yearText, weekText] = key.split('-W');
+    const year = Number(yearText);
+    const week = Number(weekText);
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const start = new Date(jan4);
+    start.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+    const end = new Date(start);
+    end.setUTCDate(start.getUTCDate() + 7);
+    return {
+      start: start.toISOString().slice(0, 10),
+      endExclusive: end.toISOString().slice(0, 10)
+    };
+  }
+
+  if (type === 'monthly') {
+    const [year, month] = key.split('-').map(Number);
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 1));
+    return {
+      start: start.toISOString().slice(0, 10),
+      endExclusive: end.toISOString().slice(0, 10)
+    };
+  }
+
+  const year = Number(key);
+  return {
+    start: `${year}-01-01`,
+    endExclusive: `${year + 1}-01-01`
+  };
+}
+
+function getPreviousRange(range) {
+  const start = parseDate(range.start);
+  const end = parseDate(range.endExclusive);
+  if (!start || !end) return range;
+
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  start.setUTCDate(start.getUTCDate() - days);
+  end.setUTCDate(end.getUTCDate() - days);
+  return {
+    start: start.toISOString().slice(0, 10),
+    endExclusive: end.toISOString().slice(0, 10)
+  };
+}
+
+function getPeriodLabel(type, key) {
+  if (type === 'weekly') return `${key} 周`;
+  if (type === 'monthly') return `${key} 月`;
+  return `${key} 年`;
+}
+
+function getPeriodTypeLabel(type) {
+  if (type === 'weekly') return '这一周';
+  if (type === 'monthly') return '这个月';
+  return '这一年';
+}
+
+function isValidPeriodKey(type, key) {
+  if (type === 'weekly') return /^\d{4}-W\d{2}$/.test(key);
+  if (type === 'monthly') return /^\d{4}-\d{2}$/.test(key);
+  if (type === 'yearly') return /^\d{4}$/.test(key);
+  return false;
+}
+
+function formatSigned(value) {
+  if (value == null) return '';
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function cleanText(value) {
@@ -661,6 +909,19 @@ function shiftDate(dateText, offsetDays) {
   const [year, month, day] = dateText.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day + offsetDays));
   return date.toISOString().slice(0, 10);
+}
+
+function parseDate(dateText) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateText || ''))) return null;
+  const [year, month, day] = dateText.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function daysBetween(startValue, endValue) {
+  const start = parseDate(String(startValue || '').slice(0, 10));
+  const end = parseDate(String(endValue || '').slice(0, 10));
+  if (!start || !end) return 0;
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
 }
 
 async function sha256Hex(value) {

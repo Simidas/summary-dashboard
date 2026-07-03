@@ -1,5 +1,5 @@
-import { generatePeriodReview, getPeriodReview, updatePeriodReview } from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
+import { createFollowup, generatePeriodReview, getPeriodReview, updatePeriodReview } from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
 
 export async function buildPeriodReviewPanel(type, periodKey, label) {
   const authState = getAuthState();
@@ -115,6 +115,7 @@ export function bindPeriodReviewForms(root) {
   });
 
   bindPeriodReviewCards(root);
+  bindPeriodReviewFollowupActions(root);
 }
 
 function fillPeriodReviewForm(form, review = {}) {
@@ -247,7 +248,7 @@ function buildReviewPreview(review) {
       <div class="insight-grid">
         ${buildColumn('胜利', review.wins)}
         ${buildColumn('卡点', review.blockers)}
-        ${buildColumn('下一步', review.nextActions)}
+        ${buildNextActionColumn(review.nextActions)}
       </div>
     </article>
   `;
@@ -263,6 +264,50 @@ function buildColumn(title, items = []) {
       </ul>
     </div>
   `;
+}
+
+function buildNextActionColumn(items = []) {
+  if (!items.length) return '';
+  return `
+    <div class="insight-column">
+      <h3>下一步</h3>
+      <ul class="plain-list">
+        ${items.slice(0, 5).map(item => `
+          <li class="period-review-action-item">
+            <span>${escapeHtml(item)}</span>
+            <button class="filter-tab" type="button" data-period-review-followup="${escapeAttr(item)}">转待办</button>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function bindPeriodReviewFollowupActions(root) {
+  if (root.dataset.periodReviewFollowupBound === 'true') return;
+  root.dataset.periodReviewFollowupBound = 'true';
+
+  root.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-period-review-followup]');
+    if (!button || !root.contains(button)) return;
+
+    const text = button.dataset.periodReviewFollowup;
+    const panel = button.closest('[data-period-review-panel]');
+    const status = panel?.querySelector('[data-period-review-status]');
+    if (!text) return;
+
+    button.disabled = true;
+    if (status) status.textContent = '正在转为待办...';
+
+    try {
+      await createFollowup({ text });
+      button.textContent = '已转待办';
+      if (status) status.textContent = '已新增到未闭环事项';
+    } catch (error) {
+      if (status) status.textContent = error.message || '转待办失败';
+      button.disabled = false;
+    }
+  });
 }
 
 function splitLines(value) {

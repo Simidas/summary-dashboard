@@ -2,14 +2,15 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260703b';
-import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260703b';
-import { createMonthCard } from '../components/card.js?v=20260703b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703b';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703b';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703b';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260703c';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260703c';
+import { createMonthCard } from '../components/card.js?v=20260703c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703c';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703c';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
 
 const MONTH_DISPLAY_COUNT = 12;
 const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
@@ -77,6 +78,9 @@ export async function renderMonthlyView(container, params = {}) {
 
   const reviewMonth = monthlyDataList[0]?.key || new Date().toISOString().slice(0, 7);
   const reviewMap = createReviewMap(periodReviews);
+  const periodAnalysisData = useOwnerApi
+    ? await getAnalysisSnapshot('monthly', reviewMonth).catch(() => null)
+    : null;
   
   if (monthlyDataList.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
@@ -85,6 +89,7 @@ export async function renderMonthlyView(container, params = {}) {
         <h1 class="view-title">Monthly</h1>
         <p class="view-subtitle">按月聚合的复盘数据</p>
       </div>
+      ${buildPeriodAnalysisPanel(useOwnerApi, 'monthly', reviewMonth, periodAnalysisData?.analysis)}
       ${reviewPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
@@ -92,6 +97,7 @@ export async function renderMonthlyView(container, params = {}) {
       </div>
     `;
     bindPeriodReviewForms(page);
+    bindAnalysisPanel(page);
     return;
   }
 
@@ -143,6 +149,10 @@ export async function renderMonthlyView(container, params = {}) {
     page.appendChild(createPeriodInsightPanel(monthlyDataList[0].insight, '本月经营洞察'));
   }
 
+  if (useOwnerApi) {
+    page.insertAdjacentHTML('beforeend', buildPeriodAnalysisPanel(true, 'monthly', reviewMonth, periodAnalysisData?.analysis));
+  }
+
   const reviewPanel = await buildPeriodReviewPanel('monthly', reviewMonth, '月');
   if (reviewPanel) page.insertAdjacentHTML('beforeend', reviewPanel);
 
@@ -178,6 +188,7 @@ export async function renderMonthlyView(container, params = {}) {
   container.innerHTML = '';
   container.appendChild(page);
   bindPeriodReviewForms(page);
+  bindAnalysisPanel(page);
 }
 
 /**
@@ -262,6 +273,18 @@ function createMonthlyReviewPlaceholder(review) {
 
 function createReviewMap(reviews = []) {
   return new Map(reviews.map(review => [review.periodKey, review]));
+}
+
+function buildPeriodAnalysisPanel(enabled, scopeType, scopeKey, analysis) {
+  if (!enabled) return '';
+  return buildAnalysisPanel({
+    scopeType,
+    scopeKey,
+    analysis,
+    title: 'AI 月度趋势分析',
+    generateLabel: '生成/刷新月分析',
+    emptyText: '基于这个月的记录、每日复盘、待办和内容素材，生成主线、趋势、长期未闭环和下月策略。'
+  });
 }
 
 function escapeHtml(value) {

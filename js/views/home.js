@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260703b';
+} from '../data.js?v=20260703c';
 import {
   getContentItems,
   getDashboard,
@@ -16,12 +16,12 @@ import {
   getProjects,
   getRecords,
   updateFollowup
-} from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703b';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260703b';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260703b';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703b';
+} from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703c';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260703c';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260703c';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703c';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 

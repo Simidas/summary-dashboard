@@ -2,9 +2,9 @@
    Unified Record Form
    ======================================== */
 
-import { createRecord } from '../api.js?v=20260703b';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260703b';
-import { bindRecordDestinationActions, buildRecordDestinationActions } from './record-destinations.js?v=20260703b';
+import { createRecord } from '../api.js?v=20260703c';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from './ai-polling.js?v=20260703c';
+import { bindRecordDestinationActions, buildRecordDestinationActions } from './record-destinations.js?v=20260703c';
 import {
   DOMAIN_OPTIONS,
   getAvailableRecordTypes,
@@ -12,7 +12,7 @@ import {
   getRecordTypeLabel,
   getTopicTagOptions,
   normalizeRecordTypeForDomain
-} from './record-types.js?v=20260703b';
+} from './record-types.js?v=20260703c';
 
 export function buildUnifiedRecordForm(options = {}) {
   const id = options.id || 'unified-record';

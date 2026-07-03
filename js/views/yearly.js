@@ -2,14 +2,15 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703b';
-import { getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { buildYearlySummaries } from '../aggregations.js?v=20260703b';
-import { createYearHeroCard } from '../components/card.js?v=20260703b';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703b';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703b';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703b';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703c';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { buildYearlySummaries } from '../aggregations.js?v=20260703c';
+import { createYearHeroCard } from '../components/card.js?v=20260703c';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703c';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703c';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703c';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
 
 let yearCards = [];
 
@@ -71,6 +72,9 @@ export async function renderYearlyView(container, params = {}) {
 
   const reviewYear = yearsData[0]?.year || String(new Date().getFullYear());
   const reviewMap = createReviewMap(periodReviews);
+  const periodAnalysisData = useOwnerApi
+    ? await getAnalysisSnapshot('yearly', reviewYear).catch(() => null)
+    : null;
   
   if (yearsData.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
@@ -79,6 +83,7 @@ export async function renderYearlyView(container, params = {}) {
         <h1 class="view-title">Yearly</h1>
         <p class="view-subtitle">按年聚合的复盘数据</p>
       </div>
+      ${buildPeriodAnalysisPanel(useOwnerApi, 'yearly', reviewYear, periodAnalysisData?.analysis)}
       ${reviewPanel}
       <div class="empty-state">
         <div class="empty-state-icon">□</div>
@@ -86,6 +91,7 @@ export async function renderYearlyView(container, params = {}) {
       </div>
     `;
     bindPeriodReviewForms(page);
+    bindAnalysisPanel(page);
     return;
   }
 
@@ -99,6 +105,10 @@ export async function renderYearlyView(container, params = {}) {
   const header = page.querySelector('.view-header');
   if (yearsData[0]?.data?.insight) {
     page.appendChild(createPeriodInsightPanel(yearsData[0].data.insight, '年度经营洞察'));
+  }
+
+  if (useOwnerApi) {
+    page.insertAdjacentHTML('beforeend', buildPeriodAnalysisPanel(true, 'yearly', reviewYear, periodAnalysisData?.analysis));
   }
 
   const reviewPanel = await buildPeriodReviewPanel('yearly', reviewYear, '年');
@@ -130,6 +140,7 @@ export async function renderYearlyView(container, params = {}) {
   container.innerHTML = '';
   container.appendChild(page);
   bindPeriodReviewForms(page);
+  bindAnalysisPanel(page);
 }
 
 /**
@@ -183,4 +194,16 @@ function createYearReviewPlaceholder(review) {
 
 function createReviewMap(reviews = []) {
   return new Map(reviews.map(review => [review.periodKey, review]));
+}
+
+function buildPeriodAnalysisPanel(enabled, scopeType, scopeKey, analysis) {
+  if (!enabled) return '';
+  return buildAnalysisPanel({
+    scopeType,
+    scopeKey,
+    analysis,
+    title: 'AI 年度方向分析',
+    generateLabel: '生成/刷新年分析',
+    emptyText: '基于这一年的记录、每日复盘、项目、待办和内容素材，生成长期变化、反复模式和下一年方向。'
+  });
 }

@@ -13,13 +13,13 @@ import {
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260703b';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703b';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703b';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703b';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703b';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703b';
+} from '../api.js?v=20260703c';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703c';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703c';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703c';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703c';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';

@@ -52,8 +52,10 @@
 - `ai_suggestions` 新增 `record_type`、`prompt_version`、`structured_result_json`、`destination_suggestions_json`。
 - Daily 支持基于当天记录、每日复盘、follow-up、内容素材生成 AI 每日分析草稿。
 - 场景页支持近 7 天/30 天经营分析，输出事实、状态、推进、卡点、模式和下一步。
+- Weekly、Monthly、Yearly 支持 AI 周期分析快照，分别聚焦节奏、趋势和方向。
 - 分析结果保存到 `analysis_snapshots`，避免每次打开页面都重新请求大模型。
 - 分析中的下一步可以一键转为 `followups`，通过 `source_analysis_id` 和 `source_action_hash` 去重。
+- 分析中的建议暂缓事项可以一键写入 `followups`，状态为 `deferred`。
 - AI 失败不影响原始记录保存。
 
 ### 每日综合复盘
@@ -70,6 +72,11 @@
 - 周/月/年页面上方有自动经营洞察，展示复盘节奏、闭环率、成果沉淀、能量、超时事项等指标。
 - 周期复盘草稿存入 `period_reviews`，支持手动保存、状态标记为 `draft` 或 `confirmed`。
 - 支持 AI 生成周期复盘草稿，接口会读取对应周期内的记录、每日复盘、follow-up 和内容素材生成草稿。
+- 周/月/年页面已接入 AI 周期分析面板，分析结果存入 `analysis_snapshots`：
+  - Weekly 看节奏、场景投入、闭环和下周重点。
+  - Monthly 看主线、项目推进、反复模式和下月策略。
+  - Yearly 看长期变化、投入产出、长期问题和下一年方向。
+- 周期分析会把长期未闭环事项放入观察项，并可把建议暂缓事项标记为 `deferred`。
 - 原独立“周期复盘历史”已融合进趋势卡片：
   - 卡片展示系统统计数据。
   - 同时展示复盘状态、主题、摘要和更新时间。
@@ -91,6 +98,8 @@
 
 - Follow-up 数据存入 `followups`，支持创建、更新状态、计划时间、项目关联。
 - 首页和场景页都会展示未闭环事项，超过或等于计划时间的 open/deferred 事项显示超时。
+- AI 分析和周期复盘草稿里的下一步都可以转为 follow-up。
+- 长期未闭环事项会进入周期分析提醒，适合重拆、推进或暂缓。
 - Projects 数据存入 `projects`，支持创建、编辑、删除和详情页时间线。
 - 项目状态统一为 `active / paused / completed / dropped`。默认项目列表和所有关联项目入口只返回 `active / paused`，项目管理页显式请求全部状态；旧状态通过 D1 migration 清洗，不在运行时代码里做兼容。
 - 项目详情可以继续写入关联项目的记录。

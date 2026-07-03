@@ -2,7 +2,7 @@ import {
   createFollowupFromAnalysis,
   generateAnalysisSnapshot,
   getAnalysisSnapshot
-} from '../api.js?v=20260703b';
+} from '../api.js?v=20260703c';
 
 export function buildAnalysisPanel({
   scopeType,
@@ -74,6 +74,12 @@ export function bindAnalysisPanel(root) {
     const followupButton = event.target.closest('[data-analysis-followup-index]');
     if (followupButton) {
       await handleFollowupClick(followupButton);
+      return;
+    }
+
+    const pauseButton = event.target.closest('[data-analysis-pause-index]');
+    if (pauseButton) {
+      await handlePauseClick(pauseButton);
     }
   });
 }
@@ -120,26 +126,51 @@ async function handleWindowClick(root, button) {
 }
 
 async function handleFollowupClick(button) {
+  await createAnalysisFollowup(button, {
+    actionIndex: Number(button.dataset.analysisFollowupIndex)
+  }, {
+    loadingText: '正在转为待办...',
+    createdText: '已转待办',
+    existsText: '已存在',
+    successText: '已新增到未闭环事项',
+    existsStatusText: '这条待办已经存在',
+    errorText: '转待办失败'
+  });
+}
+
+async function handlePauseClick(button) {
+  await createAnalysisFollowup(button, {
+    pauseIndex: Number(button.dataset.analysisPauseIndex),
+    status: 'deferred'
+  }, {
+    loadingText: '正在标记暂缓...',
+    createdText: '已暂缓',
+    existsText: '已存在',
+    successText: '已加入暂缓事项',
+    existsStatusText: '这条暂缓事项已经存在',
+    errorText: '标记暂缓失败'
+  });
+}
+
+async function createAnalysisFollowup(button, input, copy) {
   const panel = button.closest('[data-analysis-panel]');
   const analysisId = panel?.dataset.analysisId;
   const status = panel?.querySelector('[data-analysis-status]');
   if (!analysisId || !panel || !status) return;
 
   button.disabled = true;
-  status.textContent = '正在转为待办...';
+  status.textContent = copy.loadingText;
 
   try {
-    const data = await createFollowupFromAnalysis(analysisId, {
-      actionIndex: Number(button.dataset.analysisFollowupIndex)
-    });
-    button.textContent = data.created ? '已转待办' : '已存在';
-    status.textContent = data.created ? '已新增到未闭环事项' : '这条待办已经存在';
+    const data = await createFollowupFromAnalysis(analysisId, input);
+    button.textContent = data.created ? copy.createdText : copy.existsText;
+    status.textContent = data.created ? copy.successText : copy.existsStatusText;
     panel.dispatchEvent(new CustomEvent('analysis-followup-created', {
       bubbles: true,
       detail: data
     }));
   } catch (error) {
-    status.textContent = error.message || '转待办失败';
+    status.textContent = error.message || copy.errorText;
     button.disabled = false;
   }
 }
@@ -177,6 +208,7 @@ function renderAnalysisBody(analysis, emptyText) {
     </div>
     ${insights.patterns?.length ? renderTagGroup('模式', insights.patterns) : ''}
     ${insights.watchItems?.length ? renderTagGroup('观察', insights.watchItems) : ''}
+    ${renderPauseSuggestions(insights.pauseSuggestions)}
     ${nextActions.length ? `
       <div class="analysis-next-actions">
         <h3>下一步</h3>
@@ -191,6 +223,25 @@ function renderAnalysisBody(analysis, emptyText) {
         `).join('')}
       </div>
     ` : ''}
+  `;
+}
+
+function renderPauseSuggestions(items = []) {
+  if (!items?.length) return '';
+
+  return `
+    <div class="analysis-next-actions analysis-pause-actions">
+      <h3>建议暂缓</h3>
+      ${items.slice(0, 5).map((item, index) => `
+        <article class="analysis-action-row is-paused">
+          <div>
+            <strong>${escapeHtml(item)}</strong>
+            <span>先放入 deferred，后续再重拆或恢复。</span>
+          </div>
+          <button class="filter-tab" type="button" data-analysis-pause-index="${escapeAttr(index)}">标记暂缓</button>
+        </article>
+      `).join('')}
+    </div>
   `;
 }
 

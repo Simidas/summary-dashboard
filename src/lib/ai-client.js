@@ -376,18 +376,23 @@ function normalizeAnalysisDraft(env, context, draft, rawResponse = null) {
   const title = toText(draft.title) || defaultAnalysisTitle(context);
   const headline = toText(draft.headline) || toText(draft.summary) || defaultAnalysisHeadline(context);
   const nextActions = normalizeAnalysisActions(draft.nextActions || draft.next_actions, context).slice(0, 5);
+  const highlights = context.highlights || {};
   const insights = {
     title,
     headline,
     summary: toText(draft.summary) || headline,
-    facts: toTextArray(draft.facts).slice(0, 6),
-    state: toTextArray(draft.state).slice(0, 6),
-    progress: toTextArray(draft.progress).slice(0, 6),
-    blockers: toTextArray(draft.blockers).slice(0, 6),
-    patterns: toTextArray(draft.patterns).slice(0, 6),
+    facts: toTextArray(draft.facts).length ? toTextArray(draft.facts).slice(0, 6) : toTextArray(highlights.facts).slice(0, 6),
+    state: toTextArray(draft.state).length ? toTextArray(draft.state).slice(0, 6) : toTextArray(highlights.state).slice(0, 6),
+    progress: toTextArray(draft.progress).length ? toTextArray(draft.progress).slice(0, 6) : toTextArray(highlights.progress || highlights.wins).slice(0, 6),
+    blockers: toTextArray(draft.blockers).length ? toTextArray(draft.blockers).slice(0, 6) : toTextArray(highlights.blockers).slice(0, 6),
+    patterns: toTextArray(draft.patterns).length ? toTextArray(draft.patterns).slice(0, 6) : toTextArray(highlights.patterns).slice(0, 6),
     affirmation: toText(draft.affirmation),
-    watchItems: toTextArray(draft.watchItems || draft.watch_items).slice(0, 5),
-    pauseSuggestions: toTextArray(draft.pauseSuggestions || draft.pause_suggestions).slice(0, 5)
+    watchItems: toTextArray(draft.watchItems || draft.watch_items).length
+      ? toTextArray(draft.watchItems || draft.watch_items).slice(0, 5)
+      : toTextArray(highlights.watchItems).slice(0, 5),
+    pauseSuggestions: toTextArray(draft.pauseSuggestions || draft.pause_suggestions).length
+      ? toTextArray(draft.pauseSuggestions || draft.pause_suggestions).slice(0, 5)
+      : toTextArray(highlights.pauseSuggestions).slice(0, 5)
   };
 
   return {
@@ -417,7 +422,7 @@ function failedAnalysisDraft(env, context, message) {
     patterns: toTextArray(highlights.patterns).slice(0, 5),
     affirmation: '你已经把真实数据留下来了，这一步本身就在降低混乱感。',
     watchItems: toTextArray(highlights.watchItems).slice(0, 5),
-    pauseSuggestions: []
+    pauseSuggestions: toTextArray(highlights.pauseSuggestions).slice(0, 5)
   };
 
   return {
@@ -473,6 +478,9 @@ function toTextArray(value) {
 function defaultAnalysisTitle(context) {
   if (context.scopeType === 'daily') return '今日分析';
   if (context.scopeType === 'domain') return '场景分析';
+  if (context.scopeType === 'weekly') return '周度分析';
+  if (context.scopeType === 'monthly') return '月度分析';
+  if (context.scopeType === 'yearly') return '年度分析';
   return '经营分析';
 }
 
@@ -484,18 +492,44 @@ function defaultAnalysisHeadline(context) {
   if (context.scopeType === 'domain') {
     return `近 ${context.windowDays || 7} 天这个场景有 ${metrics.recordCount || 0} 条记录，适合先看节奏和卡点。`;
   }
+  if (context.scopeType === 'weekly') {
+    return `这一周有 ${metrics.recordCount || 0} 条记录、${metrics.completedFollowups || 0} 个事项闭环，先看节奏和下周重点。`;
+  }
+  if (context.scopeType === 'monthly') {
+    return `这个月有 ${metrics.recordCount || 0} 条记录、${metrics.contentSeeds || 0} 条内容素材，适合看主线和趋势。`;
+  }
+  if (context.scopeType === 'yearly') {
+    return `这一年沉淀了 ${metrics.recordCount || 0} 条记录，适合看长期方向和反复模式。`;
+  }
   return '这些记录已经可以形成一版经营判断。';
 }
 
 function buildFallbackAnalysisSummary(context) {
   const metrics = context.metrics || {};
   return [
-    context.scopeType === 'daily'
-      ? `这天记录 ${metrics.recordCount || 0} 条，新增待办 ${metrics.newFollowups || 0} 个。`
-      : `近 ${context.windowDays || 7} 天记录 ${metrics.recordCount || 0} 条，未闭环事项 ${metrics.openFollowups || 0} 个。`,
+    buildFallbackAnalysisScopeLine(context, metrics),
     metrics.averageEnergy != null ? `能量均值 ${metrics.averageEnergy}/5。` : '',
     'AI 分析暂时失败，先用已有事实生成一版可编辑草稿。'
   ].filter(Boolean).join('');
+}
+
+function buildFallbackAnalysisScopeLine(context, metrics) {
+  if (context.scopeType === 'daily') {
+    return `这天记录 ${metrics.recordCount || 0} 条，新增待办 ${metrics.newFollowups || 0} 个。`;
+  }
+  if (context.scopeType === 'domain') {
+    return `近 ${context.windowDays || 7} 天记录 ${metrics.recordCount || 0} 条，未闭环事项 ${metrics.openFollowups || 0} 个。`;
+  }
+  if (context.scopeType === 'weekly') {
+    return `这一周记录 ${metrics.recordCount || 0} 条，闭环 ${metrics.completedFollowups || 0} 个事项。`;
+  }
+  if (context.scopeType === 'monthly') {
+    return `这个月记录 ${metrics.recordCount || 0} 条，内容素材 ${metrics.contentSeeds || 0} 条。`;
+  }
+  if (context.scopeType === 'yearly') {
+    return `这一年记录 ${metrics.recordCount || 0} 条，长期未闭环事项 ${metrics.longOpenFollowups || 0} 个。`;
+  }
+  return `这一周期记录 ${metrics.recordCount || 0} 条，未闭环事项 ${metrics.openFollowups || 0} 个。`;
 }
 
 function buildFallbackPeriodSummary(context) {
