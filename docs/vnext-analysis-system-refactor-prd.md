@@ -468,7 +468,7 @@ Daily 应变成每日收束页。
 
 ### 13.2 分析快照
 
-建议后续新增 `analysis_snapshots` 表，用于保存 Daily / 场景 / 周 / 月 / 年的 AI 分析结果，避免每次打开页面都重新请求大模型。
+已新增 `analysis_snapshots` 表，用于保存 Daily / 场景的 AI 分析结果，避免每次打开页面都重新请求大模型。周 / 月 / 年后续可沿用同一张表扩展。
 
 建议字段：
 
@@ -476,6 +476,7 @@ Daily 应变成每日收束页。
 - `owner_id`
 - `scope_type`：`daily` / `domain` / `weekly` / `monthly` / `yearly`
 - `scope_key`：日期、场景、周 key、月 key、年 key
+- `window_days`：Daily 使用 0，场景分析使用 7 或 30
 - `source_record_ids_json`
 - `metrics_json`
 - `insights_json`
@@ -502,6 +503,8 @@ Daily 应变成每日收束页。
 
 ### 阶段二：Daily 分析草稿
 
+状态：已落地。
+
 目标：Daily 自动收束当天。
 
 范围：
@@ -511,6 +514,8 @@ Daily 应变成每日收束页。
 - 用户可编辑确认。
 
 ### 阶段三：场景经营分析
+
+状态：已落地 7/30 天分析。
 
 目标：四个场景页从记录列表升级为经营状态页。
 
@@ -523,6 +528,8 @@ Daily 应变成每日收束页。
 
 ### 阶段四：周期复盘升级
 
+状态：部分落地。当前周/月/年已基于 D1 聚合趋势和手动周期复盘，尚未接入 `analysis_snapshots`。
+
 目标：周/月/年从罗列升级为趋势。
 
 范围：
@@ -533,6 +540,8 @@ Daily 应变成每日收束页。
 - 增加分析快照，减少重复 AI 请求。
 
 ### 阶段五：行动闭环增强
+
+状态：部分落地。AI 分析下一步已支持一键转 follow-up，长期未闭环提醒和 deferred 建议仍在后续。
 
 目标：让分析自动反哺 follow-up。
 

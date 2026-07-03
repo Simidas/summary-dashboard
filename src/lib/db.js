@@ -216,12 +216,36 @@ export function mapFollowup(row) {
     project: row.project,
     status: row.status,
     sourceRecordId: row.source_record_id,
+    sourceAnalysisId: row.source_analysis_id,
+    sourceActionHash: row.source_action_hash,
     dueDate: row.due_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     closedAt: row.closed_at,
     overdue: row.due_date ? row.due_date <= todayShanghai() && ['open', 'deferred'].includes(row.status) : false,
     ageDays: daysBetween(row.created_at, nowIso())
+  };
+}
+
+export function mapAnalysisSnapshot(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    scopeType: row.scope_type,
+    scopeKey: row.scope_key,
+    windowDays: Number(row.window_days || 0),
+    sourceRecordIds: parseJsonText(row.source_record_ids_json),
+    metrics: parseJsonText(row.metrics_json, {}),
+    insights: parseJsonText(row.insights_json, {}),
+    nextActions: parseJsonText(row.next_actions_json),
+    provider: row.provider,
+    model: row.model,
+    promptVersion: row.prompt_version,
+    status: row.status,
+    errorMessage: row.error_message,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 

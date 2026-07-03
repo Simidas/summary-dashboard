@@ -1,3 +1,4 @@
+import { handleAnalysis } from './routes/analysis.js';
 import { handleAuth } from './routes/auth.js';
 import { handleContentItems } from './routes/content-items.js';
 import { handleDailyReviews } from './routes/daily-reviews.js';
@@ -81,6 +82,7 @@ function parseHasSessionCookie(request) {
 
 function dispatchApiRoute(request, env, ctx, path) {
   if (path.startsWith('/api/auth/')) return handleAuth(request, env, ctx);
+  if (path.startsWith('/api/analysis/')) return handleAnalysis(request, env, ctx);
   if (path.startsWith('/api/records')) return handleRecords(request, env, ctx);
   if (path.startsWith('/api/projects')) return handleProjects(request, env, ctx);
   if (path.startsWith('/api/content-items')) return handleContentItems(request, env, ctx);

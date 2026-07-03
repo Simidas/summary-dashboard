@@ -223,6 +223,29 @@ export function generatePeriodReview(type, key) {
   });
 }
 
+export function getAnalysisSnapshot(scopeType, scopeKey, params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, value);
+  });
+  const query = search.toString();
+  return apiRequest(`/api/analysis/${encodeURIComponent(scopeType)}/${encodeURIComponent(scopeKey)}${query ? `?${query}` : ''}`);
+}
+
+export function generateAnalysisSnapshot(scopeType, scopeKey, input = {}) {
+  return apiRequest(`/api/analysis/${encodeURIComponent(scopeType)}/${encodeURIComponent(scopeKey)}/generate`, {
+    method: 'POST',
+    body: input
+  });
+}
+
+export function createFollowupFromAnalysis(analysisId, input = {}) {
+  return apiRequest(`/api/analysis/${encodeURIComponent(analysisId)}/followups`, {
+    method: 'POST',
+    body: input
+  });
+}
+
 export function updateDashboardSettings(input) {
   return apiRequest('/api/dashboard-settings', {
     method: 'PATCH',

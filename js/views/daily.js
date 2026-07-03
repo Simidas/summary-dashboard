@@ -5,12 +5,13 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703a';
-import { getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703a';
-import { createSummaryCard } from '../components/card.js?v=20260703a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703a';
-import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703a';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703b';
+import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
+import { createSummaryCard } from '../components/card.js?v=20260703b';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703b';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703b';
+import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703b';
 
 const TIMELINE_DAYS = 14;
 
@@ -53,16 +54,18 @@ export async function renderDailyView(container, params = {}) {
   // Load data
   const authState = getAuthState();
   const canUseOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
-  const [availableDates, onlineRecordsData, dailyReviewsData, dailyReviewData] = await Promise.all([
+  const [availableDates, onlineRecordsData, dailyReviewsData, dailyReviewData, dailyAnalysisData] = await Promise.all([
     getAvailableDailyDates(),
     canUseOwnerApi ? getRecords({ limit: 100 }).catch(() => null) : Promise.resolve(null),
     canUseOwnerApi ? getDailyReviews({ limit: 45 }).catch(() => null) : Promise.resolve(null),
-    canUseOwnerApi ? getDailyReview('today').catch(() => null) : Promise.resolve(null)
+    canUseOwnerApi ? getDailyReview('today').catch(() => null) : Promise.resolve(null),
+    canUseOwnerApi ? getAnalysisSnapshot('daily', 'today').catch(() => null) : Promise.resolve(null)
   ]);
   const legacySummaries = await loadDailySummaries(availableDates);
   const onlineRecords = onlineRecordsData?.records || [];
   const dailyReviews = dailyReviewsData?.reviews || [];
   const dailyReview = dailyReviewData?.review || null;
+  const dailyAnalysis = dailyAnalysisData?.analysis || null;
   const heroReview = selectHeroDailyReview(dailyReview, dailyReviews);
   const onlineSummaries = buildOnlineDailySummaries(dailyReviews, onlineRecords);
   const usingOnlineSummaries = onlineSummaries.length > 0;
@@ -70,7 +73,7 @@ export async function renderDailyView(container, params = {}) {
 
   if (summaries.length === 0) {
     skeleton.remove();
-    appendDailyReviewEditor(page, authState, dailyReview);
+    appendDailyReviewEditor(page, authState, dailyReview, dailyAnalysis);
     if (!page.querySelector('#daily-review-form')) {
       page.innerHTML = `
         <div class="empty-state">
@@ -86,7 +89,7 @@ export async function renderDailyView(container, params = {}) {
   // Remove skeleton now that real data is ready
   skeleton.remove();
 
-  appendDailyReviewEditor(page, authState, dailyReview);
+  appendDailyReviewEditor(page, authState, dailyReview, dailyAnalysis);
 
   if (summaries.length === 0) return;
 
@@ -190,14 +193,14 @@ function maxIso(left, right) {
   return left > right ? left : right;
 }
 
-function appendDailyReviewEditor(page, authState, review) {
+function appendDailyReviewEditor(page, authState, review, analysis) {
   const wrapper = document.createElement('div');
   wrapper.className = 'operations-page';
-  wrapper.innerHTML = buildDailyReviewEditor(authState, review);
+  wrapper.innerHTML = buildDailyReviewEditor(authState, review, analysis);
   if (wrapper.innerHTML.trim()) page.appendChild(wrapper);
 }
 
-function buildDailyReviewEditor(authState, review) {
+function buildDailyReviewEditor(authState, review, analysis) {
   if (!authState.apiAvailable || authState.user?.role !== 'owner') return '';
 
   const reviewDate = review?.date || getShanghaiDate();
@@ -252,10 +255,20 @@ function buildDailyReviewEditor(authState, review) {
         </div>
       </form>
     </section>
+    ${buildAnalysisPanel({
+      scopeType: 'daily',
+      scopeKey: reviewDate,
+      analysis,
+      title: 'AI 每日分析草稿',
+      generateLabel: '生成/刷新分析',
+      emptyText: '保存每日复盘或记录后，可以生成这一天的事实、状态、卡点和明天第一步。'
+    })}
   `;
 }
 
 function bindDailyReviewForm(page) {
+  bindAnalysisPanel(page);
+
   const form = page.querySelector('#daily-review-form');
   if (!form) return;
 
@@ -275,6 +288,7 @@ function bindDailyReviewForm(page) {
       if (updatedAt) {
         updatedAt.textContent = data.review?.updatedAt ? `上次更新 ${formatShortTime(data.review.updatedAt)}` : '这天还没有保存复盘';
       }
+      await refreshDailyAnalysisPanel(page, date);
       status.textContent = data.review ? '已载入这天的复盘' : '可以补写这天的复盘';
     } catch (error) {
       status.textContent = error.message || '读取失败';
@@ -311,6 +325,21 @@ function bindDailyReviewForm(page) {
     } finally {
       button.disabled = false;
     }
+  });
+}
+
+async function refreshDailyAnalysisPanel(page, date) {
+  const panel = page.querySelector('[data-analysis-panel][data-scope-type="daily"]');
+  if (!panel) return;
+
+  const data = await getAnalysisSnapshot('daily', date).catch(() => null);
+  panel.outerHTML = buildAnalysisPanel({
+    scopeType: 'daily',
+    scopeKey: date,
+    analysis: data?.analysis || null,
+    title: 'AI 每日分析草稿',
+    generateLabel: '生成/刷新分析',
+    emptyText: '保存每日复盘或记录后，可以生成这一天的事实、状态、卡点和明天第一步。'
   });
 }
 

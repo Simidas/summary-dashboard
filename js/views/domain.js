@@ -6,18 +6,20 @@ import {
   getContentItems,
   createFollowup,
   createRecord,
+  getAnalysisSnapshot,
   getDomainSettings,
   getFollowups,
   getProjects,
   getRecords,
   updateDomainSettings,
   updateFollowup
-} from '../api.js?v=20260703a';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703a';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703a';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703a';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703a';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703a';
+} from '../api.js?v=20260703b';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703b';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703b';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703b';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703b';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703b';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703b';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -30,13 +32,14 @@ export async function renderDomainView(container, params = {}) {
 
   const authState = getAuthState();
   const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
-  const [staticDomain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, onlineContentData, projectsManifest] = await Promise.all([
+  const [staticDomain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, onlineContentData, domainAnalysisData, projectsManifest] = await Promise.all([
     useOwnerApi ? Promise.resolve(null) : loadDomainSummary(domainId),
     isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 20 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getDomainSettings(domainId).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
     useOwnerApi ? getContentItems({ domain: domainId, limit: 100 }).catch(() => null) : Promise.resolve(null),
+    useOwnerApi ? getAnalysisSnapshot('domain', domainId, { windowDays: 7 }).catch(() => null) : Promise.resolve(null),
     useOwnerApi ? Promise.resolve(null) : loadProjectsManifest()
   ]);
   const onlineRecords = onlineRecordsData?.records || [];
@@ -79,6 +82,16 @@ export async function renderDomainView(container, params = {}) {
 
     ${buildDomainSettingsPanel(authState, currentFocus, nextAction, onlineSettings)}
     ${buildDomainRecordPanel(authState, domainId)}
+    ${useOwnerApi ? buildAnalysisPanel({
+      scopeType: 'domain',
+      scopeKey: domainId,
+      windowDays: 7,
+      windowOptions: [7, 30],
+      analysis: domainAnalysisData?.analysis || null,
+      title: 'AI 场景经营分析',
+      generateLabel: '生成/刷新分析',
+      emptyText: '基于这个场景近 7/30 天记录，生成趋势、成果、卡点和下一步。'
+    }) : ''}
 
     <section class="metric-grid">
       ${buildMetric(domain.recordCount || onlineRecords.length || 0, '记录')}
@@ -125,6 +138,8 @@ export async function renderDomainView(container, params = {}) {
   bindDomainSettingsForm(page, domainId);
   bindDomainRecordForm(page, domainId);
   bindDomainFollowups(page, domainId);
+  bindAnalysisPanel(page);
+  bindAnalysisFollowupInsert(page);
 }
 
 function renderEmpty(container) {
@@ -553,6 +568,18 @@ function bindDomainFollowups(page, domainId) {
       status.textContent = error.message || '更新失败';
       button.disabled = false;
     }
+  });
+}
+
+function bindAnalysisFollowupInsert(page) {
+  page.addEventListener('analysis-followup-created', (event) => {
+    const followup = event.detail?.followup;
+    if (!event.detail?.created || !followup) return;
+
+    const list = page.querySelector('#domain-followup-list');
+    const empty = list?.querySelector('.empty-inline');
+    if (empty) empty.remove();
+    list?.insertAdjacentHTML('afterbegin', buildOnlineFollowupRow(followup));
   });
 }
 

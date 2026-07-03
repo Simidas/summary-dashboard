@@ -1,6 +1,6 @@
 # 当前实现状态
 
-更新时间：2026-06-30
+更新时间：2026-07-03
 线上域名：https://blog.zhuwd.com
 当前形态：Cloudflare Workers + Static Assets + D1 + Google OAuth + MiniMax M3
 
@@ -43,14 +43,17 @@
 - 新记录默认 `private`。
 - 记录保存与 AI 生成解耦：先返回保存成功和 `aiPending`，AI 建议后台生成后前端轮询更新。
 
-### AI 陪伴建议
+### AI 陪伴与分析
 
 - AI provider 默认为 MiniMax，模型为 `MiniMax-M3`。
 - 单条记录 AI 输出保存到 `ai_suggestions`。
 - AI prompt 已升级为类型化版本：情绪类偏陪伴，任务类偏推进，笔记类偏整理，复盘类偏分析，健康类偏状态观察。
-- 分析侧当前聚焦单条记录增强：类型化陪伴建议、标签补全和确认式自动分流；复杂跨周期分析报表仍留在后续迭代。
 - 输出重点是情绪陪伴、具体鼓励、下一小步、主题标签建议、状态/对象/行动/影响标签、建议 follow-up 和候选判断。
 - `ai_suggestions` 新增 `record_type`、`prompt_version`、`structured_result_json`、`destination_suggestions_json`。
+- Daily 支持基于当天记录、每日复盘、follow-up、内容素材生成 AI 每日分析草稿。
+- 场景页支持近 7 天/30 天经营分析，输出事实、状态、推进、卡点、模式和下一步。
+- 分析结果保存到 `analysis_snapshots`，避免每次打开页面都重新请求大模型。
+- 分析中的下一步可以一键转为 `followups`，通过 `source_analysis_id` 和 `source_action_hash` 去重。
 - AI 失败不影响原始记录保存。
 
 ### 每日综合复盘
@@ -59,6 +62,7 @@
 - Daily 心情改为枚举选择：平静、开心、有进展感、疲惫、焦虑、烦躁、低落、松了一口气。
 - 每日复盘数据存入 `daily_reviews`。
 - Daily 头部展示逻辑：优先展示当天已保存复盘；当天没有时展示最近一天的已保存复盘。
+- Daily 页面提供 AI 每日分析草稿入口，按当前复盘日期读取或生成对应分析。
 
 ### 周/月/年复盘与趋势
 
@@ -74,6 +78,14 @@
   - 顶部标签：高频内容标签，来源为 `record.tags` + `aiSuggestion.suggestedTags`。
   - 底部标签：项目标签，来源为 `record.projects`。
   - 日期标签不再展示。
+
+### 场景经营分析
+
+- 四个场景页支持 AI 经营分析。
+- 默认读取近 7 天分析，可切换近 30 天。
+- 分析输入来自该场景下的 `records`、`followups`、`content_items`，并参考能匹配场景的每日复盘信号。
+- 分析输出保存为 `analysis_snapshots`，页面只展示已保存分析，点击生成/刷新才会请求大模型。
+- 分析下一步可以直接转成未闭环事项。
 
 ### Follow-up 与项目
 
@@ -114,11 +126,14 @@ D1 表：
 - `followups`
 - `domain_settings`
 - `period_reviews`
+- `analysis_snapshots`
 
 新增迁移：
 
 - `migrations/0004_unified_input_ai_enhancement.sql`
 - `migrations/0005_clean_legacy_input_data.sql`
+- `migrations/0006_clean_project_statuses.sql`
+- `migrations/0007_analysis_snapshots.sql`
 
 仓库里的 `data/records`、`data/summaries` 和历史 JSON 现在主要作为：
 
@@ -165,6 +180,9 @@ D1 表：
 - `GET /api/period-reviews/:type/:key`
 - `PUT /api/period-reviews/:type/:key`
 - `POST /api/period-reviews/:type/:key/generate`
+- `GET /api/analysis/:scopeType/:scopeKey`
+- `POST /api/analysis/:scopeType/:scopeKey/generate`
+- `POST /api/analysis/:analysisId/followups`
 
 ## 5. 本地开发
 
