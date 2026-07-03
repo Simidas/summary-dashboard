@@ -7,8 +7,8 @@
 // TODO(Phase 3): Implement responsive sidebar navigation for desktop (>1024px)
 // TODO(Phase 4): Add Cloudflare Workers API for server-side search
 
-import router from './router.js?v=20260703f';
-import { initAuth, mountAuthControls } from './auth.js?v=20260703f';
+import router from './router.js?v=20260703g';
+import { initAuth, mountAuthControls } from './auth.js?v=20260703g';
 
 // DOM Elements
 let app, mainContent, navLinks, header, mobileMenu;
@@ -131,47 +131,47 @@ async function renderRoute(activeRoute, params, loader, renderName) {
 function setupRoutes() {
   // Home view
   router.on('home', async (params) => {
-    await renderRoute('home', params, () => import('./views/home.js?v=20260703f'), 'renderHomeView');
+    await renderRoute('home', params, () => import('./views/home.js?v=20260703g'), 'renderHomeView');
   });
 
   // Daily view
   router.on('daily', async (params) => {
-    await renderRoute('daily', params, () => import('./views/daily.js?v=20260703f'), 'renderDailyView');
+    await renderRoute('daily', params, () => import('./views/daily.js?v=20260703g'), 'renderDailyView');
   });
 
   // Weekly view
   router.on('weekly', async (params) => {
-    await renderRoute('weekly', params, () => import('./views/weekly.js?v=20260703f'), 'renderWeeklyView');
+    await renderRoute('weekly', params, () => import('./views/weekly.js?v=20260703g'), 'renderWeeklyView');
   });
 
   // Monthly view
   router.on('monthly', async (params) => {
-    await renderRoute('monthly', params, () => import('./views/monthly.js?v=20260703f'), 'renderMonthlyView');
+    await renderRoute('monthly', params, () => import('./views/monthly.js?v=20260703g'), 'renderMonthlyView');
   });
 
   // Yearly view
   router.on('yearly', async (params) => {
-    await renderRoute('yearly', params, () => import('./views/yearly.js?v=20260703f'), 'renderYearlyView');
+    await renderRoute('yearly', params, () => import('./views/yearly.js?v=20260703g'), 'renderYearlyView');
   });
 
   router.on('records', async (params) => {
-    await renderRoute('records', params, () => import('./views/records.js?v=20260703f'), 'renderRecordsView');
+    await renderRoute('records', params, () => import('./views/records.js?v=20260703g'), 'renderRecordsView');
   });
 
   router.on('domain', async (params) => {
-    await renderRoute('', params, () => import('./views/domain.js?v=20260703f'), 'renderDomainView');
+    await renderRoute('', params, () => import('./views/domain.js?v=20260703g'), 'renderDomainView');
   });
 
   router.on('projects', async (params) => {
-    await renderRoute('projects', params, () => import('./views/projects.js?v=20260703f'), 'renderProjectsView');
+    await renderRoute('projects', params, () => import('./views/projects.js?v=20260703g'), 'renderProjectsView');
   });
 
   router.on('diary', async (params) => {
-    await renderRoute('diary', params, () => import('./views/diary.js?v=20260703f'), 'renderDiaryView');
+    await renderRoute('diary', params, () => import('./views/diary.js?v=20260703g'), 'renderDiaryView');
   });
 
   router.on('content', async (params) => {
-    await renderRoute('content', params, () => import('./views/content.js?v=20260703f'), 'renderContentView');
+    await renderRoute('content', params, () => import('./views/content.js?v=20260703g'), 'renderContentView');
   });
 }
 

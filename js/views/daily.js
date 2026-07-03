@@ -5,15 +5,15 @@
 // TODO(Phase 2): Keyboard navigation should switch date content, not just expand/collapse
 // TODO(Phase 3): Add tag click filtering
 
-import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703f';
-import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { createSummaryCard } from '../components/card.js?v=20260703f';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703f';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
-import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703f';
+import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=20260703g';
+import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { createSummaryCard } from '../components/card.js?v=20260703g';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
+import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260703g';
 
-const TIMELINE_DAYS = 14;
+const DAILY_PAGE_SIZE = 10;
 
 let currentIndex = 0;
 let summaries = [];
@@ -56,8 +56,8 @@ export async function renderDailyView(container, params = {}) {
   const canUseOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   const [availableDates, onlineRecordsData, dailyReviewsData, dailyReviewData, dailyAnalysisData] = await Promise.all([
     getAvailableDailyDates(),
-    canUseOwnerApi ? getRecords({ limit: 100 }).catch(() => null) : Promise.resolve(null),
-    canUseOwnerApi ? getDailyReviews({ limit: 45 }).catch(() => null) : Promise.resolve(null),
+    canUseOwnerApi ? getRecords({ limit: 300 }).catch(() => null) : Promise.resolve(null),
+    canUseOwnerApi ? getDailyReviews({ limit: 180 }).catch(() => null) : Promise.resolve(null),
     canUseOwnerApi ? getDailyReview('today').catch(() => null) : Promise.resolve(null),
     canUseOwnerApi ? getAnalysisSnapshot('daily', 'today').catch(() => null) : Promise.resolve(null)
   ]);
@@ -169,8 +169,7 @@ function buildOnlineDailySummaries(reviews = [], records = []) {
   });
 
   return Array.from(byDate.values())
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, TIMELINE_DAYS);
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function getOrCreateDailyEntry(map, date) {
@@ -480,24 +479,36 @@ function getShanghaiDate(offsetDays = 0) {
  * @param {HTMLElement} page
  * @param {Object[]} summaries
  */
-function renderTimeline(page, summaries, titleText = '最近记录') {
+function renderTimeline(page, summaries, titleText = '最近记录', pageNumber = 1) {
   // Remove old timeline if exists
   const oldTimeline = page.querySelector('.timeline-section');
   if (oldTimeline) oldTimeline.remove();
 
+  timelineCards = [];
+  currentIndex = 0;
+
+  const total = summaries.length;
+  const totalPages = Math.max(1, Math.ceil(total / DAILY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * DAILY_PAGE_SIZE;
+  const pageSummaries = summaries.slice(start, start + DAILY_PAGE_SIZE);
+
   const section = document.createElement('section');
   section.className = 'timeline-section';
 
-  const title = document.createElement('h2');
-  title.className = 'section-title';
-  title.textContent = `📜 ${titleText}`;
-  section.appendChild(title);
+  const heading = document.createElement('div');
+  heading.className = 'section-heading';
+  heading.innerHTML = `
+    <h2 class="section-title">📜 ${escapeHtml(titleText)}</h2>
+    ${total ? `<span class="panel-date">共 ${total} 天 · 第 ${currentPage}/${totalPages} 页</span>` : ''}
+  `;
+  section.appendChild(heading);
 
   const timeline = document.createElement('div');
   timeline.className = 'timeline';
 
   // Create cards with staggered animation
-  summaries.forEach((data, index) => {
+  pageSummaries.forEach((data, index) => {
     const card = createSummaryCard(data, index === 0);
     card.classList.add('timeline-item');
 
@@ -521,6 +532,23 @@ function renderTimeline(page, summaries, titleText = '最近记录') {
     <span>键盘切换日期</span>
   `;
   section.appendChild(hint);
+
+  if (total > DAILY_PAGE_SIZE) {
+    const pagination = document.createElement('div');
+    pagination.className = 'record-pagination';
+    pagination.setAttribute('aria-label', 'Daily 时间线分页');
+    pagination.innerHTML = `
+      <button type="button" data-daily-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-daily-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    `;
+    pagination.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-daily-page]');
+      if (!button) return;
+      renderTimeline(page, summaries, titleText, Number(button.dataset.dailyPage || 1));
+    });
+    section.appendChild(pagination);
+  }
 
   page.appendChild(section);
 
@@ -549,7 +577,7 @@ function setupKeyboardNav() {
  * @param {number} direction - -1 for left, 1 for right
  */
 function navigateCard(direction) {
-  const newIndex = Math.max(0, Math.min(summaries.length - 1, currentIndex + direction));
+  const newIndex = Math.max(0, Math.min(timelineCards.length - 1, currentIndex + direction));
   if (newIndex === currentIndex) return;
 
   currentIndex = newIndex;

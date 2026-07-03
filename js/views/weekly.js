@@ -2,17 +2,18 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260703f';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260703f';
-import { createWeekCard } from '../components/card.js?v=20260703f';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703f';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703f';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703f';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260703g';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260703g';
+import { createWeekCard } from '../components/card.js?v=20260703g';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703g';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703g';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
 
 const WEEK_DISPLAY_COUNT = 8;
+const WEEK_HISTORY_PAGE_SIZE = 6;
 
 let weekCards = [];
 
@@ -78,7 +79,7 @@ export async function renderWeeklyView(container, params = {}) {
   const periodAnalysisData = useOwnerApi
     ? await getAnalysisSnapshot('weekly', reviewWeek).catch(() => null)
     : null;
-  
+
   if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
     page.innerHTML = `
@@ -102,12 +103,6 @@ export async function renderWeeklyView(container, params = {}) {
   const skeleton = page.querySelector('.aggregation-grid');
   if (skeleton) skeleton.remove();
 
-  // Create grid
-  const grid = document.createElement('div');
-  grid.className = 'aggregation-grid';
-
-  weekCards = [];
-
   if (latestInsight) {
     page.appendChild(createPeriodInsightPanel(latestInsight, '本周经营洞察'));
   }
@@ -127,22 +122,16 @@ export async function renderWeeklyView(container, params = {}) {
   `;
   page.appendChild(historyHeading);
 
-  for (let i = 0; i < recentWeekSummaries.length; i++) {
-    const weekData = recentWeekSummaries[i];
-    const card = createWeekCard(weekData, useOwnerApi ? {
-      periodType: 'weekly',
-      periodLabel: '周',
-      review: reviewMap.get(weekData.key)
-    } : {});
-    card.classList.add('animate-fade-in-up');
-    card.style.animationDelay = `${i * 80}ms`;
-    
-    grid.appendChild(card);
-    weekCards.push({ card, weekData, weekStr: weekData.key });
-  }
+  const historyList = document.createElement('div');
+  historyList.id = 'weekly-history-list';
+  renderWeeklyHistoryPage(historyList, recentWeekSummaries, reviewMap, useOwnerApi);
+  historyList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-week-history-page]');
+    if (!button) return;
+    renderWeeklyHistoryPage(historyList, recentWeekSummaries, reviewMap, useOwnerApi, Number(button.dataset.weekHistoryPage || 1));
+  });
+  page.appendChild(historyList);
 
-  page.appendChild(grid);
-  
   // Giscus section
   page.appendChild(createGiscusSection('weekly-overview'));
 
@@ -150,6 +139,47 @@ export async function renderWeeklyView(container, params = {}) {
   container.appendChild(page);
   bindPeriodReviewForms(page);
   bindAnalysisPanel(page);
+}
+
+function renderWeeklyHistoryPage(container, weeklySummaries, reviewMap, useOwnerApi, pageNumber = 1) {
+  const total = weeklySummaries.length;
+  const totalPages = Math.max(1, Math.ceil(total / WEEK_HISTORY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * WEEK_HISTORY_PAGE_SIZE;
+  const pageSummaries = weeklySummaries.slice(start, start + WEEK_HISTORY_PAGE_SIZE);
+  const grid = document.createElement('div');
+  grid.className = 'aggregation-grid';
+
+  weekCards = [];
+  pageSummaries.forEach((weekData, index) => {
+    const card = createWeekCard(weekData, useOwnerApi ? {
+      periodType: 'weekly',
+      periodLabel: '周',
+      review: reviewMap.get(weekData.key)
+    } : {});
+    card.classList.add('animate-fade-in-up');
+    card.style.animationDelay = `${index * 80}ms`;
+    grid.appendChild(card);
+    weekCards.push({ card, weekData, weekStr: weekData.key });
+  });
+
+  container.innerHTML = `
+    ${total ? `<div class="panel-date period-history-count">共 ${total} 周 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+  `;
+  container.appendChild(grid);
+  if (total > WEEK_HISTORY_PAGE_SIZE) {
+    container.insertAdjacentHTML('beforeend', buildWeeklyHistoryPagination(currentPage, totalPages));
+  }
+}
+
+function buildWeeklyHistoryPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="周度历史分页">
+      <button type="button" data-week-history-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-week-history-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
 }
 
 /**
@@ -190,7 +220,7 @@ function getCurrentWeekKey() {
 
 function mergeWeeklySummariesWithReviews(summaries = [], reviews = []) {
   const rows = new Map();
-  summaries.slice(0, WEEK_DISPLAY_COUNT).forEach(summary => rows.set(summary.key, summary));
+  summaries.forEach(summary => rows.set(summary.key, summary));
   reviews.forEach(review => {
     if (!rows.has(review.periodKey)) rows.set(review.periodKey, createWeeklyReviewPlaceholder(review));
   });

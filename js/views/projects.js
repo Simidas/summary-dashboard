@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703f';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703g';
 import {
   createFollowup,
   createProject,
@@ -13,16 +13,20 @@ import {
   getProjects,
   getRecords,
   updateProject
-} from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703f';
+} from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703g';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703f';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703f';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703f';
+} from '../components/followup-list.js?v=20260703g';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703g';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703g';
+
+const PROJECT_GRID_PAGE_SIZE = 12;
+const PROJECT_RECORD_PAGE_SIZE = 10;
+const PROJECT_FOLLOWUP_PAGE_SIZE = 10;
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -58,14 +62,15 @@ export async function renderProjectsView(container, params = {}) {
       <p class="view-subtitle">按项目线查看长期推进过程</p>
     </div>
     ${buildProjectCreatePanel(authState)}
-    <div class="project-grid" id="project-grid">
-      ${projects.map(project => buildProjectCard(project)).join('')}
+    <div id="project-grid-panel">
+      ${buildProjectGridPage(projects)}
     </div>
   `;
 
   container.innerHTML = '';
   container.appendChild(page);
-  bindProjectCreateForm(page);
+  bindProjectCreateForm(page, projects);
+  bindProjectGridPagination(page, projects);
 }
 
 async function renderProjectDetail(container, slug, authState) {
@@ -168,7 +173,7 @@ function renderManagedProjectDetail(container, project, records, followups, auth
         <a href="#projects" class="text-link">Back</a>
       </div>
       <div id="project-record-list">
-        ${buildOnlineRecordList(records, '还没有项目记录。')}
+        ${buildProjectRecordListPage(records, '还没有项目记录。')}
       </div>
     </section>
   `;
@@ -177,8 +182,9 @@ function renderManagedProjectDetail(container, project, records, followups, auth
   container.appendChild(page);
   bindRecordDestinationActions(page);
   bindProjectEditForm(page, project);
-  bindProjectRecordForm(page, project);
-  bindProjectFollowupForm(page, project);
+  bindProjectRecordForm(page, project, records);
+  bindProjectRecordPagination(page, records, '还没有项目记录。');
+  bindProjectFollowupForm(page, project, followups);
 }
 
 function renderStaticProjectDetail(container, project, onlineRecords = [], onlineFollowups = [], authState = {}) {
@@ -229,7 +235,7 @@ function renderStaticProjectDetail(container, project, onlineRecords = [], onlin
         <a href="#projects" class="text-link">Back</a>
       </div>
       <div id="project-record-list">
-        ${buildOnlineRecordList(onlineRecords, '还没有在线项目记录。')}
+        ${buildProjectRecordListPage(onlineRecords, '还没有在线项目记录。')}
       </div>
       ${buildTimeline(project.timeline || [])}
     </section>
@@ -238,8 +244,9 @@ function renderStaticProjectDetail(container, project, onlineRecords = [], onlin
   container.innerHTML = '';
   container.appendChild(page);
   bindRecordDestinationActions(page);
-  bindProjectRecordForm(page, project);
-  bindProjectFollowupForm(page, project);
+  bindProjectRecordForm(page, project, onlineRecords);
+  bindProjectRecordPagination(page, onlineRecords, '还没有在线项目记录。');
+  bindProjectFollowupForm(page, project, onlineFollowups);
 }
 
 function buildStaticProjectNotice() {
@@ -382,9 +389,7 @@ function buildProjectFollowupPanel(project, followups) {
       </form>
       <div class="form-status" id="project-followup-status"></div>
       <div class="compact-list manageable-list" id="project-followup-list">
-        ${followups.length ? followups.map(item => buildEditableFollowupRow(item, {
-          contextLabel: buildProjectFollowupContext
-        })).join('') : '<div class="empty-inline">暂无在线项目待办。</div>'}
+        ${buildProjectFollowupListPage(followups)}
       </div>
     </section>
   `;
@@ -394,12 +399,11 @@ function buildProjectFollowupContext(item) {
   return item.domainLabel || item.domain || '未分类';
 }
 
-function bindProjectCreateForm(page) {
+function bindProjectCreateForm(page, projects) {
   const form = page.querySelector('#project-create-form');
   if (!form) return;
 
   const status = page.querySelector('#project-create-status');
-  const grid = page.querySelector('#project-grid');
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = form.elements.name.value.trim();
@@ -421,7 +425,8 @@ function bindProjectCreateForm(page) {
       });
       status.textContent = '已创建';
       form.reset();
-      grid.insertAdjacentHTML('afterbegin', buildProjectCard(data.project));
+      projects.unshift(data.project);
+      renderProjectGrid(page, projects, 1);
     } catch (error) {
       status.textContent = error.message || '创建失败';
     } finally {
@@ -475,11 +480,10 @@ function bindProjectEditForm(page, project) {
   });
 }
 
-function bindProjectRecordForm(page, project) {
+function bindProjectRecordForm(page, project, records = []) {
   const input = page.querySelector('#project-record-input');
   const button = page.querySelector('#project-record-save');
   const status = page.querySelector('#project-record-status');
-  const list = page.querySelector('#project-record-list');
   if (!button) return;
 
   button.addEventListener('click', async () => {
@@ -502,15 +506,19 @@ function bindProjectRecordForm(page, project) {
       });
       input.value = '';
       status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
-      list.innerHTML = buildOnlineRecordList([{ ...data.record, aiSuggestion: data.aiSuggestion }], '还没有项目记录。')
-        + list.innerHTML.replace('<div class="empty-inline">还没有项目记录。</div>', '');
+      records.unshift({ ...data.record, aiSuggestion: data.aiSuggestion, aiPending: data.aiPending });
+      renderProjectRecordList(page, records, 1);
+      const list = page.querySelector('#project-record-list');
       if (data.aiPending) {
         list.insertAdjacentHTML('afterbegin', buildAiPendingCard('项目记录已保存，AI 正在提炼下一步。'));
         waitForRecordAiSuggestion(data.record.id, {
           onReady: (aiSuggestion, record) => {
             status.textContent = 'AI 建议已生成';
-            replaceOnlineRecordCard(list, { ...record, aiSuggestion });
-            list.querySelector('.ai-result-card-pending')?.remove();
+            const index = records.findIndex(item => item.id === record.id);
+            if (index >= 0) records[index] = { ...record, aiSuggestion };
+            const currentList = page.querySelector('#project-record-list');
+            replaceOnlineRecordCard(currentList, { ...record, aiSuggestion });
+            currentList?.querySelector('.ai-result-card-pending')?.remove();
           },
           onTimeout: () => {
             status.textContent = '已保存，AI 建议稍后会出现在记录里';
@@ -525,7 +533,7 @@ function bindProjectRecordForm(page, project) {
   });
 }
 
-function bindProjectFollowupForm(page, project) {
+function bindProjectFollowupForm(page, project, followups = []) {
   const form = page.querySelector('#project-followup-form');
   const list = page.querySelector('#project-followup-list');
   const status = page.querySelector('#project-followup-status');
@@ -552,11 +560,8 @@ function bindProjectFollowupForm(page, project) {
       });
       form.reset();
       status.textContent = '已新增';
-      const empty = list.querySelector('.empty-inline');
-      if (empty) empty.remove();
-      list.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(data.followup, {
-        contextLabel: buildProjectFollowupContext
-      }));
+      followups.unshift(data.followup);
+      renderProjectFollowupList(page, followups, 1);
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -569,6 +574,133 @@ function bindProjectFollowupForm(page, project) {
     emptyText: '暂无在线项目待办。',
     contextLabel: buildProjectFollowupContext
   });
+
+  list?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-project-followup-page]');
+    if (!button) return;
+    renderProjectFollowupList(page, followups, Number(button.dataset.projectFollowupPage || 1));
+  });
+}
+
+function renderProjectGrid(page, projects, pageNumber = 1) {
+  const panel = page.querySelector('#project-grid-panel');
+  if (!panel) return;
+  panel.dataset.projectGridPage = String(pageNumber);
+  panel.innerHTML = buildProjectGridPage(projects, pageNumber);
+}
+
+function buildProjectGridPage(projects, pageNumber = 1) {
+  const total = projects.length;
+  const totalPages = Math.max(1, Math.ceil(total / PROJECT_GRID_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * PROJECT_GRID_PAGE_SIZE;
+  const pageProjects = projects.slice(start, start + PROJECT_GRID_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date project-list-count">共 ${total} 个项目 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${pageProjects.length ? `
+      <div class="project-grid" id="project-grid">
+        ${pageProjects.map(project => buildProjectCard(project)).join('')}
+      </div>
+    ` : '<div class="empty-inline">暂无项目。</div>'}
+    ${total > PROJECT_GRID_PAGE_SIZE ? buildProjectGridPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildProjectGridPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="项目列表分页">
+      <button type="button" data-project-grid-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-project-grid-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function bindProjectGridPagination(page, projects) {
+  const panel = page.querySelector('#project-grid-panel');
+  if (!panel) return;
+
+  panel.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-project-grid-page]');
+    if (!button) return;
+    renderProjectGrid(page, projects, Number(button.dataset.projectGridPage || 1));
+  });
+}
+
+function buildProjectRecordListPage(records, emptyText = '还没有项目记录。', pageNumber = 1) {
+  const total = records.length;
+  const totalPages = Math.max(1, Math.ceil(total / PROJECT_RECORD_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * PROJECT_RECORD_PAGE_SIZE;
+  const pageRecords = records.slice(start, start + PROJECT_RECORD_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date project-record-count">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${buildOnlineRecordList(pageRecords, emptyText)}
+    ${total > PROJECT_RECORD_PAGE_SIZE ? buildProjectRecordPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildProjectRecordPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="项目记录分页">
+      <button type="button" data-project-record-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-project-record-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function renderProjectRecordList(page, records, pageNumber = 1, emptyText = '还没有项目记录。') {
+  const list = page.querySelector('#project-record-list');
+  if (!list) return;
+  list.dataset.projectRecordPage = String(pageNumber);
+  list.innerHTML = buildProjectRecordListPage(records, emptyText, pageNumber);
+}
+
+function bindProjectRecordPagination(page, records, emptyText = '还没有项目记录。') {
+  const list = page.querySelector('#project-record-list');
+  if (!list) return;
+
+  list.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-project-record-page]');
+    if (!button) return;
+    renderProjectRecordList(page, records, Number(button.dataset.projectRecordPage || 1), emptyText);
+  });
+}
+
+function buildProjectFollowupListPage(followups, pageNumber = 1) {
+  const total = followups.length;
+  const totalPages = Math.max(1, Math.ceil(total / PROJECT_FOLLOWUP_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * PROJECT_FOLLOWUP_PAGE_SIZE;
+  const pageFollowups = followups.slice(start, start + PROJECT_FOLLOWUP_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date project-followup-count">共 ${total} 项 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${pageFollowups.length ? pageFollowups.map(item => buildEditableFollowupRow(item, {
+      contextLabel: buildProjectFollowupContext
+    })).join('') : '<div class="empty-inline">暂无在线项目待办。</div>'}
+    ${total > PROJECT_FOLLOWUP_PAGE_SIZE ? buildProjectFollowupPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildProjectFollowupPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="项目待办分页">
+      <button type="button" data-project-followup-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-project-followup-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function renderProjectFollowupList(page, followups, pageNumber = 1) {
+  const list = page.querySelector('#project-followup-list');
+  if (!list) return;
+  list.dataset.projectFollowupPage = String(pageNumber);
+  list.innerHTML = buildProjectFollowupListPage(followups, pageNumber);
 }
 
 function mergeProjects(onlineProjects, staticProjects) {

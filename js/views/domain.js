@@ -12,18 +12,22 @@ import {
   getProjects,
   getRecords,
   updateDomainSettings
-} from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703f';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703f';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703f';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
+} from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703g';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703g';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703g';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703f';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703f';
+} from '../components/followup-list.js?v=20260703g';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703g';
+
+const DOMAIN_RECORD_PAGE_SIZE = 10;
+const DOMAIN_FOLLOWUP_PAGE_SIZE = 10;
+const DOMAIN_SEED_PAGE_SIZE = 8;
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -38,9 +42,9 @@ export async function renderDomainView(container, params = {}) {
   const useOwnerApi = isApiEnabled() && authState.user?.role === 'owner';
   const [staticDomain, onlineRecordsData, onlineSettingsData, onlineFollowupsData, onlineProjectsData, onlineContentData, domainAnalysisData, projectsManifest] = await Promise.all([
     useOwnerApi ? Promise.resolve(null) : loadDomainSummary(domainId),
-    isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 20 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getRecords({ domain: domainId, limit: 100 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getDomainSettings(domainId).catch(() => null) : Promise.resolve(null),
-    isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 30 }).catch(() => null) : Promise.resolve(null),
+    isApiEnabled() && authState.user ? getFollowups({ domain: domainId, status: 'all', limit: 100 }).catch(() => null) : Promise.resolve(null),
     isApiEnabled() && authState.user ? getProjects().catch(() => null) : Promise.resolve(null),
     useOwnerApi ? getContentItems({ domain: domainId, limit: 100 }).catch(() => null) : Promise.resolve(null),
     useOwnerApi ? getAnalysisSnapshot('domain', domainId, { windowDays: 7 }).catch(() => null) : Promise.resolve(null),
@@ -133,17 +137,21 @@ export async function renderDomainView(container, params = {}) {
         <h2 class="section-title">可沉淀内容</h2>
         <a href="#content" class="text-link">Content</a>
       </div>
-      ${buildSeeds(domain.contentSeeds || [])}
+      <div id="domain-seed-list">
+        ${buildDomainSeedListPage(domain.contentSeeds || [])}
+      </div>
     </section>
   `;
 
   container.innerHTML = '';
   container.appendChild(page);
   bindDomainSettingsForm(page, domainId);
-  bindDomainRecordForm(page, domainId);
-  bindDomainFollowups(page, domainId);
+  bindDomainRecordForm(page, domainId, onlineRecords);
+  bindDomainRecordPagination(page, onlineRecords);
+  bindDomainFollowups(page, domainId, onlineFollowups);
+  bindDomainSeedPagination(page, domain.contentSeeds || []);
   bindAnalysisPanel(page);
-  bindAnalysisFollowupInsert(page);
+  bindAnalysisFollowupInsert(page, onlineFollowups);
 }
 
 function renderEmpty(container) {
@@ -284,9 +292,7 @@ function buildDomainFollowupsPanel(authState, domainId, onlineFollowups, staticF
       </form>
       <div class="form-status" id="domain-followup-status"></div>
       <div class="compact-list manageable-list" id="domain-followup-list" data-domain="${escapeAttr(domainId)}">
-        ${onlineFollowups.length ? onlineFollowups.map(item => buildEditableFollowupRow(item, {
-          contextLabel: buildDomainFollowupContext
-        })).join('') : '<div class="empty-inline">暂无在线待办。</div>'}
+        ${buildDomainFollowupListPage(onlineFollowups)}
       </div>
     `;
   }
@@ -369,8 +375,34 @@ function buildOnlineRecordTimeline(records) {
   if (!records.length) return '';
 
   return `
+    <div id="domain-online-records-panel">
+      ${buildOnlineRecordTimelinePage(records)}
+    </div>
+  `;
+}
+
+function buildOnlineRecordTimelinePage(records, pageNumber = 1) {
+  const total = records.length;
+  const totalPages = Math.max(1, Math.ceil(total / DOMAIN_RECORD_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * DOMAIN_RECORD_PAGE_SIZE;
+  const pageRecords = records.slice(start, start + DOMAIN_RECORD_PAGE_SIZE);
+
+  return `
+    <div class="panel-date domain-record-count">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</div>
     <div class="record-timeline online-domain-records" id="domain-online-records">
-      ${records.map(buildOnlineRecordLine).join('')}
+      ${pageRecords.map(buildOnlineRecordLine).join('')}
+    </div>
+    ${total > DOMAIN_RECORD_PAGE_SIZE ? buildDomainRecordPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildDomainRecordPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="场景记录分页">
+      <button type="button" data-domain-record-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-domain-record-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
     </div>
   `;
 }
@@ -405,6 +437,41 @@ function buildSeeds(seeds) {
   `;
 }
 
+function buildDomainSeedListPage(seeds = [], pageNumber = 1) {
+  const total = seeds.length;
+  const totalPages = Math.max(1, Math.ceil(total / DOMAIN_SEED_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * DOMAIN_SEED_PAGE_SIZE;
+  const pageSeeds = seeds.slice(start, start + DOMAIN_SEED_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date domain-seed-count">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${buildSeeds(pageSeeds)}
+    ${total > DOMAIN_SEED_PAGE_SIZE ? buildDomainSeedPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildDomainSeedPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="场景内容素材分页">
+      <button type="button" data-domain-seed-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-domain-seed-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function bindDomainSeedPagination(page, seeds = []) {
+  const list = page.querySelector('#domain-seed-list');
+  if (!list) return;
+
+  list.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-domain-seed-page]');
+    if (!button) return;
+    list.innerHTML = buildDomainSeedListPage(seeds, Number(button.dataset.domainSeedPage || 1));
+  });
+}
+
 function bindDomainSettingsForm(page, domainId) {
   const form = page.querySelector('#domain-settings-form');
   if (!form) return;
@@ -432,7 +499,7 @@ function bindDomainSettingsForm(page, domainId) {
   });
 }
 
-function bindDomainRecordForm(page, domainId) {
+function bindDomainRecordForm(page, domainId, records = []) {
   const form = page.querySelector('#domain-record-form');
   if (!form) return;
 
@@ -465,7 +532,8 @@ function bindDomainRecordForm(page, domainId) {
         : data.aiSuggestion?.nextSmallStep
         ? `<div class="next-small-step"><span>现在只做这一步</span><strong>${escapeHtml(data.aiSuggestion.nextSmallStep)}</strong></div>`
         : '<div class="empty-inline">记录已保存。</div>';
-      prependDomainRecord(page, { ...data.record, aiSuggestion: data.aiSuggestion, aiPending: data.aiPending });
+      records.unshift({ ...data.record, aiSuggestion: data.aiSuggestion, aiPending: data.aiPending });
+      renderDomainRecordList(page, records, 1);
       if (data.aiPending) {
         waitForRecordAiSuggestion(data.record.id, {
           onReady: (aiSuggestion, record) => {
@@ -473,6 +541,8 @@ function bindDomainRecordForm(page, domainId) {
             result.innerHTML = aiSuggestion?.nextSmallStep
               ? `<div class="next-small-step"><span>现在只做这一步</span><strong>${escapeHtml(aiSuggestion.nextSmallStep)}</strong></div>`
               : '<div class="empty-inline">AI 建议已生成。</div>';
+            const index = records.findIndex(item => item.id === record.id);
+            if (index >= 0) records[index] = { ...record, aiSuggestion };
             replaceDomainRecordLine(page, { ...record, aiSuggestion });
           },
           onTimeout: () => {
@@ -488,7 +558,32 @@ function bindDomainRecordForm(page, domainId) {
   });
 }
 
-function bindDomainFollowups(page, domainId) {
+function bindDomainRecordPagination(page, records = []) {
+  const panel = page.querySelector('#domain-online-records-panel');
+  if (!panel) return;
+
+  panel.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-domain-record-page]');
+    if (!button) return;
+    renderDomainRecordList(page, records, Number(button.dataset.domainRecordPage || 1));
+  });
+}
+
+function renderDomainRecordList(page, records = [], pageNumber = 1) {
+  const panel = page.querySelector('#domain-online-records-panel');
+  if (panel) {
+    panel.innerHTML = buildOnlineRecordTimelinePage(records, pageNumber);
+    return;
+  }
+
+  const timelineSection = [...page.querySelectorAll('.ops-panel')]
+    .find(section => section.querySelector('.section-title')?.textContent === '最近记录');
+  if (!timelineSection || !records.length) return;
+  timelineSection.insertAdjacentHTML('beforeend', buildOnlineRecordTimeline(records));
+  bindDomainRecordPagination(page, records);
+}
+
+function bindDomainFollowups(page, domainId, followups = []) {
   const form = page.querySelector('#domain-followup-form');
   const list = page.querySelector('#domain-followup-list');
   const status = page.querySelector('#domain-followup-status');
@@ -514,11 +609,8 @@ function bindDomainFollowups(page, domainId) {
       });
       form.reset();
       status.textContent = '已新增';
-      const empty = list?.querySelector('.empty-inline');
-      if (empty) empty.remove();
-      list?.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(data.followup, {
-        contextLabel: buildDomainFollowupContext
-      }));
+      followups.unshift(data.followup);
+      renderDomainFollowupList(page, followups, 1);
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -531,20 +623,55 @@ function bindDomainFollowups(page, domainId) {
     emptyText: '暂无在线待办。',
     contextLabel: buildDomainFollowupContext
   });
+
+  list?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-domain-followup-page]');
+    if (!button) return;
+    renderDomainFollowupList(page, followups, Number(button.dataset.domainFollowupPage || 1));
+  });
 }
 
-function bindAnalysisFollowupInsert(page) {
+function bindAnalysisFollowupInsert(page, followups = []) {
   page.addEventListener('analysis-followup-created', (event) => {
     const followup = event.detail?.followup;
     if (!event.detail?.created || !followup) return;
 
-    const list = page.querySelector('#domain-followup-list');
-    const empty = list?.querySelector('.empty-inline');
-    if (empty) empty.remove();
-    list?.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(followup, {
-      contextLabel: buildDomainFollowupContext
-    }));
+    followups.unshift(followup);
+    renderDomainFollowupList(page, followups, 1);
   });
+}
+
+function buildDomainFollowupListPage(followups = [], pageNumber = 1) {
+  const total = followups.length;
+  const totalPages = Math.max(1, Math.ceil(total / DOMAIN_FOLLOWUP_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * DOMAIN_FOLLOWUP_PAGE_SIZE;
+  const pageFollowups = followups.slice(start, start + DOMAIN_FOLLOWUP_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date domain-followup-count">共 ${total} 项 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${pageFollowups.length ? pageFollowups.map(item => buildEditableFollowupRow(item, {
+      contextLabel: buildDomainFollowupContext
+    })).join('') : '<div class="empty-inline">暂无在线待办。</div>'}
+    ${total > DOMAIN_FOLLOWUP_PAGE_SIZE ? buildDomainFollowupPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildDomainFollowupPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="场景待办分页">
+      <button type="button" data-domain-followup-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-domain-followup-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function renderDomainFollowupList(page, followups = [], pageNumber = 1) {
+  const list = page.querySelector('#domain-followup-list');
+  if (!list) return;
+  list.dataset.domainFollowupPage = String(pageNumber);
+  list.innerHTML = buildDomainFollowupListPage(followups, pageNumber);
 }
 
 function prependDomainRecord(page, record) {

@@ -2,17 +2,18 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260703f';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260703f';
-import { createMonthCard } from '../components/card.js?v=20260703f';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703f';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703f';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703f';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260703g';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260703g';
+import { createMonthCard } from '../components/card.js?v=20260703g';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703g';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703g';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
 
 const MONTH_DISPLAY_COUNT = 12;
+const MONTH_HISTORY_PAGE_SIZE = 6;
 const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
 let monthCards = [];
@@ -138,13 +139,6 @@ export async function renderMonthlyView(container, params = {}) {
     </div>
   `;
 
-  // Create grid
-  const grid = document.createElement('div');
-  grid.className = 'aggregation-grid';
-  grid.style.marginTop = 'var(--space-6)';
-
-  monthCards = [];
-
   if (monthlyDataList[0]?.insight) {
     page.appendChild(createPeriodInsightPanel(monthlyDataList[0].insight, '本月经营洞察'));
   }
@@ -166,21 +160,15 @@ export async function renderMonthlyView(container, params = {}) {
   `;
   page.appendChild(historyHeading);
 
-  for (let i = 0; i < monthlyDataList.length; i++) {
-    const monthData = monthlyDataList[i];
-    const card = createMonthCard(monthData, useOwnerApi ? {
-      periodType: 'monthly',
-      periodLabel: '月',
-      review: reviewMap.get(monthData.key || `${monthData.year}-${monthData.month}`)
-    } : {});
-    card.classList.add('animate-fade-in-up');
-    card.style.animationDelay = `${i * 60}ms`;
-
-    grid.appendChild(card);
-    monthCards.push({ card, monthData, monthStr: monthData.key || `${monthData.year}-${monthData.month}` });
-  }
-
-  page.appendChild(grid);
+  const historyList = document.createElement('div');
+  historyList.id = 'monthly-history-list';
+  renderMonthlyHistoryPage(historyList, monthlyDataList, reviewMap, useOwnerApi);
+  historyList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-month-history-page]');
+    if (!button) return;
+    renderMonthlyHistoryPage(historyList, monthlyDataList, reviewMap, useOwnerApi, Number(button.dataset.monthHistoryPage || 1));
+  });
+  page.appendChild(historyList);
   
   // Giscus section
   page.appendChild(createGiscusSection('monthly-overview'));
@@ -189,6 +177,49 @@ export async function renderMonthlyView(container, params = {}) {
   container.appendChild(page);
   bindPeriodReviewForms(page);
   bindAnalysisPanel(page);
+}
+
+function renderMonthlyHistoryPage(container, monthlyDataList, reviewMap, useOwnerApi, pageNumber = 1) {
+  const total = monthlyDataList.length;
+  const totalPages = Math.max(1, Math.ceil(total / MONTH_HISTORY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * MONTH_HISTORY_PAGE_SIZE;
+  const pageMonths = monthlyDataList.slice(start, start + MONTH_HISTORY_PAGE_SIZE);
+  const grid = document.createElement('div');
+  grid.className = 'aggregation-grid';
+  grid.style.marginTop = 'var(--space-4)';
+
+  monthCards = [];
+  pageMonths.forEach((monthData, index) => {
+    const monthKey = monthData.key || `${monthData.year}-${monthData.month}`;
+    const card = createMonthCard(monthData, useOwnerApi ? {
+      periodType: 'monthly',
+      periodLabel: '月',
+      review: reviewMap.get(monthKey)
+    } : {});
+    card.classList.add('animate-fade-in-up');
+    card.style.animationDelay = `${index * 60}ms`;
+    grid.appendChild(card);
+    monthCards.push({ card, monthData, monthStr: monthKey });
+  });
+
+  container.innerHTML = `
+    ${total ? `<div class="panel-date period-history-count">共 ${total} 个月 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+  `;
+  container.appendChild(grid);
+  if (total > MONTH_HISTORY_PAGE_SIZE) {
+    container.insertAdjacentHTML('beforeend', buildMonthlyHistoryPagination(currentPage, totalPages));
+  }
+}
+
+function buildMonthlyHistoryPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="月度历史分页">
+      <button type="button" data-month-history-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-month-history-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
 }
 
 /**
@@ -243,7 +274,7 @@ function buildInsightColumn(title, items = []) {
 
 function mergeMonthlySummariesWithReviews(summaries = [], reviews = []) {
   const rows = new Map();
-  summaries.slice(0, MONTH_DISPLAY_COUNT).forEach(summary => rows.set(summary.key, summary));
+  summaries.forEach(summary => rows.set(summary.key, summary));
   reviews.forEach(review => {
     if (!rows.has(review.periodKey)) rows.set(review.periodKey, createMonthlyReviewPlaceholder(review));
   });

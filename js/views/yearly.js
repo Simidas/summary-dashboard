@@ -2,15 +2,17 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703f';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { buildYearlySummaries } from '../aggregations.js?v=20260703f';
-import { createYearHeroCard } from '../components/card.js?v=20260703f';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703f';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703f';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703f';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703g';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { buildYearlySummaries } from '../aggregations.js?v=20260703g';
+import { createYearHeroCard } from '../components/card.js?v=20260703g';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703g';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703g';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
+
+const YEAR_HISTORY_PAGE_SIZE = 4;
 
 let yearCards = [];
 
@@ -122,17 +124,15 @@ export async function renderYearlyView(container, params = {}) {
   `;
   page.appendChild(historyHeading);
 
-  // Create year hero cards
-  yearsData.forEach(({ year, data }, index) => {
-    const heroCard = createYearHeroCard(data, useOwnerApi ? {
-      periodType: 'yearly',
-      periodLabel: '年',
-      review: reviewMap.get(year)
-    } : {});
-    heroCard.classList.add('animate-fade-in-up');
-    heroCard.style.animationDelay = `${index * 100}ms`;
-    page.appendChild(heroCard);
+  const historyList = document.createElement('div');
+  historyList.id = 'yearly-history-list';
+  renderYearlyHistoryPage(historyList, yearsData, reviewMap, useOwnerApi);
+  historyList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-year-history-page]');
+    if (!button) return;
+    renderYearlyHistoryPage(historyList, yearsData, reviewMap, useOwnerApi, Number(button.dataset.yearHistoryPage || 1));
   });
+  page.appendChild(historyList);
 
   // Giscus section
   page.appendChild(createGiscusSection('yearly-overview'));
@@ -141,6 +141,43 @@ export async function renderYearlyView(container, params = {}) {
   container.appendChild(page);
   bindPeriodReviewForms(page);
   bindAnalysisPanel(page);
+}
+
+function renderYearlyHistoryPage(container, yearsData, reviewMap, useOwnerApi, pageNumber = 1) {
+  const total = yearsData.length;
+  const totalPages = Math.max(1, Math.ceil(total / YEAR_HISTORY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * YEAR_HISTORY_PAGE_SIZE;
+  const pageYears = yearsData.slice(start, start + YEAR_HISTORY_PAGE_SIZE);
+
+  yearCards = [];
+  container.innerHTML = `
+    ${total ? `<div class="panel-date period-history-count">共 ${total} 年 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+  `;
+  pageYears.forEach(({ year, data }, index) => {
+    const heroCard = createYearHeroCard(data, useOwnerApi ? {
+      periodType: 'yearly',
+      periodLabel: '年',
+      review: reviewMap.get(year)
+    } : {});
+    heroCard.classList.add('animate-fade-in-up');
+    heroCard.style.animationDelay = `${index * 100}ms`;
+    container.appendChild(heroCard);
+    yearCards.push({ card: heroCard, year, data });
+  });
+  if (total > YEAR_HISTORY_PAGE_SIZE) {
+    container.insertAdjacentHTML('beforeend', buildYearlyHistoryPagination(currentPage, totalPages));
+  }
+}
+
+function buildYearlyHistoryPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="年度历史分页">
+      <button type="button" data-year-history-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-year-history-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
 }
 
 /**

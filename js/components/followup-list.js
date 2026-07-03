@@ -2,7 +2,7 @@
    Editable Follow-up Rows
    ======================================== */
 
-import { updateFollowup } from '../api.js?v=20260703f';
+import { updateFollowup } from '../api.js?v=20260703g';
 
 export function buildEditableFollowupRow(item, options = {}) {
   const statusLabel = item.overdue ? '超时' : ({

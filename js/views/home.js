@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260703f';
+} from '../data.js?v=20260703g';
 import {
   getContentItems,
   getDashboard,
@@ -15,19 +15,20 @@ import {
   getFollowups,
   getProjects,
   getRecords
-} from '../api.js?v=20260703f';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703f';
+} from '../api.js?v=20260703g';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703g';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703f';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260703f';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260703f';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703f';
+} from '../components/followup-list.js?v=20260703g';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260703g';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260703g';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703g';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
+const HOME_FOLLOWUP_PAGE_SIZE = 10;
 
 export async function renderHomeView(container) {
   container.innerHTML = `
@@ -78,7 +79,7 @@ export async function renderHomeView(container) {
     ? onlineProjectsData?.projects || []
     : mergeProjects(onlineProjectsData?.projects || [], projects?.projects || []);
   const displayFollowups = useOwnerApi
-    ? onlineFollowups.filter(item => item.status === 'open' || item.status === 'deferred').slice(0, 10)
+    ? onlineFollowups.filter(item => item.status === 'open' || item.status === 'deferred')
     : dashboard?.followups || [];
   const heroFocus = dashboard?.todayFocus
     || overview?.todayFocus
@@ -151,7 +152,7 @@ export async function renderHomeView(container) {
   container.appendChild(page);
   bindRecordDestinationActions(page);
   bindHomeRecordPagination(page, onlineRecords, onlineRecordOptions);
-  bindFollowupPanel(page);
+  bindFollowupPanel(page, displayFollowups);
 }
 
 function buildHomeOnlineRecordsSection(records, options = {}, pageNumber = 1) {
@@ -322,7 +323,7 @@ function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
       </div>
       <div class="form-status" id="home-followup-status"></div>
       <div class="compact-list manageable-list" id="home-followup-list">
-        ${onlineFollowups.length ? onlineFollowups.map(buildEditableFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。去 Records 新增一个任务，就能在这里闭环。</div>'}
+        ${buildHomeFollowupListPage(onlineFollowups)}
       </div>
     `;
   }
@@ -337,12 +338,42 @@ function buildFollowupContextMeta(item) {
   ].filter(Boolean).join(' · ') || '未分类';
 }
 
-function bindFollowupPanel(page) {
+function buildHomeFollowupListPage(followups = [], pageNumber = 1) {
+  const total = followups.length;
+  const totalPages = Math.max(1, Math.ceil(total / HOME_FOLLOWUP_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * HOME_FOLLOWUP_PAGE_SIZE;
+  const pageFollowups = followups.slice(start, start + HOME_FOLLOWUP_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date home-followup-count">共 ${total} 项 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${pageFollowups.length ? pageFollowups.map(buildEditableFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。去 Records 新增一个任务，就能在这里闭环。</div>'}
+    ${total > HOME_FOLLOWUP_PAGE_SIZE ? buildHomeFollowupPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildHomeFollowupPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="首页待办分页">
+      <button type="button" data-home-followup-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-home-followup-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function bindFollowupPanel(page, followups = []) {
   const list = page.querySelector('#home-followup-list');
   const status = page.querySelector('#home-followup-status');
   bindEditableFollowupList(list, {
     statusEl: status,
     emptyText: '暂无在线待办。新增一个，就能在这里闭环。'
+  });
+
+  list?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-home-followup-page]');
+    if (!button) return;
+    list.innerHTML = buildHomeFollowupListPage(followups, Number(button.dataset.homeFollowupPage || 1));
   });
 }
 
