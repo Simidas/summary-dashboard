@@ -2,13 +2,14 @@
    Diary View
    ======================================== */
 
-import { createRecord, getRecords } from '../api.js?v=20260703e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703e';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703e';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703e';
+import { createRecord, getRecords } from '../api.js?v=20260703f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703f';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703f';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703f';
 
 const DRAFT_KEY = 'summary-dashboard:diary-drafts';
+const DIARY_PAGE_SIZE = 10;
 
 export async function renderDiaryView(container) {
   container.innerHTML = `
@@ -27,6 +28,7 @@ export async function renderDiaryView(container) {
   const onlineRecords = onlineRecordsData?.records || [];
   const drafts = canWriteLocal ? readDrafts() : [];
   const displayRecords = apiMode ? onlineRecords : drafts.map(mapDraftToRecord);
+  const recordEntries = apiMode ? onlineRecords : drafts;
 
   const page = document.createElement('div');
   page.className = 'page operations-page';
@@ -59,9 +61,7 @@ export async function renderDiaryView(container) {
         ${apiMode ? '<a href="#records/diary" class="text-link">Records</a>' : ''}
       </div>
       <div id="diary-record-list">
-        ${apiMode
-          ? buildOnlineRecordList(onlineRecords, authState.user ? '还没有 Diary 记录。' : '还没有公开 Diary。')
-          : buildDrafts(drafts)}
+        ${buildDiaryRecordList(recordEntries, { apiMode, authState })}
       </div>
     </section>
   `;
@@ -69,8 +69,9 @@ export async function renderDiaryView(container) {
   container.innerHTML = '';
   container.appendChild(page);
   bindRecordDestinationActions(page);
+  bindDiaryPagination(page, recordEntries, { apiMode, authState });
   if (canWriteOnline) bindOnlineDiaryForm(page, onlineRecords);
-  if (canWriteLocal) bindDraftForm(page);
+  if (canWriteLocal) bindDraftForm(page, drafts);
 }
 
 function isLocalAuthorMode() {
@@ -163,7 +164,8 @@ function bindOnlineDiaryForm(page, onlineRecords = []) {
       result.innerHTML = data.aiPending ? buildAiPendingCard('Diary 已保存，AI 正在温柔地读一遍。') : buildOnlineAnalysis(data.aiSuggestion);
       if (list) {
         onlineRecords.unshift({ ...data.record, aiSuggestion: data.aiSuggestion });
-        list.innerHTML = buildOnlineRecordList(onlineRecords, '还没有 Diary 记录。');
+        list.dataset.diaryRecordPage = '1';
+        list.innerHTML = buildDiaryRecordList(onlineRecords, { apiMode: true, authState: getAuthState() });
       }
       if (data.aiPending) {
         waitForRecordAiSuggestion(data.record.id, {
@@ -193,7 +195,7 @@ function bindOnlineDiaryForm(page, onlineRecords = []) {
   });
 }
 
-function bindDraftForm(page) {
+function bindDraftForm(page, drafts) {
   const input = page.querySelector('#diary-draft-input');
   const button = page.querySelector('#diary-save-draft');
   const list = page.querySelector('#diary-record-list');
@@ -202,7 +204,6 @@ function bindDraftForm(page) {
     const content = input.value.trim();
     if (!content) return;
 
-    const drafts = readDrafts();
     drafts.unshift({
       id: `draft-${Date.now()}`,
       createdAt: new Date().toISOString(),
@@ -212,7 +213,8 @@ function bindDraftForm(page) {
     });
     writeDrafts(drafts);
     input.value = '';
-    list.innerHTML = buildDrafts(drafts);
+    list.dataset.diaryRecordPage = '1';
+    list.innerHTML = buildDiaryRecordList(drafts, { apiMode: false, authState: getAuthState() });
   });
 }
 
@@ -244,6 +246,49 @@ function buildDrafts(drafts) {
       `).join('')}
     </div>
   `;
+}
+
+function buildDiaryRecordList(entries, options = {}, pageNumber = 1) {
+  const total = entries.length;
+  const totalPages = Math.max(1, Math.ceil(total / DIARY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * DIARY_PAGE_SIZE;
+  const pageEntries = entries.slice(start, start + DIARY_PAGE_SIZE);
+  const emptyText = options.apiMode
+    ? options.authState?.user ? '还没有 Diary 记录。' : '还没有公开 Diary。'
+    : '暂无本地草稿。';
+
+  return `
+    ${total ? `<div class="panel-date diary-list-count">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${options.apiMode
+      ? buildOnlineRecordList(pageEntries, emptyText)
+      : buildDrafts(pageEntries)}
+    ${total > DIARY_PAGE_SIZE ? buildDiaryPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildDiaryPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="Diary 记录分页">
+      <button type="button" data-diary-record-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-diary-record-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+    </div>
+  `;
+}
+
+function bindDiaryPagination(page, entries, options = {}) {
+  const list = page.querySelector('#diary-record-list');
+  if (!list) return;
+
+  list.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-diary-record-page]');
+    if (!button) return;
+
+    const nextPage = Number(button.dataset.diaryRecordPage || 1);
+    list.dataset.diaryRecordPage = String(nextPage);
+    list.innerHTML = buildDiaryRecordList(entries, options, nextPage);
+  });
 }
 
 function buildPatternSummary(entries) {

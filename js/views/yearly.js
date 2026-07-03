@@ -2,15 +2,15 @@
    Yearly View
    ======================================== */
 
-import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703e';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
-import { buildYearlySummaries } from '../aggregations.js?v=20260703e';
-import { createYearHeroCard } from '../components/card.js?v=20260703e';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703e';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703e';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703e';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703e';
+import { getAvailableYears, loadYearlySummary } from '../data.js?v=20260703f';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getProjects, getRecords } from '../api.js?v=20260703f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
+import { buildYearlySummaries } from '../aggregations.js?v=20260703f';
+import { createYearHeroCard } from '../components/card.js?v=20260703f';
+import { createGiscusToggle } from '../components/giscus.js?v=20260703f';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703f';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703f';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703f';
 
 let yearCards = [];
 

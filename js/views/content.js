@@ -2,11 +2,12 @@
    Content View
    ======================================== */
 
-import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260703e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
-import { loadContentSeeds } from '../data.js?v=20260703e';
+import { createContentItem, getContentItems, updateContentItem } from '../api.js?v=20260703f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
+import { loadContentSeeds } from '../data.js?v=20260703f';
 
 const STATUSES = ['all', 'idea', 'outline', 'drafting', 'published', 'dropped'];
+const CONTENT_PAGE_SIZE = 10;
 
 export async function renderContentView(container) {
   container.innerHTML = `
@@ -50,7 +51,7 @@ export async function renderContentView(container) {
         `).join('')}
       </div>
       <div id="content-seed-list">
-        ${buildSeeds(seeds)}
+        ${buildSeedListPage(seeds)}
       </div>
     </section>
   `;
@@ -60,6 +61,7 @@ export async function renderContentView(container) {
   bindFilters(page, seeds);
   bindContentCapture(page, seeds);
   bindContentActions(page, seeds);
+  bindContentPagination(page, seeds);
 }
 
 function bindFilters(page, seeds) {
@@ -70,7 +72,8 @@ function bindFilters(page, seeds) {
     tab.addEventListener('click', () => {
       const status = tab.dataset.status;
       tabs.forEach(item => item.classList.toggle('active', item === tab));
-      list.innerHTML = buildSeeds(getFilteredSeeds(seeds, status));
+      list.dataset.contentPage = '1';
+      renderSeedList(page, seeds, 1);
     });
   });
 }
@@ -180,7 +183,7 @@ function bindContentCapture(page, seeds) {
       seeds.unshift(prepareContentSeed(data.item));
       form.reset();
       status.textContent = '已保存';
-      renderSeedList(page, seeds);
+      renderSeedList(page, seeds, 1);
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -210,7 +213,7 @@ function bindContentActions(page, seeds) {
     try {
       const data = await updateContentItem(id, { status, nextAction });
       Object.assign(item, prepareContentSeed(data.item));
-      renderSeedList(page, seeds);
+      renderSeedList(page, seeds, Number(list.dataset.contentPage || 1));
     } catch (error) {
       button.textContent = error.message || '失败';
       button.disabled = false;
@@ -218,11 +221,25 @@ function bindContentActions(page, seeds) {
   });
 }
 
-function renderSeedList(page, seeds) {
+function bindContentPagination(page, seeds) {
+  const list = page.querySelector('#content-seed-list');
+  if (!list) return;
+
+  list.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-content-page]');
+    if (!button) return;
+
+    renderSeedList(page, seeds, Number(button.dataset.contentPage || 1));
+  });
+}
+
+function renderSeedList(page, seeds, pageNumber = 1) {
   const list = page.querySelector('#content-seed-list');
   if (!list) return;
   const status = page.querySelector('.filter-tab.active')?.dataset.status || 'all';
-  list.innerHTML = buildSeeds(getFilteredSeeds(seeds, status));
+  const filtered = getFilteredSeeds(seeds, status);
+  list.dataset.contentPage = String(pageNumber);
+  list.innerHTML = buildSeedListPage(filtered, pageNumber);
 }
 
 function buildMetric(value, label) {
@@ -261,6 +278,30 @@ function buildSeeds(seeds) {
           ` : ''}
         </article>
       `).join('')}
+    </div>
+  `;
+}
+
+function buildSeedListPage(seeds, pageNumber = 1) {
+  const total = seeds.length;
+  const totalPages = Math.max(1, Math.ceil(total / CONTENT_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+  const start = (currentPage - 1) * CONTENT_PAGE_SIZE;
+  const pageSeeds = seeds.slice(start, start + CONTENT_PAGE_SIZE);
+
+  return `
+    ${total ? `<div class="panel-date content-list-count">共 ${total} 条 · 第 ${currentPage}/${totalPages} 页</div>` : ''}
+    ${buildSeeds(pageSeeds)}
+    ${total > CONTENT_PAGE_SIZE ? buildContentPagination(currentPage, totalPages) : ''}
+  `;
+}
+
+function buildContentPagination(currentPage, totalPages) {
+  return `
+    <div class="record-pagination" aria-label="Content 列表分页">
+      <button type="button" data-content-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+      <span>${currentPage} / ${totalPages}</span>
+      <button type="button" data-content-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
     </div>
   `;
 }

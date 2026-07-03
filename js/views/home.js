@@ -7,7 +7,7 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260703e';
+} from '../data.js?v=20260703f';
 import {
   getContentItems,
   getDashboard,
@@ -15,17 +15,17 @@ import {
   getFollowups,
   getProjects,
   getRecords
-} from '../api.js?v=20260703e';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703e';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703e';
+} from '../api.js?v=20260703f';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703f';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703f';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703e';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260703e';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260703e';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703e';
+} from '../components/followup-list.js?v=20260703f';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260703f';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260703f';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703f';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 

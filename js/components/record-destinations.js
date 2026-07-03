@@ -2,8 +2,8 @@
    Record Destination Actions
    ======================================== */
 
-import { applyRecordDestination } from '../api.js?v=20260703e';
-import { getAuthState } from '../auth.js?v=20260703e';
+import { applyRecordDestination } from '../api.js?v=20260703f';
+import { getAuthState } from '../auth.js?v=20260703f';
 
 const boundRoots = new WeakSet();
 

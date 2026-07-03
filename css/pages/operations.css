@@ -641,6 +641,11 @@
   margin-top: var(--space-3);
 }
 
+.diary-list-count,
+.content-list-count {
+  margin-bottom: var(--space-2);
+}
+
 .diary-recent-lines p {
   margin-bottom: 0;
   padding: 8px 10px;
