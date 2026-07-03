@@ -7,21 +7,25 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260703c';
+} from '../data.js?v=20260703d';
 import {
   getContentItems,
   getDashboard,
   getDomainSettings,
   getFollowups,
   getProjects,
-  getRecords,
-  updateFollowup
-} from '../api.js?v=20260703c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703c';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260703c';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260703c';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703c';
+  getRecords
+} from '../api.js?v=20260703d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703d';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703d';
+import {
+  bindEditableFollowupList,
+  buildEditableFollowupRow,
+  buildFollowupTimeMeta
+} from '../components/followup-list.js?v=20260703d';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260703d';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260703d';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703d';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 
@@ -318,37 +322,12 @@ function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
       </div>
       <div class="form-status" id="home-followup-status"></div>
       <div class="compact-list manageable-list" id="home-followup-list">
-        ${onlineFollowups.length ? onlineFollowups.map(buildOnlineFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。去 Records 新增一个任务，就能在这里闭环。</div>'}
+        ${onlineFollowups.length ? onlineFollowups.map(buildEditableFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。去 Records 新增一个任务，就能在这里闭环。</div>'}
       </div>
     `;
   }
 
   return buildFollowupList(staticFollowups);
-}
-
-function buildOnlineFollowupRow(item) {
-  const statusLabel = item.overdue ? '超时' : ({
-    open: 'open',
-    deferred: 'deferred',
-    closed: 'closed',
-    dropped: 'dropped'
-  }[item.status] || item.status || 'open');
-
-  return `
-    <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
-      <div>
-        <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(buildFollowupContextMeta(item))}</span>
-        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
-      </div>
-      <div class="row-actions">
-        <em>${escapeHtml(statusLabel)}</em>
-        ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
-        <button type="button" data-followup-action="closed">完成</button>
-        <button type="button" data-followup-action="dropped">放弃</button>
-      </div>
-    </div>
-  `;
 }
 
 function buildFollowupContextMeta(item) {
@@ -358,46 +337,12 @@ function buildFollowupContextMeta(item) {
   ].filter(Boolean).join(' · ') || '未分类';
 }
 
-function buildFollowupTimeMeta(item) {
-  const created = formatDateOnly(item.createdAt || item.sourceDate);
-  const due = formatDateOnly(item.dueDate);
-  return [
-    created ? `创建 ${created}` : '',
-    due ? `计划 ${due}` : '计划未定'
-  ].filter(Boolean).join(' · ');
-}
-
 function bindFollowupPanel(page) {
   const list = page.querySelector('#home-followup-list');
   const status = page.querySelector('#home-followup-status');
-
-  list?.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-followup-action]');
-    if (!button) return;
-
-    const row = button.closest('[data-followup-id]');
-    const id = row?.dataset.followupId;
-    if (!id) return;
-
-    const nextStatus = button.dataset.followupAction;
-    button.disabled = true;
-    if (status) status.textContent = '更新中...';
-
-    try {
-      const data = await updateFollowup(id, { status: nextStatus });
-      if (nextStatus === 'closed' || nextStatus === 'dropped') {
-        row.remove();
-        if (list && !list.querySelector('[data-followup-id]')) {
-          list.innerHTML = '<div class="empty-inline">暂无在线待办。新增一个，就能在这里闭环。</div>';
-        }
-      } else {
-        row.outerHTML = buildOnlineFollowupRow(data.followup);
-      }
-      if (status) status.textContent = '已更新';
-    } catch (error) {
-      if (status) status.textContent = error.message || '更新失败';
-      button.disabled = false;
-    }
+  bindEditableFollowupList(list, {
+    statusEl: status,
+    emptyText: '暂无在线待办。新增一个，就能在这里闭环。'
   });
 }
 
@@ -491,10 +436,6 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
-function escapeAttr(value) {
-  return escapeHtml(value).replace(/"/g, '&quot;');
-}
-
 function formatShortTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -504,15 +445,4 @@ function formatShortTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
-}
-
-function formatDateOnly(value) {
-  if (!value) return '';
-  const text = String(value);
-  const match = text.match(/\d{4}-\d{2}-\d{2}/);
-  if (match) return match[0];
-
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
 }

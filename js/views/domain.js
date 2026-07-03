@@ -11,15 +11,19 @@ import {
   getFollowups,
   getProjects,
   getRecords,
-  updateDomainSettings,
-  updateFollowup
-} from '../api.js?v=20260703c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703c';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703c';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703c';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703c';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703c';
+  updateDomainSettings
+} from '../api.js?v=20260703d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703d';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703d';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703d';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703d';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703d';
+import {
+  bindEditableFollowupList,
+  buildEditableFollowupRow,
+  buildFollowupTimeMeta
+} from '../components/followup-list.js?v=20260703d';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703d';
 
 export async function renderDomainView(container, params = {}) {
   const domainId = params.date || 'work';
@@ -280,7 +284,9 @@ function buildDomainFollowupsPanel(authState, domainId, onlineFollowups, staticF
       </form>
       <div class="form-status" id="domain-followup-status"></div>
       <div class="compact-list manageable-list" id="domain-followup-list" data-domain="${escapeAttr(domainId)}">
-        ${onlineFollowups.length ? onlineFollowups.map(buildOnlineFollowupRow).join('') : '<div class="empty-inline">暂无在线待办。</div>'}
+        ${onlineFollowups.length ? onlineFollowups.map(item => buildEditableFollowupRow(item, {
+          contextLabel: buildDomainFollowupContext
+        })).join('') : '<div class="empty-inline">暂无在线待办。</div>'}
       </div>
     `;
   }
@@ -326,31 +332,8 @@ function isVisibleProject(project) {
   return ['active', 'paused'].includes(project?.status);
 }
 
-function buildOnlineFollowupRow(item) {
-  return `
-    <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
-      <div>
-        <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(item.project || item.domainLabel || '未分类')}</span>
-        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
-      </div>
-      <div class="row-actions">
-        <em>${escapeHtml(item.overdue ? '超时' : item.status || 'open')}</em>
-        ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
-        <button type="button" data-followup-action="closed">完成</button>
-        <button type="button" data-followup-action="dropped">放弃</button>
-      </div>
-    </div>
-  `;
-}
-
-function buildFollowupTimeMeta(item) {
-  const created = formatDateOnly(item.createdAt || item.sourceDate);
-  const due = formatDateOnly(item.dueDate);
-  return [
-    created ? `创建 ${created}` : '',
-    due ? `计划 ${due}` : '计划未定'
-  ].filter(Boolean).join(' · ');
+function buildDomainFollowupContext(item) {
+  return item.project || item.domainLabel || '未分类';
 }
 
 function buildPillList(items, emptyText) {
@@ -533,7 +516,9 @@ function bindDomainFollowups(page, domainId) {
       status.textContent = '已新增';
       const empty = list?.querySelector('.empty-inline');
       if (empty) empty.remove();
-      list?.insertAdjacentHTML('afterbegin', buildOnlineFollowupRow(data.followup));
+      list?.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(data.followup, {
+        contextLabel: buildDomainFollowupContext
+      }));
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -541,33 +526,10 @@ function bindDomainFollowups(page, domainId) {
     }
   });
 
-  list?.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-followup-action]');
-    if (!button) return;
-
-    const row = button.closest('[data-followup-id]');
-    const id = row?.dataset.followupId;
-    if (!id) return;
-
-    const nextStatus = button.dataset.followupAction;
-    button.disabled = true;
-    status.textContent = '更新中...';
-
-    try {
-      const data = await updateFollowup(id, { status: nextStatus });
-      if (nextStatus === 'closed' || nextStatus === 'dropped') {
-        row.remove();
-        if (!list.querySelector('[data-followup-id]')) {
-          list.innerHTML = '<div class="empty-inline">暂无在线待办。</div>';
-        }
-      } else {
-        row.outerHTML = buildOnlineFollowupRow(data.followup);
-      }
-      status.textContent = '已更新';
-    } catch (error) {
-      status.textContent = error.message || '更新失败';
-      button.disabled = false;
-    }
+  bindEditableFollowupList(list, {
+    statusEl: status,
+    emptyText: '暂无在线待办。',
+    contextLabel: buildDomainFollowupContext
   });
 }
 
@@ -579,7 +541,9 @@ function bindAnalysisFollowupInsert(page) {
     const list = page.querySelector('#domain-followup-list');
     const empty = list?.querySelector('.empty-inline');
     if (empty) empty.remove();
-    list?.insertAdjacentHTML('afterbegin', buildOnlineFollowupRow(followup));
+    list?.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(followup, {
+      contextLabel: buildDomainFollowupContext
+    }));
   });
 }
 
@@ -615,17 +579,6 @@ function formatShortTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date);
-}
-
-function formatDateOnly(value) {
-  if (!value) return '';
-  const text = String(value);
-  const match = text.match(/\d{4}-\d{2}-\d{2}/);
-  if (match) return match[0];
-
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
 }
 
 function escapeHtml(value) {

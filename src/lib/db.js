@@ -211,6 +211,7 @@ export function mapFollowup(row) {
   return {
     id: row.id,
     text: row.text,
+    note: row.note,
     domain: row.domain,
     domainLabel: getDomainLabel(row.domain),
     project: row.project,

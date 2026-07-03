@@ -135,14 +135,15 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
 
   await env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
       source_analysis_id, source_action_hash, created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, NULL)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, NULL)
   `).bind(
     id,
     session.user.id,
     text,
+    cleanText(body?.note),
     domain,
     null,
     status,

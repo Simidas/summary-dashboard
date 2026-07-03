@@ -1,0 +1,1 @@
+ALTER TABLE followups ADD COLUMN note TEXT;

@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703c';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703d';
 import {
   createFollowup,
   createProject,
@@ -12,13 +12,17 @@ import {
   getProject,
   getProjects,
   getRecords,
-  updateFollowup,
   updateProject
-} from '../api.js?v=20260703c';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703c';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703c';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703c';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703c';
+} from '../api.js?v=20260703d';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260703d';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703d';
+import {
+  bindEditableFollowupList,
+  buildEditableFollowupRow,
+  buildFollowupTimeMeta
+} from '../components/followup-list.js?v=20260703d';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703d';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703d';
 
 export async function renderProjectsView(container, params = {}) {
   const authState = getAuthState();
@@ -378,28 +382,16 @@ function buildProjectFollowupPanel(project, followups) {
       </form>
       <div class="form-status" id="project-followup-status"></div>
       <div class="compact-list manageable-list" id="project-followup-list">
-        ${followups.length ? followups.map(buildOnlineProjectFollowupRow).join('') : '<div class="empty-inline">暂无在线项目待办。</div>'}
+        ${followups.length ? followups.map(item => buildEditableFollowupRow(item, {
+          contextLabel: buildProjectFollowupContext
+        })).join('') : '<div class="empty-inline">暂无在线项目待办。</div>'}
       </div>
     </section>
   `;
 }
 
-function buildOnlineProjectFollowupRow(item) {
-  return `
-    <div class="compact-row ${item.overdue ? 'is-overdue' : ''}" data-followup-id="${escapeAttr(item.id)}">
-      <div>
-        <strong>${escapeHtml(item.text)}</strong>
-        <span>${escapeHtml(item.domainLabel || item.domain || '未分类')}</span>
-        <span class="followup-time-meta">${escapeHtml(buildFollowupTimeMeta(item))}</span>
-      </div>
-      <div class="row-actions">
-        <em>${escapeHtml(item.overdue ? '超时' : item.status || 'open')}</em>
-        ${item.status === 'open' ? '<button type="button" data-followup-action="deferred">延后</button>' : '<button type="button" data-followup-action="open">打开</button>'}
-        <button type="button" data-followup-action="closed">完成</button>
-        <button type="button" data-followup-action="dropped">放弃</button>
-      </div>
-    </div>
-  `;
+function buildProjectFollowupContext(item) {
+  return item.domainLabel || item.domain || '未分类';
 }
 
 function bindProjectCreateForm(page) {
@@ -562,7 +554,9 @@ function bindProjectFollowupForm(page, project) {
       status.textContent = '已新增';
       const empty = list.querySelector('.empty-inline');
       if (empty) empty.remove();
-      list.insertAdjacentHTML('afterbegin', buildOnlineProjectFollowupRow(data.followup));
+      list.insertAdjacentHTML('afterbegin', buildEditableFollowupRow(data.followup, {
+        contextLabel: buildProjectFollowupContext
+      }));
     } catch (error) {
       status.textContent = error.message || '保存失败';
     } finally {
@@ -570,33 +564,10 @@ function bindProjectFollowupForm(page, project) {
     }
   });
 
-  list?.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-followup-action]');
-    if (!button) return;
-
-    const row = button.closest('[data-followup-id]');
-    const id = row?.dataset.followupId;
-    if (!id) return;
-
-    const nextStatus = button.dataset.followupAction;
-    button.disabled = true;
-    status.textContent = '更新中...';
-
-    try {
-      const data = await updateFollowup(id, { status: nextStatus });
-      if (nextStatus === 'closed' || nextStatus === 'dropped') {
-        row.remove();
-        if (!list.querySelector('[data-followup-id]')) {
-          list.innerHTML = '<div class="empty-inline">暂无在线项目待办。</div>';
-        }
-      } else {
-        row.outerHTML = buildOnlineProjectFollowupRow(data.followup);
-      }
-      status.textContent = '已更新';
-    } catch (error) {
-      status.textContent = error.message || '更新失败';
-      button.disabled = false;
-    }
+  bindEditableFollowupList(list, {
+    statusEl: status,
+    emptyText: '暂无在线项目待办。',
+    contextLabel: buildProjectFollowupContext
   });
 }
 
@@ -647,17 +618,6 @@ function normalizeRouteSlug(value) {
   return normalized;
 }
 
-function formatDateOnly(value) {
-  if (!value) return '';
-  const text = String(value);
-  const match = text.match(/\d{4}-\d{2}-\d{2}/);
-  if (match) return match[0];
-
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
-}
-
 function buildMetric(value, label) {
   return `
     <article class="metric-card">
@@ -684,15 +644,6 @@ function buildFollowups(items) {
       `).join('')}
     </div>
   `;
-}
-
-function buildFollowupTimeMeta(item) {
-  const created = formatDateOnly(item.createdAt || item.sourceDate);
-  const due = formatDateOnly(item.dueDate);
-  return [
-    created ? `创建 ${created}` : '',
-    due ? `计划 ${due}` : '计划未定'
-  ].filter(Boolean).join(' · ');
 }
 
 function buildList(items, emptyText) {

@@ -493,14 +493,15 @@ async function applyFollowupDestination(env, record, suggestion, body = {}) {
 
   await env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
       created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     record.ownerId,
     text,
+    cleanText(body.note),
     record.domain,
     projectName,
     'open',
@@ -819,14 +820,15 @@ async function createFollowupFromRecord(env, record, body) {
 
   await env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
       created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     record.ownerId,
     title,
+    cleanText(body.note),
     record.domain,
     cleanText(record.projects[0]),
     normalizeFollowupStatus(body.status),

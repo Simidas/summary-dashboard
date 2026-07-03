@@ -97,14 +97,15 @@ async function createFollowup(request, env) {
 
   await env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
       created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     session.user.id,
     text,
+    cleanText(body?.note),
     normalizeDomain(body?.domain),
     project,
     status,
@@ -137,6 +138,7 @@ async function updateFollowup(request, env, id) {
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 
   const status = body?.status == null ? existing.status : normalizeFollowupStatus(body.status);
+  const note = body?.note == null ? existing.note : cleanText(body.note);
   const project = body?.project == null ? existing.project : cleanText(body.project);
   const projectError = await validateActiveProjectName(env, session.user.id, project);
   if (projectError) return projectError;
@@ -147,10 +149,11 @@ async function updateFollowup(request, env, id) {
 
   await env.DB.prepare(`
     UPDATE followups
-    SET text = ?, domain = ?, project = ?, status = ?, due_date = ?, updated_at = ?, closed_at = ?
+    SET text = ?, note = ?, domain = ?, project = ?, status = ?, due_date = ?, updated_at = ?, closed_at = ?
     WHERE id = ? AND owner_id = ?
   `).bind(
     text,
+    note,
     body?.domain == null ? existing.domain : normalizeDomain(body.domain),
     project,
     status,
