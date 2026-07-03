@@ -23,6 +23,34 @@ import {
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
+const SUGGESTION_BATCH_SIZE = 50;
+const SUGGESTION_COLUMNS = [
+  'id',
+  'record_id',
+  'owner_id',
+  'provider',
+  'model',
+  'status',
+  'summary',
+  'validation',
+  'emotional_read',
+  'possible_need',
+  'next_small_step',
+  'gentle_reminder',
+  'encouragement',
+  'suggested_tags_json',
+  'suggested_followups_json',
+  'error_message',
+  'record_type',
+  'prompt_version',
+  'structured_result_json',
+  'destination_suggestions_json',
+  'created_at',
+  'updated_at'
+];
+const SUGGESTION_SELECT = SUGGESTION_COLUMNS.join(', ');
+const SUGGESTION_SELECT_ALIASED = SUGGESTION_COLUMNS.map(column => `s.${column}`).join(', ');
+
 export async function handleRecords(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -106,7 +134,7 @@ async function listRecords(request, env) {
 
   const rows = await env.DB.prepare(query).bind(...params).all();
   const records = rows.results || [];
-  const suggestions = await loadLatestSuggestionsForRecords(env, records.map(row => row.id));
+  const suggestions = await safeLoadLatestSuggestionsForRecords(env, records.map(row => row.id));
 
   return ok({
     records: records.map(row => mapRecord(row, suggestions.get(row.id)))
@@ -134,7 +162,7 @@ async function getRecord(request, env, id) {
   `).bind(...params).first();
   if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
 
-  const suggestion = await loadLatestSuggestionForRecord(env, row.id);
+  const suggestion = await safeLoadLatestSuggestionForRecord(env, row.id);
   return ok({ record: mapRecord(row, suggestion) });
 }
 
@@ -347,7 +375,7 @@ async function applyRecordDestination(request, env, id) {
   `).bind(id, session.user.id).first();
   if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
 
-  const suggestionRow = await loadLatestSuggestionForRecord(env, row.id);
+  const suggestionRow = await safeLoadLatestSuggestionForRecord(env, row.id);
   const record = {
     ...mapRecord(row, suggestionRow),
     ownerId: session.user.id
@@ -701,31 +729,57 @@ async function applyProjectDestination(env, record, suggestion, body = {}) {
 async function loadLatestSuggestionsForRecords(env, recordIds) {
   if (!recordIds.length) return new Map();
 
-  const placeholders = recordIds.map(() => '?').join(', ');
-  const rows = await env.DB.prepare(`
-    SELECT s.*
-    FROM ai_suggestions s
-    JOIN (
-      SELECT record_id, MAX(created_at) AS created_at
-      FROM ai_suggestions
-      WHERE record_id IN (${placeholders})
-      GROUP BY record_id
-    ) latest
-      ON latest.record_id = s.record_id
-     AND latest.created_at = s.created_at
-  `).bind(...recordIds).all();
+  const suggestions = new Map();
+  for (let index = 0; index < recordIds.length; index += SUGGESTION_BATCH_SIZE) {
+    const batchIds = recordIds.slice(index, index + SUGGESTION_BATCH_SIZE);
+    const placeholders = batchIds.map(() => '?').join(', ');
+    const rows = await env.DB.prepare(`
+      SELECT ${SUGGESTION_SELECT_ALIASED}
+      FROM ai_suggestions s
+      JOIN (
+        SELECT record_id, MAX(created_at) AS created_at
+        FROM ai_suggestions
+        WHERE record_id IN (${placeholders})
+        GROUP BY record_id
+      ) latest
+        ON latest.record_id = s.record_id
+       AND latest.created_at = s.created_at
+    `).bind(...batchIds).all();
 
-  return new Map((rows.results || []).map(row => [row.record_id, row]));
+    (rows.results || []).forEach(row => {
+      suggestions.set(row.record_id, row);
+    });
+  }
+
+  return suggestions;
 }
 
 async function loadLatestSuggestionForRecord(env, recordId) {
   return env.DB.prepare(`
-    SELECT *
+    SELECT ${SUGGESTION_SELECT}
     FROM ai_suggestions
     WHERE record_id = ?
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(recordId).first();
+}
+
+async function safeLoadLatestSuggestionsForRecords(env, recordIds) {
+  try {
+    return await loadLatestSuggestionsForRecords(env, recordIds);
+  } catch (error) {
+    console.error('Failed to load latest suggestions for records', error);
+    return new Map();
+  }
+}
+
+async function safeLoadLatestSuggestionForRecord(env, recordId) {
+  try {
+    return await loadLatestSuggestionForRecord(env, recordId);
+  } catch (error) {
+    console.error('Failed to load latest suggestion for record', error);
+    return null;
+  }
 }
 
 async function validateRecordInput(env, ownerId, record, body) {

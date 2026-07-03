@@ -2,6 +2,31 @@ import { calculateUserActivityStats, mapFollowup, mapRecord, mapSuggestion, pars
 import { ok } from '../lib/response.js';
 import { getSession } from '../lib/session.js';
 
+const SUGGESTION_SELECT = [
+  'id',
+  'record_id',
+  'owner_id',
+  'provider',
+  'model',
+  'status',
+  'summary',
+  'validation',
+  'emotional_read',
+  'possible_need',
+  'next_small_step',
+  'gentle_reminder',
+  'encouragement',
+  'suggested_tags_json',
+  'suggested_followups_json',
+  'error_message',
+  'record_type',
+  'prompt_version',
+  'structured_result_json',
+  'destination_suggestions_json',
+  'created_at',
+  'updated_at'
+].join(', ');
+
 export async function handleDashboard(request, env) {
   const session = await getSession(request, env);
   if (!session || session.user.role !== 'owner') {
@@ -24,15 +49,7 @@ export async function handleDashboard(request, env) {
     LIMIT 1
   `).bind(ownerId).first();
 
-  const latestSuggestion = latest
-    ? await env.DB.prepare(`
-        SELECT *
-        FROM ai_suggestions
-        WHERE record_id = ?
-        ORDER BY created_at DESC
-        LIMIT 1
-      `).bind(latest.id).first()
-    : null;
+  const latestSuggestion = latest ? await loadLatestSuggestion(env, latest.id) : null;
 
   const dailyReview = await env.DB.prepare(`
     SELECT *
@@ -103,6 +120,21 @@ export async function handleDashboard(request, env) {
       thisWeekRecordDays: Number(weekCount?.count || 0)
     }
   });
+}
+
+async function loadLatestSuggestion(env, recordId) {
+  try {
+    return await env.DB.prepare(`
+      SELECT ${SUGGESTION_SELECT}
+      FROM ai_suggestions
+      WHERE record_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).bind(recordId).first();
+  } catch (error) {
+    console.error('Failed to load dashboard latest suggestion', error);
+    return null;
+  }
 }
 
 async function publicDashboard(env) {
