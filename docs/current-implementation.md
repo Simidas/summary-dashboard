@@ -192,7 +192,18 @@ npm run prepare:worker-assets
 
 ## 6. 部署
 
-Cloudflare 自动部署或手动部署都应使用：
+Cloudflare 自动部署依赖 Workers Builds 的 Git 集成，仓库不保留 GitHub Actions 部署工作流。
+
+Workers Builds 推荐配置：
+
+```text
+Production branch: main
+Root directory: /
+Build command: npm run build
+Deploy command: npm run deploy
+```
+
+如果只配置 Deploy command，也可以使用：
 
 ```bash
 npm run deploy:worker

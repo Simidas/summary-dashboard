@@ -264,7 +264,18 @@ npm run prepare:worker-assets
 wrangler deploy
 ```
 
-Cloudflare 自动部署的 Deploy command 应配置为：
+Cloudflare 自动部署依赖 Workers Builds 的 Git 集成，仓库不保留 GitHub Actions 部署工作流。
+
+Workers Builds 推荐配置为：
+
+```text
+Production branch: main
+Root directory: /
+Build command: npm run build
+Deploy command: npm run deploy
+```
+
+如果只配置 Deploy command，可以使用：
 
 ```bash
 npm run deploy:worker

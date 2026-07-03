@@ -77,7 +77,7 @@ curl http://localhost:8787/api/health
 
 ```bash
 # 准备 Worker 静态资源
-npm run prepare:worker-assets
+npm run build
 
 # 本地 D1 migration
 npm run d1:migrate:local
@@ -100,7 +100,18 @@ npm run check:js
 
 ## 部署
 
-Cloudflare 自动部署的 Deploy command 应使用：
+当前仓库不保留 GitHub Actions 部署工作流，push 后的自动部署依赖 Cloudflare Workers Builds 的 Git 集成。
+
+Cloudflare Workers Builds 推荐配置：
+
+```text
+Production branch: main
+Root directory: /
+Build command: npm run build
+Deploy command: npm run deploy
+```
+
+如果只想配置 Deploy command，也可以使用：
 
 ```bash
 npm run deploy:worker

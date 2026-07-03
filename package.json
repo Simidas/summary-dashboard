@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "npm run prepare:worker-assets",
+    "deploy": "npm run build && wrangler deploy",
     "prepare:worker-assets": "node scripts/prepare-worker-assets.js",
-    "dev:worker": "npm run prepare:worker-assets && wrangler dev",
-    "deploy:worker": "npm run prepare:worker-assets && wrangler deploy",
-    "deploy:worker:migrate": "npm run prepare:worker-assets && npm run d1:migrate:remote && wrangler deploy",
+    "dev:worker": "npm run build && wrangler dev",
+    "deploy:worker": "npm run deploy",
+    "deploy:worker:migrate": "npm run build && npm run d1:migrate:remote && wrangler deploy",
+    "deploy:dry-run": "npm run build && wrangler deploy --dry-run",
     "d1:migrate:local": "wrangler d1 migrations apply summary-dashboard --local",
     "d1:migrate:remote": "wrangler d1 migrations apply summary-dashboard --remote",
     "check:js": "node --check src/worker.js && node --check scripts/prepare-worker-assets.js && node --check scripts/import-json-to-d1.js"

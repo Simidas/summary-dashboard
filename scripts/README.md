@@ -208,7 +208,18 @@ node scripts/aggregate.js
 
 ## 自动部署说明
 
-当前线上部署以 Cloudflare Workers 为准。Cloudflare 自动部署的 Deploy command 应使用：
+当前线上部署以 Cloudflare Workers 为准。仓库不保留 GitHub Actions 部署工作流，push 后的自动部署依赖 Cloudflare Workers Builds 的 Git 集成。
+
+Cloudflare Workers Builds 推荐配置：
+
+```text
+Production branch: main
+Root directory: /
+Build command: npm run build
+Deploy command: npm run deploy
+```
+
+如果只配置 Deploy command，可以使用：
 
 ```bash
 npm run deploy:worker
