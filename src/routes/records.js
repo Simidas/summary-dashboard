@@ -20,7 +20,7 @@ import {
   updateUserStateAfterActivity,
   updateUserStateAfterRecord
 } from '../lib/db.js';
-import { fail, ok, readJson } from '../lib/response.js';
+import { fail, ok, parseLimit, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 const SUGGESTION_BATCH_SIZE = 50;
@@ -90,7 +90,7 @@ export async function handleRecords(request, env, ctx) {
 async function listRecords(request, env) {
   const session = await getSession(request, env);
   const url = new URL(request.url);
-  const limit = Math.min(Number(url.searchParams.get('limit') || 20), 500);
+  const limit = parseLimit(url.searchParams.get('limit'), 20, 500);
   const domain = normalizeDomain(url.searchParams.get('domain'));
   const type = url.searchParams.get('type');
   const visibility = normalizeVisibility(url.searchParams.get('visibility') || 'public');

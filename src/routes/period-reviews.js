@@ -8,7 +8,7 @@ import {
   todayShanghai,
   toJsonText
 } from '../lib/db.js';
-import { fail, ok, readJson } from '../lib/response.js';
+import { fail, ok, parseLimit, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handlePeriodReviews(request, env) {
@@ -41,7 +41,7 @@ async function listPeriodReviews(request, env, url) {
   const periodType = normalizePeriodType(url.searchParams.get('type'));
   if (!periodType) return fail(400, 'PERIOD_TYPE_INVALID', '复盘周期不存在');
 
-  const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 30));
+  const limit = parseLimit(url.searchParams.get('limit'), 30, 100);
   const rows = await env.DB.prepare(`
     SELECT *
     FROM period_reviews

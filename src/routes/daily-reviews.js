@@ -6,7 +6,7 @@ import {
   todayShanghai,
   updateUserStateAfterActivity
 } from '../lib/db.js';
-import { fail, ok, readJson } from '../lib/response.js';
+import { fail, ok, parseLimit, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 const DAILY_MOOD_VALUES = new Set(['平静', '开心', '有进展感', '疲惫', '焦虑', '烦躁', '低落', '松了一口气']);
@@ -33,7 +33,7 @@ async function listDailyReviews(request, env) {
   if (!session || session.user.role !== 'owner') return fail(401, 'UNAUTHORIZED', '请先登录');
 
   const url = new URL(request.url);
-  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 30), 1), 500);
+  const limit = parseLimit(url.searchParams.get('limit'), 30, 500);
   const rows = await env.DB.prepare(`
     SELECT *
     FROM daily_reviews

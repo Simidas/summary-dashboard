@@ -15,20 +15,19 @@ import { getSession, makeSessionRefreshCookie } from './lib/session.js';
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    let response;
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204 });
+      response = new Response(null, { status: 204 });
+    } else if (url.pathname.startsWith('/api/')) {
+      response = await handleApi(request, env, ctx);
+    } else if (env.ASSETS) {
+      response = await env.ASSETS.fetch(request);
+    } else {
+      response = fail(404, 'NOT_FOUND', 'Static assets binding is not configured');
     }
 
-    if (url.pathname.startsWith('/api/')) {
-      return handleApi(request, env, ctx);
-    }
-
-    if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
-    }
-
-    return fail(404, 'NOT_FOUND', 'Static assets binding is not configured');
+    return withSecurityHeaders(request, response);
   }
 };
 
@@ -43,7 +42,8 @@ async function handleApi(request, env, ctx) {
         assets: Boolean(env.ASSETS),
         googleOAuth: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
         ai: Boolean(env.MINIMAX_API_KEY || env.OPENAI_API_KEY),
-        aiProvider: env.AI_PROVIDER || 'minimax'
+        aiProvider: env.AI_PROVIDER || 'minimax',
+        sessionSecretConfigured: Boolean(env.SESSION_SECRET)
       });
     }
 
@@ -63,12 +63,34 @@ async function refreshSessionCookieIfNeeded(request, env, response) {
   if (!parseHasSessionCookie(request)) return response;
   const session = await getSession(request, env);
   if (!session) return response;
+  if (!session.shouldRefresh) return response;
 
   const cookie = makeSessionRefreshCookie(request);
   if (!cookie) return response;
 
   const headers = new Headers(response.headers);
   headers.append('set-cookie', cookie);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+function withSecurityHeaders(request, response) {
+  const headers = new Headers(response.headers);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+  headers.set(
+    'content-security-policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://giscus.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src https://giscus.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
+
+  if (new URL(request.url).protocol === 'https:') {
+    headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains');
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

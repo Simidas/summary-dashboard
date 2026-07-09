@@ -5,7 +5,7 @@ import {
   normalizeFollowupStatus,
   nowIso
 } from '../lib/db.js';
-import { fail, ok, readJson } from '../lib/response.js';
+import { fail, ok, parseLimit, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handleFollowups(request, env) {
@@ -40,7 +40,7 @@ async function listFollowups(request, env) {
   const status = url.searchParams.get('status') || 'open';
   const domain = normalizeDomain(url.searchParams.get('domain'));
   const project = cleanText(url.searchParams.get('project'));
-  const limit = Math.min(Number(url.searchParams.get('limit') || 100), 200);
+  const limit = parseLimit(url.searchParams.get('limit'), 100, 200);
   const clauses = ['owner_id = ?', 'deleted_at IS NULL'];
   const params = [session.user.id];
 

@@ -5,7 +5,7 @@ import {
   nowIso,
   toJsonText
 } from '../lib/db.js';
-import { fail, ok, readJson } from '../lib/response.js';
+import { fail, ok, parseLimit, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handleContentItems(request, env) {
@@ -39,7 +39,7 @@ async function listContentItems(request, env) {
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
   const domain = normalizeDomain(url.searchParams.get('domain'));
-  const limit = Math.min(Number(url.searchParams.get('limit') || 100), 200);
+  const limit = parseLimit(url.searchParams.get('limit'), 100, 200);
   const clauses = ['owner_id = ?', 'deleted_at IS NULL'];
   const params = [session.user.id];
 

@@ -1,6 +1,8 @@
 const SESSION_COOKIE = 'sd_session';
 const OAUTH_STATE_COOKIE = 'sd_oauth_state';
 export const SESSION_TTL_SECONDS = 60 * 60 * 48;
+const SESSION_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const sessionCache = new WeakMap();
 
 export function parseCookies(request) {
   const header = request.headers.get('cookie') || '';
@@ -64,6 +66,14 @@ export async function createSession(env, request, userId) {
 }
 
 export async function getSession(request, env) {
+  if (sessionCache.has(request)) return sessionCache.get(request);
+
+  const sessionPromise = loadSession(request, env);
+  sessionCache.set(request, sessionPromise);
+  return sessionPromise;
+}
+
+async function loadSession(request, env) {
   const token = parseCookies(request)[SESSION_COOKIE];
   if (!token) return null;
 
@@ -74,6 +84,7 @@ export async function getSession(request, env) {
       sessions.user_id,
       sessions.csrf_token,
       sessions.expires_at,
+      sessions.last_seen_at,
       users.email,
       users.name,
       users.avatar_url,
@@ -91,15 +102,24 @@ export async function getSession(request, env) {
   }
 
   const now = new Date();
-  const expires = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
-  await env.DB.prepare('UPDATE sessions SET last_seen_at = ?, expires_at = ? WHERE id = ?')
-    .bind(now.toISOString(), expires.toISOString(), row.session_id)
-    .run();
+  const lastSeenAt = new Date(row.last_seen_at || 0).getTime();
+  const shouldRefresh = !Number.isFinite(lastSeenAt)
+    || now.getTime() - lastSeenAt >= SESSION_REFRESH_INTERVAL_MS;
+  const expires = shouldRefresh
+    ? new Date(now.getTime() + SESSION_TTL_SECONDS * 1000)
+    : new Date(row.expires_at);
+
+  if (shouldRefresh) {
+    await env.DB.prepare('UPDATE sessions SET last_seen_at = ?, expires_at = ? WHERE id = ?')
+      .bind(now.toISOString(), expires.toISOString(), row.session_id)
+      .run();
+  }
 
   return {
     id: row.session_id,
     csrfToken: row.csrf_token,
     expiresAt: expires.toISOString(),
+    shouldRefresh,
     user: {
       id: row.user_id,
       email: row.email,
@@ -180,7 +200,10 @@ async function sha256Hex(value) {
 }
 
 function hashSessionToken(env, token) {
-  const secret = env.SESSION_SECRET || 'dev-session-secret';
+  const secret = env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error('SESSION_SECRET is required');
+  }
   return sha256Hex(`${secret}:${token}`);
 }
 

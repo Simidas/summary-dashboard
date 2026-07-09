@@ -30,6 +30,12 @@ export async function readJson(request) {
   }
 }
 
+export function parseLimit(value, defaultValue, maxValue) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) return defaultValue;
+  return Math.min(parsed, maxValue);
+}
+
 export function redirect(location, headers = {}) {
   return new Response(null, {
     status: 302,
