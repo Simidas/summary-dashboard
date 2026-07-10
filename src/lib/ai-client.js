@@ -1,6 +1,7 @@
 import { buildCompanionPrompt } from '../prompts/companion.js';
 import { buildPeriodReviewPrompt } from '../prompts/period-review.js';
 import { buildAnalysisPrompt } from '../prompts/analysis.js';
+import { validateAiSuggestionResult } from '../services/input-schemas.js';
 
 export async function generateCompanionSuggestion(env, record, recentRecords = []) {
   const provider = env.AI_PROVIDER || 'minimax';
@@ -317,7 +318,7 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
     structuredResult.suggestedProjects = suggestedProjects.slice(0, 5).map(String).filter(Boolean);
   }
 
-  return {
+  return validateAiSuggestionResult({
     provider: currentProvider(env),
     model: currentModel(env),
     status: nextSmallStep ? 'completed' : 'failed',
@@ -335,7 +336,7 @@ export function normalizeSuggestion(env, suggestion, rawResponse = null) {
     destinationSuggestions,
     rawResponse,
     errorMessage: nextSmallStep ? null : 'AI response missed nextSmallStep'
-  };
+  });
 }
 
 function normalizePeriodReviewDraft(env, context, draft, rawResponse = null) {

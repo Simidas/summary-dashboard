@@ -8,7 +8,8 @@ import {
   todayShanghai,
   toJsonText
 } from '../lib/db.js';
-import { fail, ok, parseLimit, readJson } from '../lib/response.js';
+import { fail, ok, readJson } from '../lib/response.js';
+import { encodeCursor, parsePage } from '../lib/pagination.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handlePeriodReviews(request, env) {
@@ -41,16 +42,27 @@ async function listPeriodReviews(request, env, url) {
   const periodType = normalizePeriodType(url.searchParams.get('type'));
   if (!periodType) return fail(400, 'PERIOD_TYPE_INVALID', '复盘周期不存在');
 
-  const limit = parseLimit(url.searchParams.get('limit'), 30, 100);
+  const { limit, cursor } = parsePage(url, { defaultLimit: 30, maxLimit: 100 });
+  const cursorClause = cursor?.periodKey && cursor?.id
+    ? 'AND (period_key < ? OR (period_key = ? AND id < ?))' : '';
+  const params = [session.user.id, periodType];
+  if (cursorClause) params.push(cursor.periodKey, cursor.periodKey, cursor.id);
   const rows = await env.DB.prepare(`
     SELECT *
     FROM period_reviews
     WHERE owner_id = ? AND period_type = ?
-    ORDER BY period_key DESC, updated_at DESC
+    ${cursorClause}
+    ORDER BY period_key DESC, id DESC
     LIMIT ?
-  `).bind(session.user.id, periodType, limit).all();
+  `).bind(...params, limit + 1).all();
 
-  return ok({ reviews: (rows.results || []).map(mapPeriodReview) });
+  const result = rows.results || [];
+  const hasMore = result.length > limit;
+  const pageRows = hasMore ? result.slice(0, limit) : result;
+  const last = pageRows.at(-1);
+  return ok({ reviews: pageRows.map(mapPeriodReview), page: {
+    limit, hasMore, nextCursor: hasMore && last ? encodeCursor({ periodKey: last.period_key, id: last.id }) : null
+  } });
 }
 
 async function getPeriodReview(request, env, periodType, periodKey) {

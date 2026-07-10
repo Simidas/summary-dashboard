@@ -69,6 +69,17 @@ export function getRecords(params = {}) {
   return apiRequest(`/api/records${query ? `?${query}` : ''}`);
 }
 
+export async function getAllPages(loader, params = {}, itemKey) {
+  const items = [];
+  let cursor = null;
+  do {
+    const data = await loader({ ...params, ...(cursor ? { cursor } : {}) });
+    items.push(...(data?.[itemKey] || []));
+    cursor = data?.page?.hasMore ? data.page.nextCursor : null;
+  } while (cursor);
+  return items;
+}
+
 export function getRecord(id) {
   return apiRequest(`/api/records/${encodeURIComponent(id)}`);
 }

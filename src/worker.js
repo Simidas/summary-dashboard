@@ -6,6 +6,7 @@ import { handleDashboard } from './routes/dashboard.js';
 import { handleDashboardSettings } from './routes/dashboard-settings.js';
 import { handleDomainSettings } from './routes/domain-settings.js';
 import { handleFollowups } from './routes/followups.js';
+import { handleExports } from './routes/exports.js';
 import { handlePeriodReviews } from './routes/period-reviews.js';
 import { handleProjects } from './routes/projects.js';
 import { handleRecords } from './routes/records.js';
@@ -109,6 +110,7 @@ function dispatchApiRoute(request, env, ctx, path) {
   if (path.startsWith('/api/projects')) return handleProjects(request, env, ctx);
   if (path.startsWith('/api/content-items')) return handleContentItems(request, env, ctx);
   if (path.startsWith('/api/followups')) return handleFollowups(request, env, ctx);
+  if (path === '/api/export') return handleExports(request, env, ctx);
   if (path.startsWith('/api/domain-settings/')) return handleDomainSettings(request, env, ctx);
   if (path === '/api/period-reviews' || path.startsWith('/api/period-reviews/')) return handlePeriodReviews(request, env, ctx);
   if (path === '/api/dashboard-settings') return handleDashboardSettings(request, env, ctx);

@@ -5,7 +5,10 @@ import {
   nowIso,
   toJsonText
 } from '../lib/db.js';
-import { fail, ok, parseLimit, readJson } from '../lib/response.js';
+import { fail, ok, readJson } from '../lib/response.js';
+import { encodeCursor, parsePage } from '../lib/pagination.js';
+import { validationResponse } from '../lib/schema.js';
+import { validateContentItemBody } from '../services/input-schemas.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 export async function handleContentItems(request, env) {
@@ -39,7 +42,7 @@ async function listContentItems(request, env) {
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
   const domain = normalizeDomain(url.searchParams.get('domain'));
-  const limit = parseLimit(url.searchParams.get('limit'), 100, 200);
+  const { limit, cursor } = parsePage(url, { defaultLimit: 100, maxLimit: 200 });
   const clauses = ['owner_id = ?', 'deleted_at IS NULL'];
   const params = [session.user.id];
 
@@ -52,16 +55,27 @@ async function listContentItems(request, env) {
     clauses.push('source_domain = ?');
     params.push(domain);
   }
+  if (cursor?.updatedAt && cursor?.id) {
+    clauses.push('(updated_at < ? OR (updated_at = ? AND id < ?))');
+    params.push(cursor.updatedAt, cursor.updatedAt, cursor.id);
+  }
 
   const rows = await env.DB.prepare(`
     SELECT *
     FROM content_items
     WHERE ${clauses.join(' AND ')}
-    ORDER BY updated_at DESC
+    ORDER BY updated_at DESC, id DESC
     LIMIT ?
-  `).bind(...params, limit).all();
+  `).bind(...params, limit + 1).all();
 
-  return ok({ items: (rows.results || []).map(mapContentItem) });
+  const result = rows.results || [];
+  const hasMore = result.length > limit;
+  const pageRows = hasMore ? result.slice(0, limit) : result;
+  const last = pageRows.at(-1);
+  return ok({
+    items: pageRows.map(mapContentItem),
+    page: { limit, hasMore, nextCursor: hasMore && last ? encodeCursor({ updatedAt: last.updated_at, id: last.id }) : null }
+  });
 }
 
 async function createContentItem(request, env) {
@@ -69,7 +83,9 @@ async function createContentItem(request, env) {
   if (session instanceof Response) return session;
   if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateContentItemBody(await readJson(request)); }
+  catch (error) { return validationResponse(error, fail); }
   const title = cleanText(body?.title);
   if (!title) return fail(400, 'TITLE_REQUIRED', '内容标题不能为空');
 
@@ -113,7 +129,9 @@ async function updateContentItem(request, env, id) {
   `).bind(id, session.user.id).first();
   if (!existing) return fail(404, 'NOT_FOUND', '内容素材不存在');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateContentItemBody(await readJson(request), { required: false }); }
+  catch (error) { return validationResponse(error, fail); }
   const title = body?.title == null ? existing.title : cleanText(body.title);
   if (!title) return fail(400, 'TITLE_REQUIRED', '内容标题不能为空');
 

@@ -10,6 +10,7 @@ import {
 } from '../lib/db.js';
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
+import { findAnalysisSnapshot, saveAnalysisSnapshot } from '../repositories/analysis-repository.js';
 
 const DOMAIN_WINDOW_DAYS = new Set([7, 30]);
 const PERIOD_TYPES = new Set(['weekly', 'monthly', 'yearly']);
@@ -49,7 +50,7 @@ async function getAnalysis(request, env, scopeType, rawScopeKey, url) {
   const scope = normalizeScope(scopeType, rawScopeKey, url.searchParams.get('windowDays'));
   if (scope.error) return scope.error;
 
-  const row = await loadAnalysisSnapshot(env, session.user.id, scope);
+  const row = await findAnalysisSnapshot(env, session.user.id, scope);
   return ok({ analysis: mapAnalysisSnapshot(row) });
 }
 
@@ -66,7 +67,7 @@ async function generateAnalysis(request, env, scopeType, rawScopeKey) {
   const context = await buildAnalysisContext(env, session.user.id, scope);
   const draft = await generateAnalysisDraft(env, context);
 
-  await upsertAnalysisSnapshot(env, {
+  await saveAnalysisSnapshot(env, {
     ownerId: session.user.id,
     scope,
     sourceRecordIds: context.sourceRecordIds,
@@ -80,7 +81,7 @@ async function generateAnalysis(request, env, scopeType, rawScopeKey) {
     errorMessage: draft.errorMessage
   });
 
-  const row = await loadAnalysisSnapshot(env, session.user.id, scope);
+  const row = await findAnalysisSnapshot(env, session.user.id, scope);
   return ok({
     analysis: mapAnalysisSnapshot(row),
     ai: {
@@ -196,55 +197,6 @@ function buildAnalysisContext(env, ownerId, scope) {
     return buildDomainAnalysisContext(env, ownerId, scope.scopeKey, scope.windowDays);
   }
   return buildPeriodAnalysisContext(env, ownerId, scope.scopeType, scope.scopeKey);
-}
-
-async function loadAnalysisSnapshot(env, ownerId, scope) {
-  return env.DB.prepare(`
-    SELECT *
-    FROM analysis_snapshots
-    WHERE owner_id = ? AND scope_type = ? AND scope_key = ? AND window_days = ?
-    LIMIT 1
-  `).bind(ownerId, scope.scopeType, scope.scopeKey, scope.windowDays).first();
-}
-
-async function upsertAnalysisSnapshot(env, input) {
-  const now = nowIso();
-  await env.DB.prepare(`
-    INSERT INTO analysis_snapshots (
-      id, owner_id, scope_type, scope_key, window_days, source_record_ids_json,
-      metrics_json, insights_json, next_actions_json, provider, model, prompt_version,
-      status, error_message, created_at, updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(owner_id, scope_type, scope_key, window_days) DO UPDATE SET
-      source_record_ids_json = excluded.source_record_ids_json,
-      metrics_json = excluded.metrics_json,
-      insights_json = excluded.insights_json,
-      next_actions_json = excluded.next_actions_json,
-      provider = excluded.provider,
-      model = excluded.model,
-      prompt_version = excluded.prompt_version,
-      status = excluded.status,
-      error_message = excluded.error_message,
-      updated_at = excluded.updated_at
-  `).bind(
-    crypto.randomUUID(),
-    input.ownerId,
-    input.scope.scopeType,
-    input.scope.scopeKey,
-    input.scope.windowDays,
-    JSON.stringify(input.sourceRecordIds || []),
-    JSON.stringify(input.metrics || {}),
-    JSON.stringify(input.insights || {}),
-    JSON.stringify(input.nextActions || []),
-    input.provider || 'unknown',
-    input.model || 'unknown',
-    input.promptVersion || 'analysis-v1',
-    input.status || 'completed',
-    input.errorMessage || null,
-    now,
-    now
-  ).run();
 }
 
 async function buildDailyAnalysisContext(env, ownerId, date) {

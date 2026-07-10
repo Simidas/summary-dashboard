@@ -1,5 +1,8 @@
 import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
+import { encodeCursor, parsePage } from '../lib/pagination.js';
+import { validationResponse } from '../lib/schema.js';
+import { validateProjectBody } from '../services/input-schemas.js';
 import {
   mapProject,
   mapRecord,
@@ -45,6 +48,7 @@ async function listProjects(request, env) {
   const url = new URL(request.url);
   const includeClosed = url.searchParams.get('includeClosed') === 'true';
   const status = url.searchParams.get('status');
+  const { limit, cursor } = parsePage(url, { defaultLimit: 100, maxLimit: 200 });
   const clauses = ['p.owner_id = ?', 'p.deleted_at IS NULL'];
   const params = [session.user.id];
 
@@ -53,6 +57,11 @@ async function listProjects(request, env) {
     params.push(normalizeProjectStatus(status));
   } else if (!includeClosed) {
     clauses.push("p.status IN ('active', 'paused')");
+  }
+  if (Number.isInteger(cursor?.statusRank) && cursor?.updatedAt && cursor?.id) {
+    const statusRank = "CASE p.status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 WHEN 'completed' THEN 2 ELSE 3 END";
+    clauses.push(`(${statusRank} > ? OR (${statusRank} = ? AND (p.updated_at < ? OR (p.updated_at = ? AND p.id < ?))))`);
+    params.push(cursor.statusRank, cursor.statusRank, cursor.updatedAt, cursor.updatedAt, cursor.id);
   }
 
   const rows = await env.DB.prepare(`
@@ -82,10 +91,24 @@ async function listProjects(request, env) {
         WHEN 'completed' THEN 2
         ELSE 3
       END,
-      p.updated_at DESC
-  `).bind(...params).all();
+      p.updated_at DESC,
+      p.id DESC
+    LIMIT ?
+  `).bind(...params, limit + 1).all();
 
-  return ok({ projects: (rows.results || []).map(mapProject) });
+  const result = rows.results || [];
+  const hasMore = result.length > limit;
+  const pageRows = hasMore ? result.slice(0, limit) : result;
+  const last = pageRows.at(-1);
+  return ok({ projects: pageRows.map(mapProject), page: {
+    limit, hasMore, nextCursor: hasMore && last ? encodeCursor({
+      statusRank: projectStatusRank(last.status), updatedAt: last.updated_at, id: last.id
+    }) : null
+  } });
+}
+
+function projectStatusRank(status) {
+  return { active: 0, paused: 1, completed: 2 }[status] ?? 3;
 }
 
 async function getProject(request, env, slugOrId) {
@@ -116,7 +139,9 @@ async function createProject(request, env) {
   if (session instanceof Response) return session;
   if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateProjectBody(await readJson(request)); }
+  catch (error) { return validationResponse(error, fail); }
   const name = String(body?.name || '').trim();
   if (!name) return fail(400, 'NAME_REQUIRED', '项目名称不能为空');
 
@@ -154,7 +179,9 @@ async function updateProject(request, env, slugOrId) {
   const existing = await findProject(env, session.user.id, slugOrId);
   if (!existing) return fail(404, 'NOT_FOUND', '项目不存在');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateProjectBody(await readJson(request), { required: false }); }
+  catch (error) { return validationResponse(error, fail); }
   const name = body?.name == null ? existing.name : String(body.name).trim();
   if (!name) return fail(400, 'NAME_REQUIRED', '项目名称不能为空');
 

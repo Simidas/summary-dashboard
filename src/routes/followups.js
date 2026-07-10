@@ -5,8 +5,11 @@ import {
   normalizeFollowupStatus,
   nowIso
 } from '../lib/db.js';
-import { fail, ok, parseLimit, readJson } from '../lib/response.js';
+import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
+import { encodeCursor, parsePage } from '../lib/pagination.js';
+import { validationResponse } from '../lib/schema.js';
+import { validateFollowupBody } from '../services/input-schemas.js';
 
 export async function handleFollowups(request, env) {
   const url = new URL(request.url);
@@ -40,7 +43,7 @@ async function listFollowups(request, env) {
   const status = url.searchParams.get('status') || 'open';
   const domain = normalizeDomain(url.searchParams.get('domain'));
   const project = cleanText(url.searchParams.get('project'));
-  const limit = parseLimit(url.searchParams.get('limit'), 100, 200);
+  const { limit, cursor } = parsePage(url, { defaultLimit: 100, maxLimit: 200 });
   const clauses = ['owner_id = ?', 'deleted_at IS NULL'];
   const params = [session.user.id];
 
@@ -59,23 +62,39 @@ async function listFollowups(request, env) {
     params.push(project);
   }
 
+  const cursorClause = Number.isInteger(cursor?.statusRank) && cursor?.sortDue && cursor?.updatedAt && cursor?.id
+    ? `WHERE (sort_status > ? OR (sort_status = ? AND (
+        sort_due > ? OR (sort_due = ? AND (updated_at < ? OR (updated_at = ? AND id < ?)))
+      )))`
+    : '';
+  if (cursorClause) {
+    params.push(cursor.statusRank, cursor.statusRank, cursor.sortDue, cursor.sortDue,
+      cursor.updatedAt, cursor.updatedAt, cursor.id);
+  }
   const rows = await env.DB.prepare(`
-    SELECT *
-    FROM followups
-    WHERE ${clauses.join(' AND ')}
+    WITH ranked AS (
+      SELECT *,
+        CASE status WHEN 'open' THEN 0 WHEN 'deferred' THEN 1 WHEN 'closed' THEN 2 ELSE 3 END AS sort_status,
+        COALESCE(due_date, updated_at) AS sort_due
+      FROM followups
+      WHERE ${clauses.join(' AND ')}
+    )
+    SELECT * FROM ranked
+    ${cursorClause}
     ORDER BY
-      CASE status
-        WHEN 'open' THEN 0
-        WHEN 'deferred' THEN 1
-        WHEN 'closed' THEN 2
-        ELSE 3
-      END,
-      COALESCE(due_date, updated_at) ASC,
-      updated_at DESC
+      sort_status ASC, sort_due ASC, updated_at DESC, id DESC
     LIMIT ?
-  `).bind(...params, limit).all();
+  `).bind(...params, limit + 1).all();
 
-  return ok({ followups: (rows.results || []).map(mapFollowup) });
+  const result = rows.results || [];
+  const hasMore = result.length > limit;
+  const pageRows = hasMore ? result.slice(0, limit) : result;
+  const last = pageRows.at(-1);
+  return ok({ followups: pageRows.map(mapFollowup), page: {
+    limit, hasMore, nextCursor: hasMore && last ? encodeCursor({
+      statusRank: last.sort_status, sortDue: last.sort_due, updatedAt: last.updated_at, id: last.id
+    }) : null
+  } });
 }
 
 async function createFollowup(request, env) {
@@ -83,7 +102,9 @@ async function createFollowup(request, env) {
   if (session instanceof Response) return session;
   if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateFollowupBody(await readJson(request)); }
+  catch (error) { return validationResponse(error, fail); }
   const text = cleanText(body?.text);
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 
@@ -133,7 +154,9 @@ async function updateFollowup(request, env, id) {
   `).bind(id, session.user.id).first();
   if (!existing) return fail(404, 'NOT_FOUND', '待办不存在');
 
-  const body = await readJson(request);
+  let body;
+  try { body = validateFollowupBody(await readJson(request), { required: false }); }
+  catch (error) { return validationResponse(error, fail); }
   const text = body?.text == null ? existing.text : cleanText(body.text);
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 

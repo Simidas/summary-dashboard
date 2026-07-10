@@ -13,8 +13,11 @@
     "deploy:dry-run": "npm run build && wrangler deploy --dry-run",
     "d1:migrate:local": "wrangler d1 migrations apply summary-dashboard --local",
     "d1:migrate:remote": "wrangler d1 migrations apply summary-dashboard --remote",
+    "backup:d1": "node scripts/backup-d1.js",
+    "backup:d1:local": "node scripts/backup-d1.js --local",
+    "test": "node --test",
     "check:js": "find src js scripts -name '*.js' -print0 | xargs -0 -n1 node --check",
-    "check": "npm run check:js && npm run build"
+    "check": "npm run check:js && npm test && npm run build"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

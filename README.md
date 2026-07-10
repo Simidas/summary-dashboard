@@ -96,7 +96,16 @@ npm run deploy:worker:migrate
 
 # JS 语法检查
 npm run check:js
+
+# 导出远端 D1 SQL 备份（写入 backups/，不会提交 Git）
+npm run backup:d1
+
+# 导出本地 D1 SQL 备份
+npm run backup:d1:local
 ```
+
+登录 Owner 账号后，还可以通过 `/api/export?format=json` 或
+`/api/export?format=markdown` 下载个人数据；导出不包含 Session 等认证数据。
 
 ## 部署
 

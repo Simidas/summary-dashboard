@@ -6,7 +6,8 @@ import {
   todayShanghai,
   updateUserStateAfterActivity
 } from '../lib/db.js';
-import { fail, ok, parseLimit, readJson } from '../lib/response.js';
+import { fail, ok, readJson } from '../lib/response.js';
+import { encodeCursor, parsePage } from '../lib/pagination.js';
 import { assertCsrf, getSession } from '../lib/session.js';
 
 const DAILY_MOOD_VALUES = new Set(['平静', '开心', '有进展感', '疲惫', '焦虑', '烦躁', '低落', '松了一口气']);
@@ -33,16 +34,26 @@ async function listDailyReviews(request, env) {
   if (!session || session.user.role !== 'owner') return fail(401, 'UNAUTHORIZED', '请先登录');
 
   const url = new URL(request.url);
-  const limit = parseLimit(url.searchParams.get('limit'), 30, 500);
+  const { limit, cursor } = parsePage(url, { defaultLimit: 30, maxLimit: 500 });
+  const cursorClause = cursor?.date && cursor?.id ? 'AND (date < ? OR (date = ? AND id < ?))' : '';
+  const params = [session.user.id];
+  if (cursorClause) params.push(cursor.date, cursor.date, cursor.id);
   const rows = await env.DB.prepare(`
     SELECT *
     FROM daily_reviews
     WHERE owner_id = ?
-    ORDER BY date DESC
+    ${cursorClause}
+    ORDER BY date DESC, id DESC
     LIMIT ?
-  `).bind(session.user.id, limit).all();
+  `).bind(...params, limit + 1).all();
 
-  return ok({ reviews: (rows.results || []).map(mapDailyReview) });
+  const result = rows.results || [];
+  const hasMore = result.length > limit;
+  const pageRows = hasMore ? result.slice(0, limit) : result;
+  const last = pageRows.at(-1);
+  return ok({ reviews: pageRows.map(mapDailyReview), page: {
+    limit, hasMore, nextCursor: hasMore && last ? encodeCursor({ date: last.date, id: last.id }) : null
+  } });
 }
 
 async function getDailyReview(request, env, date) {

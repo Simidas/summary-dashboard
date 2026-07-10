@@ -20,8 +20,12 @@ import {
   updateUserStateAfterActivity,
   updateUserStateAfterRecord
 } from '../lib/db.js';
-import { fail, ok, parseLimit, readJson } from '../lib/response.js';
+import { fail, ok, readJson } from '../lib/response.js';
 import { assertCsrf, getSession } from '../lib/session.js';
+import { validationResponse } from '../lib/schema.js';
+import { findRecordByAccess } from '../repositories/records-repository.js';
+import { validateRecordBody } from '../services/input-schemas.js';
+import { listRecordRows } from '../services/records-service.js';
 
 const SUGGESTION_BATCH_SIZE = 50;
 const SUGGESTION_COLUMNS = [
@@ -90,76 +94,22 @@ export async function handleRecords(request, env, ctx) {
 async function listRecords(request, env) {
   const session = await getSession(request, env);
   const url = new URL(request.url);
-  const limit = parseLimit(url.searchParams.get('limit'), 20, 500);
-  const domain = normalizeDomain(url.searchParams.get('domain'));
-  const type = url.searchParams.get('type');
-  const visibility = normalizeVisibility(url.searchParams.get('visibility') || 'public');
-  const project = String(url.searchParams.get('project') || '').trim();
-  const params = [];
-  const clauses = ['deleted_at IS NULL'];
-
-  if (session?.user?.role === 'owner') {
-    clauses.push('owner_id = ?');
-    params.push(session.user.id);
-    if (url.searchParams.has('visibility')) {
-      clauses.push('visibility = ?');
-      params.push(visibility);
-    }
-  } else {
-    clauses.push('visibility = ?');
-    params.push('public');
-  }
-
-  if (domain) {
-    clauses.push('domain = ?');
-    params.push(domain);
-  }
-  if (type) {
-    clauses.push('type = ?');
-    params.push(normalizeType(type));
-  }
-  if (project) {
-    clauses.push('projects_json LIKE ?');
-    params.push(`%${project.replace(/[%_]/g, '')}%`);
-  }
-
-  const query = `
-    SELECT *
-    FROM records
-    WHERE ${clauses.join(' AND ')}
-    ORDER BY created_at DESC
-    LIMIT ?
-  `;
-  params.push(limit);
-
-  const rows = await env.DB.prepare(query).bind(...params).all();
-  const records = rows.results || [];
+  const result = await listRecordRows(env, url, session);
+  const records = result.items;
   const suggestions = await safeLoadLatestSuggestionsForRecords(env, records.map(row => row.id));
 
   return ok({
-    records: records.map(row => mapRecord(row, suggestions.get(row.id)))
+    records: records.map(row => mapRecord(row, suggestions.get(row.id))),
+    page: result.page
   });
 }
 
 async function getRecord(request, env, id) {
   const session = await getSession(request, env);
-  const clauses = ['id = ?', 'deleted_at IS NULL'];
-  const params = [id];
-
-  if (session?.user?.role === 'owner') {
-    clauses.push('owner_id = ?');
-    params.push(session.user.id);
-  } else {
-    clauses.push('visibility = ?');
-    params.push('public');
-  }
-
-  const row = await env.DB.prepare(`
-    SELECT *
-    FROM records
-    WHERE ${clauses.join(' AND ')}
-    LIMIT 1
-  `).bind(...params).first();
+  const row = await findRecordByAccess(env, {
+    id,
+    ownerId: session?.user?.role === 'owner' ? session.user.id : null
+  });
   if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
 
   const suggestion = await safeLoadLatestSuggestionForRecord(env, row.id);
@@ -172,7 +122,12 @@ async function createRecord(request, env, ctx) {
   if (session.user.role !== 'owner') return fail(403, 'FORBIDDEN', '当前账号没有写入权限');
   if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
 
-  const body = await readJson(request);
+  let body;
+  try {
+    body = validateRecordBody(await readJson(request));
+  } catch (error) {
+    return validationResponse(error, fail) || fail(400, 'INVALID_INPUT', '输入内容不符合要求');
+  }
   const content = String(body?.content || '').trim();
   if (!content) return fail(400, 'CONTENT_REQUIRED', '记录内容不能为空');
 
@@ -282,7 +237,12 @@ async function updateRecord(request, env, id) {
   if (session instanceof Response) return session;
   if (!assertCsrf(request, session, env)) return fail(403, 'CSRF_FAILED', '请求校验失败');
 
-  const body = await readJson(request);
+  let body;
+  try {
+    body = validateRecordBody(await readJson(request), { required: false });
+  } catch (error) {
+    return validationResponse(error, fail) || fail(400, 'INVALID_INPUT', '输入内容不符合要求');
+  }
   const existing = await env.DB.prepare('SELECT * FROM records WHERE id = ? AND owner_id = ? AND deleted_at IS NULL')
     .bind(id, session.user.id)
     .first();
