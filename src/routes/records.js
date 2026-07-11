@@ -5,6 +5,8 @@ import {
   mapFollowup,
   mapProject,
   mapRecord,
+  mapInsight,
+  mapSuggestionDecision,
   mapSuggestion,
   normalizeDomain,
   normalizeEnergy,
@@ -97,9 +99,16 @@ async function listRecords(request, env) {
   const result = await listRecordRows(env, url, session);
   const records = result.items;
   const suggestions = await safeLoadLatestSuggestionsForRecords(env, records.map(row => row.id));
+  const closureData = session?.user?.role === 'owner'
+    ? await loadClosureDataForRecords(env, session.user.id, records.map(row => row.id))
+    : { decisions: new Map(), insights: new Map() };
 
   return ok({
-    records: records.map(row => mapRecord(row, suggestions.get(row.id))),
+    records: records.map(row => ({
+      ...mapRecord(row, suggestions.get(row.id)),
+      decisions: closureData.decisions.get(row.id) || [],
+      insights: closureData.insights.get(row.id) || []
+    })),
     page: result.page
   });
 }
@@ -113,7 +122,41 @@ async function getRecord(request, env, id) {
   if (!row) return fail(404, 'NOT_FOUND', '记录不存在');
 
   const suggestion = await safeLoadLatestSuggestionForRecord(env, row.id);
-  return ok({ record: mapRecord(row, suggestion) });
+  const closureData = session?.user?.role === 'owner'
+    ? await loadClosureDataForRecords(env, session.user.id, [row.id])
+    : { decisions: new Map(), insights: new Map() };
+  return ok({ record: {
+    ...mapRecord(row, suggestion),
+    decisions: closureData.decisions.get(row.id) || [],
+    insights: closureData.insights.get(row.id) || []
+  } });
+}
+
+async function loadClosureDataForRecords(env, ownerId, recordIds) {
+  const decisions = new Map();
+  const insights = new Map();
+  for (let index = 0; index < recordIds.length; index += 50) {
+    const batch = recordIds.slice(index, index + 50);
+    if (!batch.length) continue;
+    const placeholders = batch.map(() => '?').join(', ');
+    const [decisionRows, insightRows] = await Promise.all([
+      env.DB.prepare(`
+        SELECT * FROM suggestion_decisions WHERE owner_id = ? AND record_id IN (${placeholders}) ORDER BY updated_at DESC
+      `).bind(ownerId, ...batch).all(),
+      env.DB.prepare(`
+        SELECT * FROM insights WHERE owner_id = ? AND source_record_id IN (${placeholders}) AND deleted_at IS NULL ORDER BY updated_at DESC
+      `).bind(ownerId, ...batch).all()
+    ]);
+    for (const row of decisionRows.results || []) {
+      if (!decisions.has(row.record_id)) decisions.set(row.record_id, []);
+      decisions.get(row.record_id).push(mapSuggestionDecision(row));
+    }
+    for (const row of insightRows.results || []) {
+      if (!insights.has(row.source_record_id)) insights.set(row.source_record_id, []);
+      insights.get(row.source_record_id).push(mapInsight(row));
+    }
+  }
+  return { decisions, insights };
 }
 
 async function createRecord(request, env, ctx) {
@@ -354,7 +397,36 @@ async function applyRecordDestination(request, env, id) {
   }
 
   if (destination instanceof Response) return destination;
-  return ok({ destination });
+  const decision = suggestionRow
+    ? await recordAcceptedDestinationDecision(env, record, suggestionRow, type, destination, body)
+    : null;
+  return ok({ destination, decision });
+}
+
+async function recordAcceptedDestinationDecision(env, record, suggestionRow, type, destination, body) {
+  const candidateType = type === 'followup' ? 'action'
+    : type === 'content' ? 'content'
+      : type === 'project' ? 'project' : 'action';
+  const candidateKey = `${type}:${cleanText(body?.name) || 'default'}`;
+  const now = nowIso();
+  const decision = body?.modified ? 'modified' : 'accepted';
+  await env.DB.prepare(`
+    INSERT INTO suggestion_decisions (
+      id, owner_id, suggestion_id, record_id, candidate_type, candidate_key,
+      decision, destination_type, destination_id, original_payload_json,
+      final_payload_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(owner_id, suggestion_id, candidate_type, candidate_key) DO UPDATE SET
+      decision = excluded.decision, destination_type = excluded.destination_type,
+      destination_id = excluded.destination_id, final_payload_json = excluded.final_payload_json,
+      updated_at = excluded.updated_at
+  `).bind(
+    crypto.randomUUID(), record.ownerId, suggestionRow.id, record.id,
+    candidateType, candidateKey, decision, type, destination?.id || null,
+    JSON.stringify({ type, name: body?.name || null }),
+    JSON.stringify({ ...body, destination }), now, now
+  ).run();
+  return { candidateType, candidateKey, decision, destinationType: type, destinationId: destination?.id || null };
 }
 
 async function insertSuggestion(env, record, suggestion) {
@@ -451,12 +523,12 @@ async function applyFollowupDestination(env, record, suggestion, body = {}) {
   const projectError = await validateActiveProjectNames(env, record.ownerId, projectName ? [projectName] : []);
   if (projectError) return projectError;
 
-  await env.DB.prepare(`
+  await env.DB.batch([env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, source_type, due_date,
       created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'record', ?, ?, ?, ?)
   `).bind(
     id,
     record.ownerId,
@@ -470,7 +542,7 @@ async function applyFollowupDestination(env, record, suggestion, body = {}) {
     now,
     now,
     null
-  ).run();
+  ), createFollowupCreatedEvent(env, record.ownerId, id, 'open', now, record.id)]);
 
   const row = await env.DB.prepare('SELECT * FROM followups WHERE id = ?').bind(id).first();
   return {
@@ -778,12 +850,14 @@ async function createFollowupFromRecord(env, record, body) {
   const title = cleanText(body.taskTitle || record.structuredPayload.taskTitle || record.summary || firstLine(record.content));
   if (!title) return null;
 
-  await env.DB.prepare(`
+  const status = normalizeFollowupStatus(body.status);
+  if (status === 'closed' || status === 'dropped') return null;
+  await env.DB.batch([env.DB.prepare(`
     INSERT INTO followups (
-      id, owner_id, text, note, domain, project, status, source_record_id, due_date,
+      id, owner_id, text, note, domain, project, status, source_record_id, source_type, due_date,
       created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'record', ?, ?, ?, ?)
   `).bind(
     id,
     record.ownerId,
@@ -791,15 +865,26 @@ async function createFollowupFromRecord(env, record, body) {
     cleanText(body.note),
     record.domain,
     cleanText(record.projects[0]),
-    normalizeFollowupStatus(body.status),
+    status,
     record.id,
     cleanDate(body.dueDate || record.structuredPayload.dueDate),
     now,
     now,
     null
-  ).run();
+  ), createFollowupCreatedEvent(env, record.ownerId, id, status, now, record.id)]);
 
   return { id };
+}
+
+function createFollowupCreatedEvent(env, ownerId, followupId, status, now, sourceRecordId) {
+  return env.DB.prepare(`
+    INSERT INTO followup_events (
+      id, owner_id, followup_id, event_type, from_status, to_status, note, metadata_json, created_at
+    ) VALUES (?, ?, ?, 'created', NULL, ?, NULL, ?, ?)
+  `).bind(
+    crypto.randomUUID(), ownerId, followupId, status,
+    JSON.stringify({ sourceType: 'record', sourceRecordId }), now
+  );
 }
 
 function buildStructuredPayload(body) {

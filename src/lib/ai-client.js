@@ -570,8 +570,21 @@ function normalizeStructuredResult(value) {
   return Object.fromEntries(
     Object.entries(value)
       .filter(([, item]) => item != null && item !== '')
-      .map(([key, item]) => [key, Array.isArray(item) ? item.map(String).filter(Boolean) : item])
+      .map(([key, item]) => [key, normalizeStructuredValue(item)])
   );
+}
+
+function normalizeStructuredValue(value) {
+  if (Array.isArray(value)) {
+    return value.slice(0, 20).map(normalizeStructuredValue).filter(item => item != null && item !== '');
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value)
+      .filter(([, item]) => item != null && item !== '')
+      .map(([key, item]) => [key, normalizeStructuredValue(item)]));
+  }
+  if (value == null) return null;
+  return typeof value === 'string' ? value.trim() : value;
 }
 
 function extractOutputText(response) {

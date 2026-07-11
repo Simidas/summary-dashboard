@@ -34,6 +34,10 @@
 - `daily_reviews`：每日综合复盘。
 - `period_reviews`：周/月/年周期复盘草稿与确认记录。
 - `followups`：未闭环事项。
+- `followup_events`：待办创建、延期、完成、放弃和重新打开的事件历史。
+- `suggestion_decisions`：AI 建议候选项的采纳、修改和忽略决定。
+- `insights`：用户确认或观察中的认知、规律、风险与策略。
+- `daily_focus`：按日期保存的今日重点及完成结果。
 - `projects`：项目。
 - `content_items`：内容素材。
 - `domain_settings`：四场景当前重点和下一步。

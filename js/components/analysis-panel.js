@@ -2,7 +2,7 @@ import {
   createFollowupFromAnalysis,
   generateAnalysisSnapshot,
   getAnalysisSnapshot
-} from '../api.js?v=20260703g';
+} from '../api.js?v=20260711a';
 
 export function buildAnalysisPanel({
   scopeType,

@@ -2,15 +2,15 @@
    Weekly View
    ======================================== */
 
-import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260703g';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260703g';
-import { createWeekCard } from '../components/card.js?v=20260703g';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703g';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703g';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
+import { getAvailableWeeks, loadWeeklyInsight, loadWeeklySummary } from '../data.js?v=20260711a';
+import { getAnalysisSnapshot, getClosureMetrics, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260711a';
+import { createWeekCard } from '../components/card.js?v=20260711a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260711a';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260711a';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260711a';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
 
 const WEEK_DISPLAY_COUNT = 8;
 const WEEK_HISTORY_PAGE_SIZE = 6;
@@ -76,9 +76,12 @@ export async function renderWeeklyView(container, params = {}) {
 
   const reviewWeek = recentWeekSummaries[0]?.key || getCurrentWeekKey();
   const reviewMap = createReviewMap(periodReviews);
-  const periodAnalysisData = useOwnerApi
-    ? await getAnalysisSnapshot('weekly', reviewWeek).catch(() => null)
-    : null;
+  const [periodAnalysisData, closureMetricsData] = useOwnerApi
+    ? await Promise.all([
+      getAnalysisSnapshot('weekly', reviewWeek).catch(() => null),
+      getClosureMetrics('weekly', reviewWeek).catch(() => null)
+    ])
+    : [null, null];
 
   if (recentWeekSummaries.length === 0) {
     const reviewPanel = await buildPeriodReviewPanel('weekly', reviewWeek, '周');
@@ -87,6 +90,7 @@ export async function renderWeeklyView(container, params = {}) {
         <h1 class="view-title">Weekly</h1>
         <p class="view-subtitle">按周聚合的复盘数据</p>
       </div>
+      ${buildClosureMetricsPanel(closureMetricsData?.metrics)}
       ${buildPeriodAnalysisPanel(useOwnerApi, 'weekly', reviewWeek, periodAnalysisData?.analysis)}
       ${reviewPanel}
       <div class="empty-state">
@@ -105,6 +109,10 @@ export async function renderWeeklyView(container, params = {}) {
 
   if (latestInsight) {
     page.appendChild(createPeriodInsightPanel(latestInsight, '本周经营洞察'));
+  }
+
+  if (closureMetricsData?.metrics) {
+    page.insertAdjacentHTML('beforeend', buildClosureMetricsPanel(closureMetricsData.metrics));
   }
 
   if (useOwnerApi) {
@@ -139,6 +147,45 @@ export async function renderWeeklyView(container, params = {}) {
   container.appendChild(page);
   bindPeriodReviewForms(page);
   bindAnalysisPanel(page);
+}
+
+function buildClosureMetricsPanel(metrics) {
+  if (!metrics) return '';
+  const decisions = metrics.decisions || {};
+  const followups = metrics.followups || {};
+  return `
+    <section class="ops-panel closure-metrics-panel">
+      <div class="section-heading">
+        <h2 class="section-title">本周行动闭环</h2>
+        <span class="panel-date">${escapeHtml(metrics.range?.start || '')} — ${escapeHtml(metrics.range?.endExclusive || '')}</span>
+      </div>
+      <div class="closure-metric-grid">
+        ${buildClosureMetric(metrics.actionConversionRate, '记录转行动', `${metrics.recordsWithActions || 0}/${metrics.recordCount || 0} 条记录`)}
+        ${buildClosureMetric(followups.closureRate, '行动闭环率', `${followups.closed || 0}/${followups.created || 0} 个行动`)}
+        ${buildClosureMetric(decisions.adoptionRate, 'AI 建议采纳', `${(decisions.accepted || 0) + (decisions.modified || 0)} 次采纳`)}
+        ${buildClosureMetric(followups.deferredEvents || 0, '延期次数', `${followups.decidedNotDone || 0} 项主动取舍`, false)}
+      </div>
+      ${metrics.evidence?.length ? `
+        <div class="closure-evidence-list">
+          ${metrics.evidence.slice(0, 5).map(item => `
+            <div><strong>${escapeHtml(item.text)}</strong><span>${escapeHtml(formatOutcome(item))}</span></div>
+          `).join('')}
+        </div>
+      ` : '<div class="empty-inline">本周还没有行动闭环数据。</div>'}
+    </section>
+  `;
+}
+
+function buildClosureMetric(value, label, detail, percent = true) {
+  return `<div><strong>${Number(value || 0)}${percent ? '%' : ''}</strong><span>${label}</span><small>${escapeHtml(detail)}</small></div>`;
+}
+
+function formatOutcome(item) {
+  if (item.outcomeType === 'completed') return '已完成';
+  if (item.outcomeType === 'partial') return '部分完成';
+  if (item.outcomeType) return '已做出取舍';
+  if (item.deferCount) return `已延期 ${item.deferCount} 次`;
+  return item.status || '待处理';
 }
 
 function renderWeeklyHistoryPage(container, weeklySummaries, reviewMap, useOwnerApi, pageNumber = 1) {

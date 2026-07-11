@@ -2,7 +2,7 @@
    Projects View
    ======================================== */
 
-import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260703g';
+import { loadProjectSummary, loadProjectsManifest } from '../data.js?v=20260711a';
 import {
   createFollowup,
   createProject,
@@ -13,16 +13,16 @@ import {
   getProjects,
   getRecords,
   updateProject
-} from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703g';
+} from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260711a';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703g';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703g';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703g';
+} from '../components/followup-list.js?v=20260711a';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260711a';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260711a';
 
 const PROJECT_GRID_PAGE_SIZE = 12;
 const PROJECT_RECORD_PAGE_SIZE = 10;

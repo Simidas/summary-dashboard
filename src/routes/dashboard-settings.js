@@ -32,15 +32,13 @@ async function updateDashboardSettings(request, env) {
   const body = await readJson(request);
   const now = nowIso();
   await env.DB.prepare(`
-    INSERT INTO dashboard_settings (owner_id, today_focus, tomorrow_first_step, updated_at)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO dashboard_settings (owner_id, tomorrow_first_step, updated_at)
+    VALUES (?, ?, ?)
     ON CONFLICT(owner_id) DO UPDATE SET
-      today_focus = excluded.today_focus,
       tomorrow_first_step = excluded.tomorrow_first_step,
       updated_at = excluded.updated_at
   `).bind(
     session.user.id,
-    cleanText(body?.todayFocus),
     cleanText(body?.tomorrowFirstStep),
     now
   ).run();
@@ -52,14 +50,12 @@ async function updateDashboardSettings(request, env) {
 export function mapSettings(row) {
   if (!row) {
     return {
-      todayFocus: '',
       tomorrowFirstStep: '',
       updatedAt: null
     };
   }
 
   return {
-    todayFocus: row.today_focus || '',
     tomorrowFirstStep: row.tomorrow_first_step || '',
     updatedAt: row.updated_at
   };

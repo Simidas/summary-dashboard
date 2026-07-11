@@ -115,6 +115,9 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
   const action = Number.isInteger(requestedIndex) ? actions[requestedIndex] : null;
   const pauseText = Number.isInteger(requestedPauseIndex) ? insights.pauseSuggestions?.[requestedPauseIndex] : null;
   const status = pauseText ? 'deferred' : normalizeFollowupStatus(body?.status);
+  if (status === 'closed' || status === 'dropped') {
+    return fail(400, 'INITIAL_STATUS_INVALID', '新待办不能直接创建为已结束状态');
+  }
   const text = cleanText(body?.text || action?.text || pauseText);
   if (!text) return fail(400, 'TEXT_REQUIRED', '待办内容不能为空');
 
@@ -134,12 +137,12 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
   const now = nowIso();
   const id = crypto.randomUUID();
 
-  await env.DB.prepare(`
+  await env.DB.batch([env.DB.prepare(`
     INSERT INTO followups (
       id, owner_id, text, note, domain, project, status, source_record_id, due_date,
-      source_analysis_id, source_action_hash, created_at, updated_at, closed_at
+      source_analysis_id, source_action_hash, source_type, created_at, updated_at, closed_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, NULL)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 'analysis', ?, ?, NULL)
   `).bind(
     id,
     session.user.id,
@@ -153,7 +156,14 @@ async function createFollowupFromAnalysis(request, env, analysisId) {
     actionHash,
     now,
     now
-  ).run();
+  ), env.DB.prepare(`
+    INSERT INTO followup_events (
+      id, owner_id, followup_id, event_type, from_status, to_status, note, metadata_json, created_at
+    ) VALUES (?, ?, ?, 'created', NULL, ?, ?, ?, ?)
+  `).bind(
+    crypto.randomUUID(), session.user.id, id, status, cleanText(body?.note),
+    JSON.stringify({ sourceType: 'analysis', sourceAnalysisId: analysisId }), now
+  )]);
 
   const followup = await env.DB.prepare('SELECT * FROM followups WHERE id = ?').bind(id).first();
   return ok({ followup: mapFollowup(followup), created: true }, { status: 201 });

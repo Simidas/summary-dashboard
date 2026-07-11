@@ -5,7 +5,8 @@ import { requireOwner } from '../services/auth-service.js';
 const EXPORT_TABLES = [
   'records', 'ai_suggestions', 'daily_reviews', 'user_state', 'projects',
   'dashboard_settings', 'content_items', 'followups', 'domain_settings',
-  'period_reviews', 'analysis_snapshots'
+  'period_reviews', 'analysis_snapshots', 'suggestion_decisions', 'insights',
+  'followup_events', 'daily_focus'
 ];
 
 export async function handleExports(request, env) {
@@ -28,7 +29,7 @@ export async function handleExports(request, env) {
   }
 
   return json({
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     owner: { email: auth.session.user.email, name: auth.session.user.name },
     data
@@ -46,6 +47,7 @@ async function loadOwnerData(env, ownerId) {
 function sortColumn(table) {
   if (table === 'user_state' || table === 'dashboard_settings') return 'updated_at';
   if (table === 'domain_settings') return 'domain';
+  if (table === 'daily_focus') return 'date';
   if (table === 'period_reviews') return 'period_key';
   return 'created_at';
 }

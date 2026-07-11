@@ -2,15 +2,15 @@
    Monthly View
    ======================================== */
 
-import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260703g';
-import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { buildMonthlySummaries } from '../aggregations.js?v=20260703g';
-import { createMonthCard } from '../components/card.js?v=20260703g';
-import { createGiscusToggle } from '../components/giscus.js?v=20260703g';
-import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260703g';
-import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260703g';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
+import { getAvailableMonths, loadMonthlySummary } from '../data.js?v=20260711a';
+import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, getPeriodReviews, getRecords } from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { buildMonthlySummaries } from '../aggregations.js?v=20260711a';
+import { createMonthCard } from '../components/card.js?v=20260711a';
+import { createGiscusToggle } from '../components/giscus.js?v=20260711a';
+import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260711a';
+import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260711a';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
 
 const MONTH_DISPLAY_COUNT = 12;
 const MONTH_HISTORY_PAGE_SIZE = 6;

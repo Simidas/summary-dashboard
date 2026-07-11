@@ -12,18 +12,18 @@ import {
   getProjects,
   getRecords,
   updateDomainSettings
-} from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260703g';
-import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260703g';
-import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260703g';
-import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260703g';
+} from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { loadDomainSummary, loadProjectsManifest } from '../data.js?v=20260711a';
+import { buildDomainSummaries, getDomainMeta } from '../aggregations.js?v=20260711a';
+import { buildAiPendingCard, waitForRecordAiSuggestion } from '../components/ai-polling.js?v=20260711a';
+import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703g';
-import { getAvailableRecordTypes } from '../components/record-types.js?v=20260703g';
+} from '../components/followup-list.js?v=20260711a';
+import { getAvailableRecordTypes } from '../components/record-types.js?v=20260711a';
 
 const DOMAIN_RECORD_PAGE_SIZE = 10;
 const DOMAIN_FOLLOWUP_PAGE_SIZE = 10;

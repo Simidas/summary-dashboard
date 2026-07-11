@@ -58,6 +58,10 @@ export async function handleDashboard(request, env) {
     LIMIT 1
   `).bind(ownerId, today).first();
 
+  const dailyFocus = await env.DB.prepare(`
+    SELECT * FROM daily_focus WHERE owner_id = ? AND date = ? LIMIT 1
+  `).bind(ownerId, today).first();
+
   const state = await env.DB.prepare('SELECT * FROM user_state WHERE owner_id = ?')
     .bind(ownerId)
     .first();
@@ -70,7 +74,7 @@ export async function handleDashboard(request, env) {
       CASE status WHEN 'open' THEN 0 ELSE 1 END,
       COALESCE(due_date, updated_at) ASC,
       updated_at DESC
-    LIMIT 10
+    LIMIT 50
   `).bind(ownerId).all();
 
   const weekStart = getShanghaiWeekStart();
@@ -86,7 +90,15 @@ export async function handleDashboard(request, env) {
   const suggestion = latestSuggestion ? mapSuggestion(latestSuggestion) : null;
   const latestRecord = latest ? mapRecord(latest, latestSuggestion) : null;
   const followupItems = (followups.results || []).map(mapFollowup);
-  const focus = deriveTodayFocus({ dailyReview, latestRecord, suggestion });
+  const actionGroups = {
+    overdue: followupItems.filter(item => item.overdue),
+    dueToday: followupItems.filter(item => item.dueToday),
+    upcoming: followupItems.filter(item => !item.overdue && !item.dueToday)
+  };
+  const fallbackFocus = deriveTodayFocus({ dailyReview, latestRecord, suggestion });
+  const focus = dailyFocus
+    ? { text: dailyFocus.text, source: 'daily-focus' }
+    : fallbackFocus;
   const nextStep = deriveNextSmallStep({ dailyReview, latestRecord, suggestion, followups: followupItems });
 
   return ok({
@@ -96,9 +108,19 @@ export async function handleDashboard(request, env) {
     latestRecord,
     todayFocus: focus.text,
     todayFocusSource: focus.source,
+    dailyFocus: dailyFocus ? {
+      id: dailyFocus.id,
+      date: dailyFocus.date,
+      text: dailyFocus.text,
+      followupId: dailyFocus.followup_id,
+      projectId: dailyFocus.project_id,
+      status: dailyFocus.status,
+      completedAt: dailyFocus.completed_at
+    } : null,
     nextSmallStep: nextStep.text,
     nextSmallStepSource: nextStep.source,
     followups: followupItems,
+    actionGroups,
     dailyReview: dailyReview ? {
       id: dailyReview.id,
       date: dailyReview.date,

@@ -82,6 +82,22 @@ async function listProjects(request, env) {
           AND f.project = p.name
           AND f.status IN ('open', 'deferred')
       ) AS open_followups
+      ,(
+        SELECT MAX(r.created_at)
+        FROM records r
+        WHERE r.owner_id = p.owner_id
+          AND r.deleted_at IS NULL
+          AND r.projects_json LIKE '%' || p.name || '%'
+      ) AS last_activity_at
+      ,CASE
+        WHEN p.next_action IS NULL OR trim(p.next_action) = '' THEN 'missing_next_action'
+        WHEN COALESCE((
+          SELECT MAX(r.created_at) FROM records r
+          WHERE r.owner_id = p.owner_id AND r.deleted_at IS NULL
+            AND r.projects_json LIKE '%' || p.name || '%'
+        ), p.updated_at) < datetime('now', '-14 days') THEN 'stalled'
+        ELSE 'ready'
+      END AS action_state
     FROM projects p
     WHERE ${clauses.join(' AND ')}
     ORDER BY

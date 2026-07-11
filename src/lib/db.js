@@ -178,6 +178,8 @@ export function mapProject(row) {
     status: row.status,
     currentFocus: row.current_focus,
     nextAction: row.next_action,
+    lastActivityAt: row.last_activity_at || null,
+    actionState: row.action_state || null,
     recordCount: Number(row.record_count || 0),
     openFollowUps: Number(row.open_followups || 0),
     createdAt: row.created_at,
@@ -219,12 +221,86 @@ export function mapFollowup(row) {
     sourceRecordId: row.source_record_id,
     sourceAnalysisId: row.source_analysis_id,
     sourceActionHash: row.source_action_hash,
+    sourceType: row.source_type,
     dueDate: row.due_date,
+    outcomeType: row.outcome_type,
+    outcomeNote: row.outcome_note,
+    completedAt: row.completed_at,
+    replacedByFollowupId: row.replaced_by_followup_id,
+    deferCount: Number(row.defer_count || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     closedAt: row.closed_at,
-    overdue: row.due_date ? row.due_date <= todayShanghai() && ['open', 'deferred'].includes(row.status) : false,
+    dueToday: row.due_date === todayShanghai() && ['open', 'deferred'].includes(row.status),
+    overdue: row.due_date ? row.due_date < todayShanghai() && ['open', 'deferred'].includes(row.status) : false,
     ageDays: daysBetween(row.created_at, nowIso())
+  };
+}
+
+export function mapSuggestionDecision(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    suggestionId: row.suggestion_id,
+    recordId: row.record_id,
+    candidateType: row.candidate_type,
+    candidateKey: row.candidate_key,
+    decision: row.decision,
+    destinationType: row.destination_type,
+    destinationId: row.destination_id,
+    originalPayload: parseJsonText(row.original_payload_json, {}),
+    finalPayload: parseJsonText(row.final_payload_json, {}),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export function mapInsight(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    text: row.text,
+    type: row.type,
+    status: row.status,
+    domain: row.domain,
+    projectId: row.project_id,
+    sourceRecordId: row.source_record_id,
+    sourceSuggestionId: row.source_suggestion_id,
+    evidence: parseJsonText(row.evidence_json),
+    validationNote: row.validation_note,
+    confirmedAt: row.confirmed_at,
+    invalidatedAt: row.invalidated_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export function mapFollowupEvent(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    followupId: row.followup_id,
+    eventType: row.event_type,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    note: row.note,
+    metadata: parseJsonText(row.metadata_json, {}),
+    createdAt: row.created_at
+  };
+}
+
+export function mapDailyFocus(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    date: row.date,
+    text: row.text,
+    followupId: row.followup_id,
+    projectId: row.project_id,
+    status: row.status,
+    completedAt: row.completed_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 

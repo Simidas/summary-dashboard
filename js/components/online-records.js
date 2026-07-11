@@ -2,8 +2,8 @@
    Online Records
    ======================================== */
 
-import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260703g';
-import { buildRecordDestinationActions } from './record-destinations.js?v=20260703g';
+import { getDomainLabel, getRecordTypeLabel } from './record-types.js?v=20260711a';
+import { buildRecordDestinationActions } from './record-destinations.js?v=20260711a';
 
 export function buildOnlineRecordsSection(records, options = {}) {
   const title = options.title || '最近在线记录';

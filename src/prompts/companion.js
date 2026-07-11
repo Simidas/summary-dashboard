@@ -21,6 +21,8 @@ export function buildCompanionPrompt(record, recentRecords = []) {
 - 区分事实和推测，用“可能”“也许”这类温和表达。
 - 根据记录 type 切换角色：情绪类像陪伴者，任务类像推进教练，笔记类像整理者，复盘类像分析师，健康类像状态观察员。
 - 分析侧本版只做标签补全，不做长篇周期分析。
+- 只有确实值得以后再次使用的内容才进入 insightCandidates，普通摘要不要重复放入。
+- insightCandidates 最多 3 条，必须区分事实与推测，不能把情绪推测写成已确认事实。
 
 类型化要求：
 ${typeInstruction}
@@ -53,6 +55,14 @@ ${recent || '- 暂无'}
     { "type": "followup | content | project | daily_review | archive", "reason": "为什么建议流向这里" }
   ],
   "structuredResult": {
+    "insightCandidates": [
+      {
+        "key": "稳定且简短的候选标识",
+        "text": "值得用户确认的规律、判断、风险、偏好、策略或观察",
+        "type": "pattern | judgment | risk | preference | strategy | observation",
+        "evidence": ["来自原记录的事实依据"]
+      }
+    ],
     "labelGroups": {
       "statusTags": ["状态标签，如焦虑、疲惫、卡住、有进展"],
       "objectTags": ["对象标签，如孩子、妻子、用户、竞品、项目名"],

@@ -80,3 +80,51 @@ export function validateContentItemBody(input, options = {}) {
     sourceRecordId: { type: 'string', maxLength: 100 }
   }, { passthrough: true });
 }
+
+export function validateSuggestionDecisionBody(input) {
+  return validateObject(input, {
+    suggestionId: { type: 'string', required: true, maxLength: 100 },
+    candidateType: { type: 'string', required: true, enum: ['insight', 'action', 'content', 'project'] },
+    candidateKey: { type: 'string', required: true, maxLength: 200 },
+    decision: { type: 'string', required: true, enum: ['accepted', 'modified', 'dismissed'] },
+    destinationType: { type: 'string', enum: ['insight', 'followup', 'content', 'project'] },
+    destinationId: { type: 'string', maxLength: 100 },
+    originalPayload: { type: 'object' },
+    finalPayload: { type: 'object' }
+  });
+}
+
+export function validateInsightBody(input, options = {}) {
+  return validateObject(input, {
+    text: { type: 'string', required: options.required !== false, minLength: 1, maxLength: 5000 },
+    type: { type: 'string', required: options.required !== false, enum: ['pattern', 'judgment', 'risk', 'preference', 'strategy', 'observation'] },
+    status: { type: 'string', enum: ['observing', 'confirmed', 'invalidated'] },
+    domain: { type: 'string', enum: ['work', 'side_business', 'life', 'content'] },
+    projectId: { type: 'string', maxLength: 100 },
+    sourceRecordId: { type: 'string', required: options.required !== false, maxLength: 100 },
+    sourceSuggestionId: { type: 'string', maxLength: 100 },
+    candidateKey: { type: 'string', maxLength: 200 },
+    evidence: { type: 'array', maxItems: 50 },
+    validationNote: { type: 'string', maxLength: 5000 }
+  });
+}
+
+export function validateDailyFocusBody(input) {
+  return validateObject(input, {
+    text: { type: 'string', required: true, minLength: 1, maxLength: 1000 },
+    followupId: { type: 'string', maxLength: 100 },
+    projectId: { type: 'string', maxLength: 100 },
+    status: { type: 'string', enum: ['active', 'completed', 'changed'] }
+  });
+}
+
+export function validateFollowupTransitionBody(input) {
+  return validateObject(input, {
+    status: { type: 'string', required: true, enum: ['open', 'deferred', 'closed', 'dropped'] },
+    outcomeType: { type: 'string', enum: ['completed', 'partial', 'not_needed', 'replaced', 'invalid'] },
+    outcomeNote: { type: 'string', maxLength: 10000 },
+    dueDate: { type: 'string', pattern: DATE_PATTERN, maxLength: 10 },
+    replacedByFollowupId: { type: 'string', maxLength: 100 },
+    note: { type: 'string', maxLength: 10000 }
+  });
+}

@@ -7,25 +7,26 @@ import {
   loadDomainOverview,
   loadOpenFollowups,
   loadProjectsManifest
-} from '../data.js?v=20260703g';
+} from '../data.js?v=20260711a';
 import {
   getContentItems,
   getDashboard,
   getDomainSettings,
   getFollowups,
   getProjects,
-  getRecords
-} from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260703g';
+  getRecords,
+  updateDailyFocus
+} from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { buildDomainSummaries, DOMAIN_META } from '../aggregations.js?v=20260711a';
 import {
   bindEditableFollowupList,
   buildEditableFollowupRow,
   buildFollowupTimeMeta
-} from '../components/followup-list.js?v=20260703g';
-import { buildOnlineRecordList } from '../components/online-records.js?v=20260703g';
-import { buildPetCompanionPanel } from '../components/pet.js?v=20260703g';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703g';
+} from '../components/followup-list.js?v=20260711a';
+import { buildOnlineRecordList } from '../components/online-records.js?v=20260711a';
+import { buildPetCompanionPanel } from '../components/pet.js?v=20260711a';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260711a';
 
 const HOME_RECORDS_PAGE_SIZE = 10;
 const HOME_FOLLOWUP_PAGE_SIZE = 10;
@@ -100,9 +101,10 @@ export async function renderHomeView(container) {
         <div class="ops-kicker">个人经营系统 · ${escapeHtml(dashboard?.today || overview?.latestDate || '')}</div>
         <h1 class="ops-title ops-title-long">帮你持续记录、接住情绪、推进事情、定期复盘</h1>
         <p class="ops-hero-focus" id="home-hero-focus">${escapeHtml(heroFocus)}</p>
+        ${useOwnerApi ? buildDailyFocusEditor(dashboard?.dailyFocus, heroFocus) : ''}
       </div>
       <div class="ops-next-step">
-        <span>明天第一步</span>
+        <span>现在下一步</span>
         <strong id="home-hero-next-step">${escapeHtml(heroNextStep)}</strong>
       </div>
     </section>
@@ -124,7 +126,7 @@ export async function renderHomeView(container) {
         <h2 class="section-title">未闭环事项</h2>
           <a href="#daily" class="text-link">Daily</a>
         </div>
-        ${buildFollowupPanel(authState, displayFollowups, openFollowups.slice(0, 6))}
+        ${buildFollowupPanel(authState, displayFollowups, openFollowups.slice(0, 6), dashboard?.actionGroups)}
       </div>
       <div class="ops-panel">
         <div class="section-heading">
@@ -151,8 +153,53 @@ export async function renderHomeView(container) {
   container.innerHTML = '';
   container.appendChild(page);
   bindRecordDestinationActions(page);
+  bindDailyFocusEditor(page, dashboard?.today);
   bindHomeRecordPagination(page, onlineRecords, onlineRecordOptions);
   bindFollowupPanel(page, displayFollowups);
+}
+
+function buildDailyFocusEditor(focus, fallbackText) {
+  const status = focus?.status || 'active';
+  return `
+    <form class="daily-focus-editor" id="home-daily-focus-form">
+      <input name="text" value="${escapeAttr(focus?.text || '')}" placeholder="今天最重要的一件事" maxlength="1000" required>
+      <button type="submit">${focus ? '更新重点' : '设为今日重点'}</button>
+      ${focus && status !== 'completed' ? '<button type="button" data-daily-focus-complete>完成</button>' : ''}
+      ${status === 'completed' ? '<span class="daily-focus-completed">今日重点已完成</span>' : ''}
+      <span class="form-status" data-daily-focus-status>${focus ? '' : `当前建议：${escapeHtml(fallbackText)}`}</span>
+    </form>
+  `;
+}
+
+function bindDailyFocusEditor(page, date = 'today') {
+  const form = page.querySelector('#home-daily-focus-form');
+  if (!form) return;
+  const status = form.querySelector('[data-daily-focus-status]');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    await saveDailyFocus(form, status, date, 'active');
+  });
+  form.querySelector('[data-daily-focus-complete]')?.addEventListener('click', async () => {
+    await saveDailyFocus(form, status, date, 'completed');
+  });
+}
+
+async function saveDailyFocus(form, status, date, nextStatus) {
+  const text = form.elements.text.value.trim();
+  if (!text) return;
+  const buttons = form.querySelectorAll('button');
+  buttons.forEach(button => { button.disabled = true; });
+  status.textContent = '保存中...';
+  try {
+    const data = await updateDailyFocus(date || 'today', { text, status: nextStatus });
+    document.querySelector('#home-hero-focus').textContent = data.focus.text;
+    status.textContent = nextStatus === 'completed' ? '今日重点已完成' : '今日重点已保存';
+    if (nextStatus === 'completed') form.querySelector('[data-daily-focus-complete]')?.remove();
+  } catch (error) {
+    status.textContent = error.message || '保存失败';
+  } finally {
+    buttons.forEach(button => { button.disabled = false; });
+  }
 }
 
 function buildHomeOnlineRecordsSection(records, options = {}, pageNumber = 1) {
@@ -314,7 +361,7 @@ function buildFollowupList(followups) {
   `;
 }
 
-function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
+function buildFollowupPanel(authState, onlineFollowups, staticFollowups, actionGroups = null) {
   if (authState.apiAvailable && authState.user?.role === 'owner') {
     return `
       <div class="followup-home-guide">
@@ -323,12 +370,30 @@ function buildFollowupPanel(authState, onlineFollowups, staticFollowups) {
       </div>
       <div class="form-status" id="home-followup-status"></div>
       <div class="compact-list manageable-list" id="home-followup-list">
-        ${buildHomeFollowupListPage(onlineFollowups)}
+        ${actionGroups ? buildActionWorkbench(actionGroups) : buildHomeFollowupListPage(onlineFollowups)}
       </div>
     `;
   }
 
   return buildFollowupList(staticFollowups);
+}
+
+function buildActionWorkbench(groups = {}) {
+  const sections = [
+    ['已逾期', groups.overdue || [], 'danger'],
+    ['今天到期', groups.dueToday || [], 'today'],
+    ['后续事项', groups.upcoming || [], 'upcoming']
+  ];
+  if (!sections.some(([, items]) => items.length)) {
+    return '<div class="empty-inline">暂无待处理行动。</div>';
+  }
+  return sections.filter(([, items]) => items.length).map(([title, items, tone]) => `
+    <section class="home-action-group is-${tone}">
+      <div class="home-action-heading"><strong>${title}</strong><span>${items.length} 项</span></div>
+      ${items.slice(0, 8).map(buildEditableFollowupRow).join('')}
+      ${items.length > 8 ? `<div class="panel-date">另有 ${items.length - 8} 项，请到 Daily 查看</div>` : ''}
+    </section>
+  `).join('');
 }
 
 function buildFollowupContextMeta(item) {
@@ -389,6 +454,8 @@ function buildProjectList(projects) {
           <div>
             <strong>${escapeHtml(project.name)}</strong>
             <span>${escapeHtml(project.summary || '')}</span>
+            ${project.actionState === 'missing_next_action' ? '<span class="project-action-warning">缺少明确下一步</span>' : ''}
+            ${project.actionState === 'stalled' ? '<span class="project-action-warning">超过 14 天没有推进</span>' : ''}
           </div>
           <em>${project.openFollowUps || 0} open</em>
         </a>
@@ -465,6 +532,10 @@ function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = value == null ? '' : String(value);
   return div.innerHTML;
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function formatShortTime(value) {

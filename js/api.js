@@ -177,6 +177,51 @@ export function updateFollowup(id, input) {
   });
 }
 
+export function transitionFollowup(id, input) {
+  return apiRequest(`/api/followups/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    body: input
+  });
+}
+
+export function getFollowup(id) {
+  return apiRequest(`/api/followups/${encodeURIComponent(id)}`);
+}
+
+export function getRecordDecisions(recordId) {
+  return apiRequest(`/api/records/${encodeURIComponent(recordId)}/decisions`);
+}
+
+export function saveRecordDecision(recordId, input) {
+  return apiRequest(`/api/records/${encodeURIComponent(recordId)}/decisions`, { method: 'POST', body: input });
+}
+
+export function getInsights(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return apiRequest(`/api/insights${query ? `?${query}` : ''}`);
+}
+
+export function createInsight(input) {
+  return apiRequest('/api/insights', { method: 'POST', body: input });
+}
+
+export function updateInsight(id, input) {
+  return apiRequest(`/api/insights/${encodeURIComponent(id)}`, { method: 'PATCH', body: input });
+}
+
+export function getDailyFocus(date = 'today') {
+  return apiRequest(`/api/daily-focus/${encodeURIComponent(date)}`);
+}
+
+export function updateDailyFocus(date = 'today', input) {
+  return apiRequest(`/api/daily-focus/${encodeURIComponent(date)}`, { method: 'PUT', body: input });
+}
+
+export function getClosureMetrics(type, key) {
+  const search = new URLSearchParams({ type, key });
+  return apiRequest(`/api/closure-metrics?${search}`);
+}
+
 export function getDomainSettings(domain) {
   return apiRequest(`/api/domain-settings/${encodeURIComponent(domain)}`);
 }

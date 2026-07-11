@@ -1,6 +1,7 @@
 import { handleAnalysis } from './routes/analysis.js';
 import { handleAuth } from './routes/auth.js';
 import { handleContentItems } from './routes/content-items.js';
+import { handleClosure } from './routes/closure.js';
 import { handleDailyReviews } from './routes/daily-reviews.js';
 import { handleDashboard } from './routes/dashboard.js';
 import { handleDashboardSettings } from './routes/dashboard-settings.js';
@@ -106,6 +107,9 @@ function parseHasSessionCookie(request) {
 function dispatchApiRoute(request, env, ctx, path) {
   if (path.startsWith('/api/auth/')) return handleAuth(request, env, ctx);
   if (path.startsWith('/api/analysis/')) return handleAnalysis(request, env, ctx);
+  if (path === '/api/closure-metrics' || path.startsWith('/api/insights') || path.startsWith('/api/daily-focus/') || /\/api\/records\/[^/]+\/decisions$/.test(path)) {
+    return handleClosure(request, env, ctx);
+  }
   if (path.startsWith('/api/records')) return handleRecords(request, env, ctx);
   if (path.startsWith('/api/projects')) return handleProjects(request, env, ctx);
   if (path.startsWith('/api/content-items')) return handleContentItems(request, env, ctx);

@@ -2,7 +2,7 @@
    Editable Follow-up Rows
    ======================================== */
 
-import { updateFollowup } from '../api.js?v=20260703g';
+import { transitionFollowup, updateFollowup } from '../api.js?v=20260711a';
 
 export function buildEditableFollowupRow(item, options = {}) {
   const statusLabel = item.overdue ? '超时' : ({
@@ -72,7 +72,11 @@ export function bindEditableFollowupList(list, options = {}) {
     setStatus(options.statusEl, '更新中...');
 
     try {
-      const data = await updateFollowup(id, { status: nextStatus });
+      const data = await transitionFollowup(id, {
+        status: nextStatus,
+        ...(nextStatus === 'closed' ? { outcomeType: 'completed' } : {}),
+        ...(nextStatus === 'dropped' ? { outcomeType: 'not_needed' } : {})
+      });
       if (nextStatus === 'closed' || nextStatus === 'dropped') {
         row.remove();
         ensureEmptyState(list, options.emptyText || '暂无在线待办。');

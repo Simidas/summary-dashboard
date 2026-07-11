@@ -2,12 +2,12 @@
    Records Center View
    ======================================== */
 
-import { getProjects, getRecords } from '../api.js?v=20260703g';
-import { getAuthState, isApiEnabled } from '../auth.js?v=20260703g';
-import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260703g';
-import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260703g';
-import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260703g';
-import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260703g';
+import { getProjects, getRecords } from '../api.js?v=20260711a';
+import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
+import { buildOnlineRecordList, replaceOnlineRecordCard } from '../components/online-records.js?v=20260711a';
+import { bindRecordDestinationActions } from '../components/record-destinations.js?v=20260711a';
+import { bindUnifiedRecordForm, buildUnifiedRecordForm } from '../components/unified-record-form.js?v=20260711a';
+import { DOMAIN_OPTIONS, RECORD_TYPE_OPTIONS } from '../components/record-types.js?v=20260711a';
 
 const PAGE_SIZE = 12;
 const QUICK_RECORD_TYPES = new Set(RECORD_TYPE_OPTIONS.map(item => item.value));

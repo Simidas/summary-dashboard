@@ -2,8 +2,8 @@
    Record Destination Actions
    ======================================== */
 
-import { applyRecordDestination } from '../api.js?v=20260703g';
-import { getAuthState } from '../auth.js?v=20260703g';
+import { applyRecordDestination, createInsight, saveRecordDecision } from '../api.js?v=20260711a';
+import { getAuthState } from '../auth.js?v=20260711a';
 
 const boundRoots = new WeakSet();
 
@@ -32,29 +32,61 @@ export function buildRecordDestinationActions(record, aiSuggestion, destinations
   if (!recordId || !aiSuggestion || aiSuggestion.status !== 'completed') return '';
 
   const applied = normalizeAppliedDestinations(destinations);
-  const candidates = collectCandidates(record || {}, aiSuggestion, applied);
-  if (!applied.length && !candidates.length) return '';
+  const decisions = record?.decisions || [];
+  const candidates = collectCandidates(record || {}, aiSuggestion, applied, decisions);
+  const insightCandidates = collectInsightCandidates(aiSuggestion, decisions);
+  const confirmedInsights = record?.insights || [];
+  if (!applied.length && !candidates.length && !insightCandidates.length && !confirmedInsights.length) return '';
 
   return `
     <div class="record-routing-panel" data-record-routing-panel="${escapeAttr(recordId)}">
-      <div class="record-routing-title">AI 分流建议</div>
+      <div class="record-routing-title">AI 提炼结果</div>
+      ${confirmedInsights.length ? `
+        <div class="record-closure-group">
+          <strong>已经记住</strong>
+          ${confirmedInsights.map(item => `<div class="record-insight-confirmed">${escapeHtml(item.text)}</div>`).join('')}
+        </div>
+      ` : ''}
+      ${insightCandidates.length ? `
+        <div class="record-closure-group">
+          <strong>值得记住</strong>
+          ${insightCandidates.map(item => `
+            <div class="record-insight-candidate" data-insight-candidate="${escapeAttr(item.key)}">
+              <span>${escapeHtml(item.text)}</span>
+              <div class="record-routing-actions">
+                <button type="button" data-insight-action="accept" data-record-id="${escapeAttr(recordId)}"
+                  data-suggestion-id="${escapeAttr(aiSuggestion.id)}" data-candidate-key="${escapeAttr(item.key)}"
+                  data-insight-type="${escapeAttr(item.type)}" data-insight-text="${escapeAttr(item.text)}"
+                  data-insight-evidence="${escapeAttr(JSON.stringify(item.evidence || []))}">记住这个发现</button>
+                <button type="button" data-insight-action="dismiss" data-record-id="${escapeAttr(recordId)}"
+                  data-suggestion-id="${escapeAttr(aiSuggestion.id)}" data-candidate-key="${escapeAttr(item.key)}">忽略</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
       ${applied.length ? `
         <div class="record-routing-applied">
           ${applied.map(item => `<span>${escapeHtml(item.label)}</span>`).join('')}
         </div>
       ` : ''}
       ${candidates.length ? `
-        <div class="record-routing-actions">
+        <div class="record-closure-group"><strong>可以去做</strong><div class="record-routing-actions">
           ${candidates.map(item => `
-            <button
+            <span class="record-action-candidate"><button
               type="button"
               data-record-destination-type="${escapeAttr(item.type)}"
               data-record-id="${escapeAttr(recordId)}"
+              data-suggestion-id="${escapeAttr(aiSuggestion.id)}"
+              data-candidate-key="${escapeAttr(item.key)}"
               ${item.name ? `data-record-destination-name="${escapeAttr(item.name)}"` : ''}
               title="${escapeAttr(item.reason || item.label)}"
-            >${escapeHtml(item.label)}</button>
+            >${escapeHtml(item.label)}</button><button type="button" class="subtle-action"
+              data-action-candidate-dismiss="true" data-record-id="${escapeAttr(recordId)}"
+              data-suggestion-id="${escapeAttr(aiSuggestion.id)}" data-candidate-key="${escapeAttr(item.key)}"
+              data-candidate-type="${escapeAttr(destinationCandidateType(item.type))}">忽略</button></span>
           `).join('')}
-        </div>
+        </div></div>
         <div class="record-routing-status" data-record-routing-status="${escapeAttr(recordId)}"></div>
       ` : ''}
     </div>
@@ -71,6 +103,16 @@ export function bindRecordDestinationActions(root, options = {}) {
   boundRoots.add(root);
 
   root.addEventListener('click', async (event) => {
+    const insightButton = event.target.closest('[data-insight-action]');
+    if (insightButton) {
+      await handleInsightAction(insightButton);
+      return;
+    }
+    const dismissButton = event.target.closest('[data-action-candidate-dismiss]');
+    if (dismissButton) {
+      await dismissCandidate(dismissButton);
+      return;
+    }
     const button = event.target.closest('[data-record-destination-type]');
     if (!button) return;
 
@@ -112,8 +154,9 @@ function normalizeAppliedDestinations(destinations = []) {
     .filter(item => item.type && item.label);
 }
 
-function collectCandidates(record, aiSuggestion, applied = []) {
+function collectCandidates(record, aiSuggestion, applied = [], decisions = []) {
   const appliedTypes = new Set(applied.map(item => item.type));
+  const processedKeys = new Set(decisions.filter(item => item.candidateType !== 'insight').map(item => item.candidateKey));
   const structured = aiSuggestion.structuredResult || {};
   const result = [];
 
@@ -140,7 +183,85 @@ function collectCandidates(record, aiSuggestion, applied = []) {
     addCandidate(result, record, appliedTypes, { type: 'project', reason: 'AI 判断这条记录可能属于项目线索', name: suggestedProject });
   }
 
-  return result.slice(0, 4);
+  return result.map(item => ({ ...item, key: `${item.type}:${item.name || 'default'}` }))
+    .filter(item => !processedKeys.has(item.key)).slice(0, 4);
+}
+
+function collectInsightCandidates(aiSuggestion, decisions = []) {
+  const processed = new Set(decisions.filter(item => item.candidateType === 'insight').map(item => item.candidateKey));
+  return (aiSuggestion.structuredResult?.insightCandidates || [])
+    .filter(item => item && typeof item === 'object')
+    .map((item, index) => ({
+      key: String(item.key || `insight-${index}`),
+      text: String(item.text || '').trim(),
+      type: ['pattern', 'judgment', 'risk', 'preference', 'strategy', 'observation'].includes(item.type)
+        ? item.type : 'observation',
+      evidence: Array.isArray(item.evidence) ? item.evidence : []
+    }))
+    .filter(item => item.text && !processed.has(item.key))
+    .slice(0, 3);
+}
+
+async function handleInsightAction(button) {
+  button.disabled = true;
+  try {
+    if (button.dataset.insightAction === 'accept') {
+      await createInsight({
+        text: button.dataset.insightText,
+        type: button.dataset.insightType,
+        status: 'confirmed',
+        sourceRecordId: button.dataset.recordId,
+        sourceSuggestionId: button.dataset.suggestionId,
+        candidateKey: button.dataset.candidateKey,
+        evidence: JSON.parse(button.dataset.insightEvidence || '[]')
+      });
+      button.closest('[data-insight-candidate]')?.replaceWith(buildHandledLabel(`已记住：${button.dataset.insightText}`));
+    } else {
+      await saveRecordDecision(button.dataset.recordId, {
+        suggestionId: button.dataset.suggestionId,
+        candidateType: 'insight',
+        candidateKey: button.dataset.candidateKey,
+        decision: 'dismissed'
+      });
+      button.closest('[data-insight-candidate]')?.remove();
+    }
+  } catch (error) {
+    button.disabled = false;
+    setPanelStatus(button, error.message || '处理失败');
+  }
+}
+
+async function dismissCandidate(button) {
+  button.disabled = true;
+  try {
+    await saveRecordDecision(button.dataset.recordId, {
+      suggestionId: button.dataset.suggestionId,
+      candidateType: button.dataset.candidateType,
+      candidateKey: button.dataset.candidateKey,
+      decision: 'dismissed'
+    });
+    button.closest('.record-action-candidate')?.remove();
+  } catch (error) {
+    button.disabled = false;
+    setPanelStatus(button, error.message || '处理失败');
+  }
+}
+
+function destinationCandidateType(type) {
+  if (type === 'followup' || type === 'daily_review') return 'action';
+  return type;
+}
+
+function setPanelStatus(button, message) {
+  const target = button.closest('[data-record-routing-panel]')?.querySelector('[data-record-routing-status]');
+  if (target) target.textContent = message;
+}
+
+function buildHandledLabel(text) {
+  const element = document.createElement('div');
+  element.className = 'record-insight-confirmed';
+  element.textContent = text;
+  return element;
 }
 
 function addCandidate(result, record, appliedTypes, candidate) {
