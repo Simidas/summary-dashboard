@@ -4,7 +4,7 @@
 - 域名：https://blog.zhuwd.com
 - 站点类型：Owner-only 私人工具
 - 商业化：无
-- 当前状态：WAITING_OWNER
+- 当前状态：LIVE / OWNER_REVIEW_PENDING
 - 事实源：本文件 + `stage-status.md` + Git
 
 ## Owner 已确认
@@ -15,10 +15,10 @@
 
 ## 当前阶段
 
-- running：无
-- waiting：Owner Review、生产 migration 与部署
+- running：Owner 真实登录验收
+- waiting：首周私人工具使用复盘
 - blocked：无
-- done：PRD 主路径、Workers/D1、Google OAuth、AI、前后端实现
+- done：PRD 主路径、Workers/D1、Google OAuth、AI、前后端实现、生产 migration 与部署
 
 ## 当前修改目标
 
@@ -34,9 +34,10 @@
 - [x] 未登录访问私有 API 返回 401。
 - [x] 非 Owner 账号返回 403。
 - [x] `public/` 不包含 `data/`。
-- [ ] 生产 migration `0013_private_tool_mode.sql` 已执行。
-- [ ] 生产冒烟测试和 Owner Review 通过。
-- [ ] 记录 commit、分支、部署 URL 和最终 Git 状态。
+- [x] 生产 migration `0013_private_tool_mode.sql` 已执行。
+- [x] 未登录生产冒烟测试通过。
+- [ ] Owner 真实登录任务验收通过。
+- [x] 记录 commit、分支、部署 URL 和最终 Git 状态。
 
 ## 自动 QA 证据
 
@@ -44,3 +45,15 @@
 - Wrangler Node 22 dry-run：通过，构建读取 47 个静态文件。
 - 本地 D1：`0013_private_tool_mode.sql` 成功执行。
 - 构建断言：`public/data` 不存在，`public/robots.txt` 存在。
+
+## 生产发布证据（2026-08-06）
+
+- 分支：`agent/private-tool-mode`
+- 功能提交：`ce794ec`、`c3405e6`
+- Workers 服务：`summary-dashboard`
+- 生产 URL：`https://blog.zhuwd.com`
+- Workers URL：`https://summary-dashboard.simidas2017.workers.dev`
+- 已部署版本：`3f489f15-f625-4245-98d4-a02e069e9dfc`
+- D1 备份：`backups/summary-dashboard-remote-2026-08-06T09-48-51-171Z.sql`（本地忽略文件）
+- 冒烟结果：首页 200；私有 API 401；访客 dashboard 仅返回当天数据；旧 JSON 路径不再暴露数据。
+- 平台残项：Cloudflare Managed robots 会在自定义 `Disallow: /` 前注入 `Allow: /`；站点仍由 HTML `noindex` 与 `X-Robots-Tag` 双重禁止索引。关闭该平台功能需要 Bot Management 权限。

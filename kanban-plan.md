@@ -17,7 +17,7 @@
 - input_paths：本阶段代码与测试
 - output_paths：测试和验证证据
 - gate：语法、单测、构建、migration、隐私断言通过
-- status：NEEDS_REVIEW
+- status：DONE
 - downstream：SD-OWNER-01
 
 ## SD-OWNER-01
@@ -33,4 +33,13 @@
 - stage：private deploy
 - owner：Codex + Weldon
 - blocked_if：未获得生产部署授权或 Owner Review 未通过
-- status：WAITING
+- status：DONE
+
+## SD-REVIEW-01
+
+- stage：private usage review
+- owner：Weldon
+- input_paths：生产站真实使用记录
+- output_paths：`review-plan.md` 中的结论与下一轮改进项
+- gate：完成 Owner 登录验收并积累至少 7 天真实使用数据
+- status：READY
