@@ -44,13 +44,6 @@ export function buildUnifiedRecordForm(options = {}) {
               ${buildTypeOptions(defaultDomain, defaultType)}
             </select>
           </label>
-          <label>
-            <span>可见性</span>
-            <select name="visibility">
-              <option value="private">私密</option>
-              <option value="public">公开</option>
-            </select>
-          </label>
         </div>
         <div class="record-type-hint" data-record-type-hint>${escapeHtml(getRecordTypeHint(defaultType))}</div>
         <details class="advanced-record-fields">
@@ -172,7 +165,7 @@ export function bindUnifiedRecordForm(root, options = {}) {
       content,
       domain: form.elements.domain.value,
       type,
-      visibility: form.elements.visibility.value,
+      visibility: 'private',
       mood: form.elements.mood?.value.trim() || null,
       energy: form.elements.energy?.value || null,
       projects: project ? [project] : [],

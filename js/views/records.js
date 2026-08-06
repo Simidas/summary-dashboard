@@ -114,8 +114,8 @@ function buildAccessOrForm(authState, canWrite, projects, defaults = {}) {
   if (!canWrite) {
     return `
       <section class="access-note">
-        <strong>只读账号</strong>
-        <p>当前账号只能浏览公开内容，不能写入记录。</p>
+        <strong>无访问权限</strong>
+        <p>当前账号不是 Owner，无法读取或写入记录。</p>
       </section>
     `;
   }

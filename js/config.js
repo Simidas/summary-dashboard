@@ -3,26 +3,6 @@
    ======================================== */
 
 /**
- * Giscus configuration — single source of truth
- * All views should import from here instead of hardcoding
- */
-export const GISCUS_CONFIG = {
-  repo: 'Simidas/summary-dashboard',
-  repoId: 'R_kgDOR0YGCw',
-  category: 'General',
-  categoryId: 'DIC_kwDOR0YGC84C5mS9',
-  mapping: 'url',
-  strict: '0',
-  reactionsEnabled: '1',
-  emitMetadata: '0',
-  inputPosition: 'top',
-  theme: 'preferred_color_scheme',
-  lang: 'zh-CN',
-  loading: 'lazy',
-  anonymous: 'true'
-};
-
-/**
  * Site metadata
  */
 export const SITE = {

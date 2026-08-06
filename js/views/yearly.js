@@ -7,7 +7,6 @@ import { getAnalysisSnapshot, getContentItems, getDailyReviews, getFollowups, ge
 import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
 import { buildYearlySummaries } from '../aggregations.js?v=20260711a';
 import { createYearHeroCard } from '../components/card.js?v=20260711a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260711a';
 import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260711a';
 import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260711a';
 import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
@@ -134,9 +133,6 @@ export async function renderYearlyView(container, params = {}) {
   });
   page.appendChild(historyList);
 
-  // Giscus section
-  page.appendChild(createGiscusSection('yearly-overview'));
-
   container.innerHTML = '';
   container.appendChild(page);
   bindPeriodReviewForms(page);
@@ -178,26 +174,6 @@ function buildYearlyHistoryPagination(currentPage, totalPages) {
       <button type="button" data-year-history-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
     </div>
   `;
-}
-
-/**
- * Create giscus section for yearly view
- * @param {string} topic
- * @returns {HTMLElement}
- */
-function createGiscusSection(topic) {
-  const section = document.createElement('div');
-  section.className = 'giscus-section';
-  section.innerHTML = `
-    <div class="giscus-header">
-      <h3 class="giscus-title">来聊聊 Yearly 视图</h3>
-    </div>
-    <div class="giscus-container" id="giscus-yearly"></div>
-  `;
-
-  const toggle = createGiscusToggle('giscus-yearly', '展开评论区');
-  section.querySelector('.giscus-header').appendChild(toggle);
-  return section;
 }
 
 function mergeYearSummariesWithReviews(yearsData = [], reviews = []) {

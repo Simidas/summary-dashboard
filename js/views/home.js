@@ -89,7 +89,7 @@ export async function renderHomeView(container) {
     || overview?.tomorrowFirstStep
     || '先写下一个 25 分钟动作';
   const onlineRecordOptions = {
-    title: authState.user?.role === 'owner' ? '最近在线记录' : '公开在线记录',
+    title: '最近在线记录',
     emptyText: '还没有线上记录。写下第一句后，刷新页面也会在这里看到。'
   };
 
@@ -287,8 +287,8 @@ function buildRecordGuidePanel(dashboard, authState) {
   if (authState.user.role !== 'owner') {
     return `
       <section class="access-note">
-        <strong>只读账号</strong>
-        <p>当前 Google 账号不是作者账号，只能浏览公开内容，不能写入 Records。</p>
+        <strong>无访问权限</strong>
+        <p>当前 Google 账号不是 Owner，无法读取或写入记录。</p>
       </section>
     `;
   }

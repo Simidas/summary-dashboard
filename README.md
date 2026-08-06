@@ -2,7 +2,7 @@
 
 > 帮你持续记录、接住情绪、推进事情、定期复盘的个人经营系统。
 
-这是一个面向主业、副业、生活和自我、内容产出的个人经营复盘站。当前线上版本已经升级为 Cloudflare Workers + D1 + Google OAuth 的在线记录系统，主数据源从仓库 JSON 切换为 D1。
+这是一个仅供 Owner 使用的个人经营复盘工具。当前代码使用 Cloudflare Workers + D1 + Google OAuth，主数据源为 D1；私人工具模式部署后不提供公开内容浏览。
 
 线上域名：https://blog.zhuwd.com
 
@@ -10,7 +10,7 @@
 
 ## 功能特性
 
-- **Google 登录与 owner 写入权限**：只有 `OWNER_EMAIL` 对应 Google 账号可以写入和查看私密数据。
+- **Google 登录与 Owner 权限**：只有 `OWNER_EMAIL` 对应 Google 账号可以读取和写入数据。
 - **首页快速记录**：保存原始记录后先返回成功，AI 建议后台生成并回填。
 - **四场景经营面板**：主业、副业、生活和自我、内容产出的当前重点、下一步、未闭环事项。
 - **Diary**：随时记录情绪、想法和碎碎念，AI 给出陪伴式分析和行动建议。
@@ -21,7 +21,6 @@
 - **Follow-up**：未闭环事项支持计划时间、状态流转、超时标识。
 - **Content**：管理内容素材、选题、状态和下一步。
 - **宠物激励**：根据记录天数、连续记录、经验值和等级给予轻量正反馈；中断会扣减经验。
-- **Giscus 评论**：保留在 Daily / Weekly / Monthly / Yearly 视图中作为公开讨论区。
 
 ## 当前数据逻辑
 
@@ -43,7 +42,7 @@
 - `domain_settings`：四场景当前重点和下一步。
 - `user_state`：连续记录、经验值、等级。
 
-仓库里的 `data/records` 和 `data/summaries` 仍保留，但现在主要用于历史导入、静态 fallback、本地归档和备份。
+仓库里的 `data/records` 和 `data/summaries` 只用于历史导入和本地归档，不会复制到 Worker 的公开静态资源。
 
 ## 周度复盘与趋势标签逻辑
 
@@ -201,7 +200,7 @@ summary-dashboard/
 │   └── prompts/
 ├── migrations/             # D1 schema
 ├── scripts/                # 静态资产准备、历史导入、旧 JSON 工具
-├── data/                   # 历史 JSON / 静态 fallback
+├── data/                   # 历史导入与本地归档，不发布
 ├── docs/
 │   └── current-implementation.md
 ├── public/                 # 生成产物，不提交

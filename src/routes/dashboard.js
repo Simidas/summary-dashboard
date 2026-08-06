@@ -160,25 +160,9 @@ async function loadLatestSuggestion(env, recordId) {
 }
 
 async function publicDashboard(env) {
-  const publicCount = await env.DB.prepare(`
-    SELECT COUNT(*) AS count
-    FROM records
-    WHERE visibility = 'public' AND deleted_at IS NULL
-  `).first();
-
-  const latest = await env.DB.prepare(`
-    SELECT *
-    FROM records
-    WHERE visibility = 'public' AND deleted_at IS NULL
-    ORDER BY created_at DESC
-    LIMIT 1
-  `).first();
-
   return ok({
     mode: 'visitor',
-    today: todayShanghai(),
-    publicRecordCount: Number(publicCount?.count || 0),
-    latestPublicRecord: latest ? mapRecord(latest) : null
+    today: todayShanghai()
   });
 }
 

@@ -1,12 +1,12 @@
 # 当前实现状态
 
-更新时间：2026-07-03
+更新时间：2026-08-06
 线上域名：https://blog.zhuwd.com
 当前形态：Cloudflare Workers + Static Assets + D1 + Google OAuth + MiniMax M3
 
 ## 1. 产品定位
 
-本项目已经从纯静态复盘展示站，升级为个人在线经营复盘系统。当前重点不是公开博客，而是帮助作者在四个长期场景里持续记录、被 AI 接住、形成下一步行动，并按日/周/月/年回看趋势。
+本项目是仅供 Owner 使用的个人在线经营复盘系统。当前分支已完成私人工具模式收口，待 Owner Review 后部署；部署后不承担公开博客、内容分发或访客阅读能力。
 
 当前最新迭代开始落地“记录中枢与 AI 类型化增强”：所有输入先归属四大场景和一个记录类型，再由 AI 按类型增强。输入体系已进一步收敛为“场景、类型、主题标签、原文”。
 
@@ -22,10 +22,12 @@
 ### 登录与权限
 
 - Google OAuth 登录已接入。
-- `OWNER_EMAIL` 对应账号为 owner，可写入、可读私密数据、可触发 AI。
-- 游客只能读取公开内容和公开 dashboard 信息。
+- `OWNER_EMAIL` 对应账号为 owner，可读取、写入并触发 AI。
+- 未登录访客只能看到登录入口，不能读取任何记录、聚合、项目、待办或内容素材。
+- 非 Owner Google 账号不能访问私有 API。
 - 写入接口使用 HttpOnly session cookie + CSRF token。
 - session 支持 48 小时内活跃刷新，长时间无操作后需要重新登录。
+- 所有响应带 `X-Robots-Tag: noindex`，页面和 `robots.txt` 同时禁止收录。
 
 ### 在线记录
 
@@ -40,7 +42,7 @@
 - `records` 新增 `structured_payload_json` 和 `ai_status`，用于保存类型化补充字段和 AI 生成状态。
 - 任务类记录会自动生成未闭环事项。
 - AI 判断出的内容素材、Daily 复盘、项目线索和非任务待办会展示为“分流建议”，owner 确认后写入对应模块。
-- 新记录默认 `private`。
+- 新建和更新记录都强制保存为 `private`，表单不提供公开选项。
 - 记录保存与 AI 生成解耦：先返回保存成功和 `aiPending`，AI 建议后台生成后前端轮询更新。
 
 ### AI 陪伴与分析
@@ -147,9 +149,10 @@ D1 表：
 仓库里的 `data/records`、`data/summaries` 和历史 JSON 现在主要作为：
 
 - 历史导入来源。
-- 本地静态 fallback。
 - 备份/归档格式。
-- 无 API 静态预览数据。
+- 本地开发参考数据。
+
+这些目录不会复制到 Worker 的 `public/`，生产环境不存在历史 JSON 静态 fallback。
 
 ## 4. API 概览
 

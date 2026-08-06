@@ -53,6 +53,14 @@ async function handleApi(request, env, ctx) {
       return fail(500, 'DB_NOT_CONFIGURED', 'D1 database binding is not configured');
     }
 
+    if (!path.startsWith('/api/auth/') && path !== '/api/dashboard') {
+      const session = await getSession(request, env);
+      if (!session) return fail(401, 'UNAUTHORIZED', '请先登录');
+      if (session.user.role !== 'owner') {
+        return fail(403, 'FORBIDDEN', '当前账号没有访问权限');
+      }
+    }
+
     const response = await dispatchApiRoute(request, env, ctx, path);
     return refreshSessionCookieIfNeeded(request, env, response);
   } catch (error) {
@@ -81,12 +89,13 @@ async function refreshSessionCookieIfNeeded(request, env, response) {
 
 function withSecurityHeaders(request, response) {
   const headers = new Headers(response.headers);
+  headers.set('x-robots-tag', 'noindex, nofollow, noarchive, nosnippet');
   headers.set('x-content-type-options', 'nosniff');
   headers.set('referrer-policy', 'strict-origin-when-cross-origin');
   headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
   headers.set(
     'content-security-policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://giscus.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src https://giscus.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
   );
 
   if (new URL(request.url).protocol === 'https:') {

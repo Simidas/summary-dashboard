@@ -8,7 +8,7 @@
 // TODO(Phase 4): Add Cloudflare Workers API for server-side search
 
 import router from './router.js?v=20260711a';
-import { initAuth, mountAuthControls } from './auth.js?v=20260711a';
+import { getAuthState, initAuth, mountAuthControls } from './auth.js?v=20260711a';
 
 // DOM Elements
 let app, mainContent, navLinks, header, mobileMenu;
@@ -31,7 +31,7 @@ function init() {
   // Setup routes
   setupRoutes();
 
-  // Initial route. Auth is optional: static preview should still work.
+  // The private tool only renders application views for the owner.
   initAuth().finally(() => router.handleRoute());
 }
 
@@ -109,6 +109,12 @@ async function renderRoute(activeRoute, params, loader, renderName) {
   updateActiveNav(activeRoute);
   window.scrollTo(0, 0);
 
+  const authState = getAuthState();
+  if (!authState.apiAvailable || authState.user?.role !== 'owner') {
+    renderPrivateAccess(authState);
+    return;
+  }
+
   try {
     const module = await loader();
     await module[renderName](mainContent, params);
@@ -123,6 +129,24 @@ async function renderRoute(activeRoute, params, loader, renderName) {
       </div>
     `;
   }
+}
+
+function renderPrivateAccess(authState) {
+  const apiUnavailable = !authState.apiAvailable;
+  mainContent.innerHTML = `
+    <div class="page operations-page">
+      <section class="record-capture-panel">
+        <div>
+          <div class="ops-kicker">Private Tool</div>
+          <h1>${apiUnavailable ? '在线服务暂时不可用' : '登录后进入复盘系统'}</h1>
+          <p>${apiUnavailable
+            ? '当前无法连接私有数据服务，请稍后刷新重试。'
+            : '本站仅供 Owner 使用，未登录访客无法读取任何记录。'}</p>
+        </div>
+        ${apiUnavailable ? '' : '<a class="primary-action" href="/api/auth/google/start">Google 登录</a>'}
+      </section>
+    </div>
+  `;
 }
 
 /**

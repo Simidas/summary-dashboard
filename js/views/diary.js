@@ -103,10 +103,6 @@ function buildOnlineDiaryForm() {
       </div>
       <textarea id="diary-online-input" rows="5" placeholder="现在脑子里有什么？不用整理，直接写。"></textarea>
       <div class="diary-capture-actions">
-        <select id="diary-visibility-select" aria-label="可见性">
-          <option value="private">私密</option>
-          <option value="public">公开</option>
-        </select>
         <button id="diary-save-online" class="primary-action" type="button">保存 Diary</button>
       </div>
       <div class="form-status" id="diary-online-status"></div>
@@ -120,7 +116,7 @@ function buildReadOnlyNotice(authState, apiMode) {
     return `
       <section class="access-note">
         <strong>登录后写 Diary</strong>
-        <p>当前可以浏览公开 Diary。使用 Google 登录 owner 账号后，就能在这里写入私密记录。</p>
+        <p>这是私人工具。使用 Google 登录 owner 账号后才能查看和写入记录。</p>
       </section>
     `;
   }
@@ -128,14 +124,13 @@ function buildReadOnlyNotice(authState, apiMode) {
   return `
     <section class="access-note">
       <strong>只读模式</strong>
-      <p>当前账号没有写入权限。访客可以浏览你主动公开的内容，但不能记录或提交内容。</p>
+      <p>当前账号没有访问权限。</p>
     </section>
   `;
 }
 
 function bindOnlineDiaryForm(page, onlineRecords = []) {
   const input = page.querySelector('#diary-online-input');
-  const visibilitySelect = page.querySelector('#diary-visibility-select');
   const button = page.querySelector('#diary-save-online');
   const status = page.querySelector('#diary-online-status');
   const result = page.querySelector('#diary-online-result');
@@ -157,7 +152,7 @@ function bindOnlineDiaryForm(page, onlineRecords = []) {
         content,
         domain: 'life',
         type: 'diary',
-        visibility: visibilitySelect.value
+        visibility: 'private'
       });
       input.value = '';
       status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
@@ -255,7 +250,7 @@ function buildDiaryRecordList(entries, options = {}, pageNumber = 1) {
   const start = (currentPage - 1) * DIARY_PAGE_SIZE;
   const pageEntries = entries.slice(start, start + DIARY_PAGE_SIZE);
   const emptyText = options.apiMode
-    ? options.authState?.user ? '还没有 Diary 记录。' : '还没有公开 Diary。'
+    ? '还没有 Diary 记录。'
     : '暂无本地草稿。';
 
   return `
@@ -304,16 +299,13 @@ function buildPatternSummary(entries) {
   const moods = topValues(entries.map(entry => entry.mood).filter(Boolean), 6);
   const dates = new Set(entries.map(entry => getDateKey(entry)).filter(Boolean));
   const lastDate = getDateKey(entries[0]);
-  const privateCount = entries.filter(entry => entry.visibility === 'private').length;
-  const publicCount = entries.filter(entry => entry.visibility === 'public').length;
 
   return `
     <div class="metric-row wrap">
       <span>${entries.length} 条记录</span>
       <span>${dates.size} 个记录日</span>
       ${lastDate ? `<span>最近 ${escapeHtml(lastDate)}</span>` : ''}
-      ${privateCount ? `<span>${privateCount} 私密</span>` : ''}
-      ${publicCount ? `<span>${publicCount} 公开</span>` : ''}
+      <span>全部私密</span>
     </div>
     ${moods.length || tags.length ? `
       <div class="pill-list">

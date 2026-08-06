@@ -7,7 +7,6 @@ import { getAnalysisSnapshot, getClosureMetrics, getContentItems, getDailyReview
 import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
 import { buildWeeklyInsight, buildWeeklySummaries } from '../aggregations.js?v=20260711a';
 import { createWeekCard } from '../components/card.js?v=20260711a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260711a';
 import { bindPeriodReviewForms, buildPeriodReviewPanel } from '../components/period-review.js?v=20260711a';
 import { createPeriodInsightPanel } from '../components/period-insight.js?v=20260711a';
 import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
@@ -140,9 +139,6 @@ export async function renderWeeklyView(container, params = {}) {
   });
   page.appendChild(historyList);
 
-  // Giscus section
-  page.appendChild(createGiscusSection('weekly-overview'));
-
   container.innerHTML = '';
   container.appendChild(page);
   bindPeriodReviewForms(page);
@@ -227,26 +223,6 @@ function buildWeeklyHistoryPagination(currentPage, totalPages) {
       <button type="button" data-week-history-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
     </div>
   `;
-}
-
-/**
- * Create giscus section for weekly view
- * @param {string} topic
- * @returns {HTMLElement}
- */
-function createGiscusSection(topic) {
-  const section = document.createElement('div');
-  section.className = 'giscus-section';
-  section.innerHTML = `
-    <div class="giscus-header">
-      <h3 class="giscus-title">来聊聊 Weekly 视图</h3>
-    </div>
-    <div class="giscus-container" id="giscus-weekly"></div>
-  `;
-
-  const toggle = createGiscusToggle('giscus-weekly', '展开评论区');
-  section.querySelector('.giscus-header').appendChild(toggle);
-  return section;
 }
 
 function escapeHtml(value) {

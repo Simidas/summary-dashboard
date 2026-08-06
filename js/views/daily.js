@@ -9,7 +9,6 @@ import { loadDailySummaries, getAvailableDailyDates } from '../data.js?v=2026071
 import { getAnalysisSnapshot, getDailyReview, getDailyReviews, getRecords, updateDailyReview } from '../api.js?v=20260711a';
 import { getAuthState, isApiEnabled } from '../auth.js?v=20260711a';
 import { createSummaryCard } from '../components/card.js?v=20260711a';
-import { createGiscusToggle } from '../components/giscus.js?v=20260711a';
 import { bindAnalysisPanel, buildAnalysisPanel } from '../components/analysis-panel.js?v=20260711a';
 import { DAILY_MOOD_OPTIONS } from '../components/record-types.js?v=20260711a';
 
@@ -98,19 +97,6 @@ export async function renderDailyView(container, params = {}) {
 
   // Timeline section
   renderTimeline(page, summaries, usingOnlineSummaries ? '最近每日综合记录' : '历史归档记录');
-
-  // Giscus section
-  const giscusSection = document.createElement('div');
-  giscusSection.className = 'giscus-section';
-  giscusSection.innerHTML = `
-    <div class="giscus-header">
-      <h3 class="giscus-title">来聊聊这篇复盘吧</h3>
-    </div>
-    <div class="giscus-container" id="giscus-daily"></div>
-  `;
-  const giscusToggle = createGiscusToggle('giscus-daily', '展开评论区');
-  giscusSection.querySelector('.giscus-header').appendChild(giscusToggle);
-  page.appendChild(giscusSection);
 
   // Keyboard navigation — bind once only
   if (!_keyboardNavBound) {

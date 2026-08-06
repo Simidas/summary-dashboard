@@ -9,10 +9,9 @@ const outDir = path.join(root, 'public');
 
 const copyTargets = [
   { from: 'index.html', to: 'index.html' },
+  { from: 'robots.txt', to: 'robots.txt' },
   { from: 'css', to: 'css' },
-  { from: 'js', to: 'js' },
-  { from: 'data/summaries', to: 'data/summaries' },
-  { from: 'data/records/daily', to: 'data/records/daily' }
+  { from: 'js', to: 'js' }
 ];
 
 fs.rmSync(outDir, { recursive: true, force: true });

@@ -242,13 +242,6 @@ function buildDomainRecordPanel(authState, domainId) {
               ${getAvailableRecordTypes(domainId).map(item => `<option value="${escapeAttr(item.value)}">${escapeHtml(item.label)}</option>`).join('')}
             </select>
           </label>
-          <label>
-            <span>可见性</span>
-            <select name="visibility">
-              <option value="private">私密</option>
-              <option value="public">公开</option>
-            </select>
-          </label>
         </div>
         <div class="record-form-footer">
           <span class="form-status" id="domain-record-status"></span>
@@ -523,7 +516,7 @@ function bindDomainRecordForm(page, domainId, records = []) {
         content,
         domain: domainId,
         type: form.elements.type.value,
-        visibility: form.elements.visibility.value
+        visibility: 'private'
       });
       form.elements.content.value = '';
       status.textContent = data.aiPending ? '已保存，AI 建议生成中...' : '已保存';
