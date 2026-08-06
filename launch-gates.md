@@ -14,6 +14,7 @@
 - [x] 生产 D1 已备份并执行 `0013_private_tool_mode.sql`。
 - [x] 首页返回 200，并带 HSTS、CSP、`X-Robots-Tag`。
 - [x] HTML 包含 `noindex`。
+- [x] 线上 `robots.txt` 仅声明 `Disallow: /`，无平台注入的 `Allow: /`。
 - [x] 未登录 `/api/records` 返回 401。
 - [x] 访客 `/api/dashboard` 仅返回当天数据。
 - [x] 历史静态 JSON 路径不再返回数据文件。
@@ -21,4 +22,4 @@
 
 ## 已知残项
 
-- Cloudflare Managed robots 自动注入 `Allow: /`，与仓库的 `Disallow: /` 同时存在。HTML `noindex` 和 `X-Robots-Tag` 仍是主要禁索引控制；彻底清理需具备 Cloudflare Bot Management 权限后关闭 Managed robots。
+- Owner 登录后的完整真实任务验收仍需 Weldon 在生产账号下完成。

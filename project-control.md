@@ -53,7 +53,7 @@
 - Workers 服务：`summary-dashboard`
 - 生产 URL：`https://blog.zhuwd.com`
 - Workers URL：`https://summary-dashboard.simidas2017.workers.dev`
-- 已部署版本：`3f489f15-f625-4245-98d4-a02e069e9dfc`
+- 部署平台：Cloudflare Workers（当前 Version ID 以 Wrangler 发布日志为准）
 - D1 备份：`backups/summary-dashboard-remote-2026-08-06T09-48-51-171Z.sql`（本地忽略文件）
 - 冒烟结果：首页 200；私有 API 401；访客 dashboard 仅返回当天数据；旧 JSON 路径不再暴露数据。
-- 平台残项：Cloudflare Managed robots 会在自定义 `Disallow: /` 前注入 `Allow: /`；站点仍由 HTML `noindex` 与 `X-Robots-Tag` 双重禁止索引。关闭该平台功能需要 Bot Management 权限。
+- `robots.txt` 线上复验仅包含 `User-agent: *` 与 `Disallow: /`，未再发现 Cloudflare 注入的 `Allow: /`。
